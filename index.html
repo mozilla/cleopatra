@@ -36,7 +36,7 @@
       <input type="file" id="datafile" onchange="loadProfileFile(this.files);">
       <h1>Or, alternatively, enter your profile data here:</h1>
       <textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>
-      <p><button onclick="loadProfile(document.getElementById('data').value, enterMainUI);">Parse</button></p>
+      <p><button onclick="loadProfile(document.getElementById('data').value);">Parse</button></p>
     </div>
     <script>
       if (location.href.indexOf("usesample") != -1) {

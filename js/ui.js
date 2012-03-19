@@ -824,18 +824,18 @@ function loadProfileFile(fileList) {
   var file = fileList[0];
   var reader = new FileReader();
   reader.onloadend = function () {
-    loadProfile(reader.result, enterMainUI);
+    loadProfile(reader.result);
   };
   reader.readAsText(file, "utf-8");
 }
 
-function loadProfile(rawProfile, finishCallback) {
+function loadProfile(rawProfile) {
   gRawProfile = rawProfile;
   var startTime = Date.now();
   gParsedProfile = Parser.parse(rawProfile, function (parsedProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
     gParsedProfile = parsedProfile;
-    finishCallback();
+    enterMainUI();
   });
 }
 

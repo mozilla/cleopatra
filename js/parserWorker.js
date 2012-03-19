@@ -7,6 +7,21 @@ self.onmessage = function (msg) {
 }
 
 function parseRawProfile(requestID, rawProfile) {
+  var symbolicationTable = {};
+
+  if (rawProfile[0] == "{") {
+    // rawProfile is a JSON string.
+    rawProfileObject = JSON.parse(rawProfile);
+    switch (rawProfileObject.format) {
+      case "profileStringWithSymbolicationTable,1":
+        rawProfile = rawProfileObject.profileString;
+        symbolicationTable = rawProfileObject.symbolicationTable;
+        break;
+      default:
+        throw "Unsupported profile JSON format";
+    }
+  }
+
   var data = rawProfile;
   var lines = data.split("\n");
   var extraInfo = {};
@@ -68,11 +83,15 @@ function parseRawProfile(requestID, rawProfile) {
     };
   }
 
+  function translatedSymbol(symbol) {
+    return symbolicationTable[symbol] || symbol;
+  }
+
   function indexForSymbol(symbol) {
     if (symbol in symbolIndices)
       return symbolIndices[symbol];
     var newIndex = symbols.length;
-    symbols[newIndex] = parseSymbol(symbol);
+    symbols[newIndex] = parseSymbol(translatedSymbol(symbol));
     symbolIndices[symbol] = newIndex;
     return newIndex;
   }
@@ -105,7 +124,7 @@ function parseRawProfile(requestID, rawProfile) {
     case 's':
       // sample
       var sampleName = info;
-      sample = makeSample([sampleName], extraInfo, []);
+      sample = makeSample([indexForSymbol(sampleName)], extraInfo, []);
       samples.push(sample);
       extraInfo = {}; // reset the extra info for future rounds
       break;
