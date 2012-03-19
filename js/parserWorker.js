@@ -1,21 +1,27 @@
 self.onmessage = function (msg) {
-  switch (msg.data.task) {
-    case "parseRawProfile":
-      parseRawProfile(msg.data.requestID, msg.data.rawProfile);
-      break;
+  try {
+    switch (msg.data.task) {
+      case "parseRawProfile":
+        parseRawProfile(msg.data.requestID, msg.data.rawProfile);
+        break;
+    }
+  } catch (e) {
+    dump("Exception: " + e + "\n");
   }
 }
 
 function parseRawProfile(requestID, rawProfile) {
   var symbolicationTable = {};
 
-  if (rawProfile[0] == "{") {
+  if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
-    rawProfileObject = JSON.parse(rawProfile);
-    switch (rawProfileObject.format) {
+    rawProfile = JSON.parse(rawProfile);
+  }
+  if (typeof rawProfile == "object") {
+    switch (rawProfile.format) {
       case "profileStringWithSymbolicationTable,1":
-        rawProfile = rawProfileObject.profileString;
-        symbolicationTable = rawProfileObject.symbolicationTable;
+        symbolicationTable = rawProfile.symbolicationTable;
+        rawProfile = rawProfile.profileString;
         break;
       default:
         throw "Unsupported profile JSON format";

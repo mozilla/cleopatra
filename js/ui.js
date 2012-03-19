@@ -633,7 +633,7 @@ function copyProfile() {
 
 function downloadProfile() {
   var bb = new MozBlobBuilder();
-  bb.append(gRawProfile);
+  bb.append(rawProfileString());
   var blob = bb.getBlob("application/octet-stream");
   location.href = window.URL.createObjectURL(blob);
 }
@@ -654,7 +654,7 @@ function uploadProfile(selected) {
   if (selected === true) {
     dataToUpload = getTextData();
   } else {
-    dataToUpload = gRawProfile;
+    dataToUpload = rawProfileString();
   }
 
   if (dataToUpload.length > 1024*1024) {
@@ -827,6 +827,10 @@ function loadProfileFile(fileList) {
     loadProfile(reader.result);
   };
   reader.readAsText(file, "utf-8");
+}
+
+function rawProfileString() {
+  return typeof gRawProfile == "string" ? gRawProfile : JSON.stringify(gRawProfile);
 }
 
 function loadProfile(rawProfile) {
