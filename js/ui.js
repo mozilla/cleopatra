@@ -839,6 +839,13 @@ function loadProfile(rawProfile) {
   });
 }
 
+window.addEventListener("message", function listenToLoadProfileMessage(msg) {
+  // This is triggered by the profiler add-on.
+  var o = JSON.parse(msg.data);
+  if (o.task == "loadProfile")
+    loadProfile(o.rawProfile);
+});
+
 var gInvertCallstack = false;
 function toggleInvertCallStack() {
   gInvertCallstack = !gInvertCallstack;
