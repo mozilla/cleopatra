@@ -185,7 +185,7 @@ var Parser = {
     };
   },
 
-  convertToCallTree: function Parser_convertToCallTree(profile, isReverse) {
+  convertToCallTree: function Parser_convertToCallTree(profile, isReverse, callback) {
     var samples = profile.samples.filter(function noNullSamples(sample) {
       return sample != null;
     });
@@ -209,7 +209,9 @@ var Parser = {
         node = child;
       }
     }
-    return treeRoot;
+    setTimeout(function () {
+      callback(treeRoot);
+    }, 0);
   },
   _clipText: function Tree__clipText(text, length) {
     if (text.length <= length)

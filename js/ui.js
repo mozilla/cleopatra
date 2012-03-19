@@ -956,17 +956,18 @@ function refreshUI() {
     data = Parser.filterByJank(data, gJankThreshold);
   }
   gCurrentlyShownSampleData = data;
-  var treeData = Parser.convertToCallTree(data, gInvertCallstack);
-  console.log("conversion to calltree: " + (Date.now() - start) + "ms.");
-  start = Date.now();
-  if (gMergeUnbranched) {
-    Parser.mergeUnbranchedCallPaths(treeData);
-  }
-  gTreeManager.display(treeData, data.symbols, data.functions, gMergeFunctions);
-  console.log("tree displaying: " + (Date.now() - start) + "ms.");
-  start = Date.now();
-  gHistogramView.display(data, gHighlightedCallstack);
-  console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-  start = Date.now();
-  updateDescription();
+  Parser.convertToCallTree(data, gInvertCallstack, function (treeData) {
+    console.log("conversion to calltree: " + (Date.now() - start) + "ms.");
+    start = Date.now();
+    if (gMergeUnbranched) {
+      Parser.mergeUnbranchedCallPaths(treeData);
+    }
+    gTreeManager.display(treeData, data.symbols, data.functions, gMergeFunctions);
+    console.log("tree displaying: " + (Date.now() - start) + "ms.");
+    start = Date.now();
+    gHistogramView.display(data, gHighlightedCallstack);
+    console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+    start = Date.now();
+    updateDescription();
+  });
 }
