@@ -119,7 +119,7 @@ body {
   margin: 2px 0;
   padding-left: 18px;
 }
-.bottombar {
+.histogram {
   position: absolute;
   height: 60px;
   right: 0;
@@ -127,10 +127,6 @@ body {
   left: 0;
   border-bottom: 1px solid #CCC;
   background: -moz-linear-gradient(#EEE, #CCC);
-}
-.histogram {
-  width: 100%;
-  height: 100%;
 }
 .histogramHilite {
   position: absolute;

@@ -125,12 +125,18 @@ ProfileTreeManager.prototype = {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function HistogramView(markerContainer) {
-  this._canvas = this._createCanvas();
-  this._rangeSelector = new RangeSelector(markerContainer, this._canvas);
-  this._rangeSelector.enableRangeSelectionOnHistogram();
-  this._histogramData = [];
+function HistogramView() {
+  this._container = document.createElement("div");
+  this._container.className = "histogram";
 
+  this._canvas = this._createCanvas();
+  this._container.appendChild(this._canvas);
+
+  this._rangeSelector = new RangeSelector(this._canvas);
+  this._rangeSelector.enableRangeSelectionOnHistogram();
+  this._container.appendChild(this._rangeSelector.getContainer());
+
+  this._histogramData = [];
 }
 HistogramView.prototype = {
   _createCanvas: function HistogramView__createSVGRoot() {
@@ -141,7 +147,7 @@ HistogramView.prototype = {
     return canvas;
   },
   getContainer: function HistogramView_getContainer() {
-    return this._canvas;
+    return this._container;
   },
   _gatherMarkersList: function HistogramView__gatherMarkersList(histogramData) {
     var markers = [];
@@ -182,8 +188,6 @@ HistogramView.prototype = {
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
     });
 
-    var markers = this._gatherMarkersList(this._histogramData);
-    this._rangeSelector.display(markers);
     this._finishedRendering = true;
   },
   highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
@@ -294,96 +298,23 @@ HistogramView.prototype = {
   },
 };
 
-function RangeSelector(container, graph) {
-  this.container = container;
+function RangeSelector(graph) {
+  this.container = document.createElement("div");
+  this.container.className = "rangeSelectorContainer";
   this._graph = graph;
   this._selectedRange = { startX: 0, endX: 0 };
   this._selectedSampleRange = { start: 0, end: 0 };
+
+  this._highlighter = document.createElement("div");
+  this._highlighter.className = "histogramHilite collapsed";
+  this.container.appendChild(this._highlighter);
 }
 RangeSelector.prototype = {
-  display: function RangeSelector_display(markers) {
-    var graph = this._graph;
-    removeAllChildren(this.container);
-    removeAllChildren(markers);
-
-    var select = document.createElement("select");
-    select.setAttribute("multiple", "multiple");
-    select.setAttribute("size", markers.length);
-    this.container.appendChild(select);
-    this.selector = select;
-
-    for (var i = 0; i < markers.length; ++i) {
-      var marker = markers[i];
-      var option = document.createElement("option");
-      option.appendChild(document.createTextNode(marker.name));
-      option.setAttribute("data-index", marker.index);
-      select.appendChild(option);
-    }
-
-    try {
-      select.removeEventListener("click", select_onChange, false);
-    } catch (err) {
-    }
-    select.addEventListener("change", function select_onChange(e) {
-      if (self.changeEventSuppressed) {
-        return;
-      }
-
-      // look for non-consecutive ranges, and make them consecutive
-      var range = [];
-      var children = select.childNodes;
-      for (var i = 0; i < children.length; ++i) {
-        range.push(children[i].selected);
-      }
-      var begin = -1, end = -1;
-      for (var i = 0; i < range.length; ++i) {
-        if (begin == -1 && range[i]) {
-          begin = i;
-        } else if (begin != -1 && range[i]) {
-          end = i;
-        }
-      }
-      if (begin > -1) {
-        for (var i = begin; i <= end; ++i) {
-          children[i].selected = true;
-        }
-      }
-      if (end > -1) {
-        for (var i = end + 1; i < children.length; ++i) {
-          children[i].selected = false;
-        }
-      }
-
-      // highlight the range in the histogram
-      var prevHilite = document.querySelector("." + hiliteClassName);
-      if (prevHilite) {
-        prevHilite.parentNode.removeChild(prevHilite);
-      }
-      const hilitedMarker = "markerHilite";
-      var prevMarkerHilite = document.querySelector("#" + hilitedMarker);
-      if (prevMarkerHilite) {
-        prevMarkerHilite.removeAttribute("id");
-        prevMarkerHilite.removeAttribute("style");
-      }
-      function rect(index) {
-        return graph.querySelectorAll(".rect")[children[index].getAttribute("data-index")];
-      }
-      if (begin > end) {
-        // Just highlight the respective marker in the histogram
-        rect(begin).setAttribute("id", hilitedMarker);
-        rect(begin).setAttribute("style", "fill: red;");
-      } else if (end > begin) {
-        self.drawHiliteRectangle(rect(begin).getAttribute("x"),
-                                 0,
-                                 parseFloat(rect(end).getAttribute("width")) +
-                                 parseFloat(rect(end).getAttribute("x")) -
-                                 parseFloat(rect(begin).getAttribute("x")),
-                                 graph.getAttribute("height"));
-      }
-    }, false);
+  getContainer: function RangeSelector_getContainer() {
+    return this.container;
   },
   drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.style.left = x + "px";
     hilite.style.top = "0";
     hilite.style.width = width + "px";
@@ -441,7 +372,7 @@ RangeSelector.prototype = {
     }, false);
   },
   beginHistogramSelection: function RangeSelector_beginHistgramSelection() {
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.classList.remove("finished");
     hilite.classList.add("selecting");
     hilite.classList.remove("collapsed");
@@ -451,7 +382,7 @@ RangeSelector.prototype = {
   },
   finishHistogramSelection: function RangeSelector_finishHistgramSelection(isSomethingSelected) {
     var self = this;
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.classList.remove("selecting");
     if (isSomethingSelected) {
       hilite.classList.add("finished");
@@ -471,7 +402,7 @@ RangeSelector.prototype = {
     }
   },
   collapseHistogramSelection: function RangeSelector_collapseHistogramSelection() {
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.classList.add("collapsed");
   },
   _sampleIndexFromPoint: function RangeSelector__sampleIndexFromPoint(x) {
@@ -925,8 +856,8 @@ function enterMainUI() {
   gTreeManager = new ProfileTreeManager();
   document.getElementById("mainarea").appendChild(gTreeManager.getContainer());
 
-  gHistogramView = new HistogramView(document.getElementsByClassName("markers")[0]);
-  document.getElementsByClassName("histogram")[0].appendChild(gHistogramView.getContainer());
+  gHistogramView = new HistogramView();
+  document.getElementById("mainarea").appendChild(gHistogramView.getContainer());
 
   gNestedRestrictions = new BreadcrumbTrail();
   gNestedRestrictions.add({
