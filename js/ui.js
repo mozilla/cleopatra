@@ -917,10 +917,10 @@ function setHighlightedCallstack(samples) {
 function enterMainUI() {
   document.getElementById("dataentry").className = "hidden";
   document.getElementById("ui").className = "";
-  gTreeManager = new ProfileTreeManager(document.getElementById("tree"));
+  gTreeManager = new ProfileTreeManager(document.getElementsByClassName("tree")[0]);
 
-  gHistogramView = new HistogramView(document.getElementById("markers"));
-  document.getElementById("histogram").appendChild(gHistogramView.getContainer());
+  gHistogramView = new HistogramView(document.getElementsByClassName("markers")[0]);
+  document.getElementsByClassName("histogram")[0].appendChild(gHistogramView.getContainer());
 
   gNestedRestrictions = new BreadcrumbTrail();
   gNestedRestrictions.add({
