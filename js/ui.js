@@ -389,7 +389,7 @@ RangeSelector.prototype = {
       var start = this._sampleIndexFromPoint(this._selectedRange.startX);
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
       var newFilterChain = gSampleFilters.concat([new RangeSampleFilter(start, end)]);
-      self._transientRestrictionEnteringAffordance = gNestedRestrictions.add({
+      self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
         title: "Sample Range [" + start + ", " + (end + 1) + "]",
         enterCallback: function () {
           gSampleFilters = newFilterChain;
@@ -726,7 +726,7 @@ var gRawProfile = "";
 var gParsedProfile = {};
 var gHighlightedCallstack = [];
 var gTreeManager = null;
-var gNestedRestrictions = null;
+var gBreadcrumbTrail = null;
 var gHistogramView = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
@@ -821,7 +821,7 @@ function toggleJank(/* optional */ threshold) {
 var gSampleFilters = [];
 function focusOnSymbol(focusSymbol, name) {
   var newFilterChain = gSampleFilters.concat([new FocusedFrameSampleFilter(focusSymbol)]);
-  gNestedRestrictions.addAndEnter({
+  gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
       gSampleFilters = newFilterChain;
@@ -835,7 +835,7 @@ function focusOnCallstack(focusedCallstack, name) {
     new FocusedCallstackPostfixSampleFilter(focusedCallstack) :
     new FocusedCallstackPrefixSampleFilter(focusedCallstack);
   var newFilterChain = gSampleFilters.concat([filter]);
-  gNestedRestrictions.addAndEnter({
+  gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
       gSampleFilters = newFilterChain;
@@ -859,15 +859,15 @@ function enterMainUI() {
   gHistogramView = new HistogramView();
   document.getElementById("mainarea").appendChild(gHistogramView.getContainer());
 
-  gNestedRestrictions = new BreadcrumbTrail();
-  gNestedRestrictions.add({
+  gBreadcrumbTrail = new BreadcrumbTrail();
+  gBreadcrumbTrail.add({
     title: "Complete Profile",
     enterCallback: function () {
       gSampleFilters = [];
       refreshUI();
     }
   })
-  document.getElementById("mainarea").appendChild(gNestedRestrictions.getContainer());
+  document.getElementById("mainarea").appendChild(gBreadcrumbTrail.getContainer());
 
 }
 
