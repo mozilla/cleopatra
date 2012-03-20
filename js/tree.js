@@ -26,6 +26,11 @@ function TreeView() {
   this._horizontalScrollbox.className = "treeViewHorizontalScrollbox";
   this._verticalScrollbox.appendChild(this._horizontalScrollbox);
 
+  this._contextMenu = document.createElement("menu");
+  this._contextMenu.setAttribute("type", "context");
+  this._contextMenu.id = "contextMenuForTreeView" + TreeView.instanceCounter++;
+  this._container.appendChild(this._contextMenu);
+
   var self = this;
   this._container.onkeypress = function (e) {
     self._onkeypress(e);
@@ -34,10 +39,11 @@ function TreeView() {
     self._onclick(e);
   };
   this._verticalScrollbox.addEventListener("contextmenu", function(event) {
-    self._contextMenu(event);
+    self._populateContextMenu(event);
   }, true);
   this._setUpScrolling();
 };
+TreeView.instanceCounter = 0;
 
 TreeView.prototype = {
   getContainer: function TreeView_getContainer() {
@@ -188,7 +194,7 @@ TreeView.prototype = {
     }
     return depth;
   },
-  _contextMenu: function TreeView__contextMenu(event) {
+  _populateContextMenu: function TreeView__populateContextMenu(event) {
     this._verticalScrollbox.setAttribute("contextmenu", "");
 
     var target = event.target;
@@ -202,8 +208,7 @@ TreeView.prototype = {
 
     this._select(li);
 
-    var contextMenu = document.getElementById("xulContextMenu");
-    contextMenu.innerHTML = "";
+    this._contextMenu.innerHTML = "";
 
     var self = this;
     this._contextMenuForFunction(li.data).forEach(function (menuItem) {
@@ -214,12 +219,12 @@ TreeView.prototype = {
         };
       })(menuItem);
       menuItemNode.label = menuItem;
-      contextMenu.appendChild(menuItemNode);
+      self._contextMenu.appendChild(menuItemNode);
     });
 
-    this._verticalScrollbox.setAttribute("contextmenu", contextMenu.id);
+    this._verticalScrollbox.setAttribute("contextmenu", this._contextMenu.id);
   },
-  _contextMenuClick: function TreeView__ContextMenuClick(node, menuItem) {
+  _contextMenuClick: function TreeView__contextMenuClick(node, menuItem) {
     this._fireEvent("contextMenuClick", { node: node, menuItem: menuItem });
   },
   _contextMenuForFunction: function TreeView__contextMenuForFunction(node) {
