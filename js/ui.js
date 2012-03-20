@@ -11,7 +11,7 @@ function treeObjSort(a, b) {
   return b.counter - a.counter;
 }
 
-function ProfileTreeManager(container) {
+function ProfileTreeManager() {
   this.treeView = new TreeView();
   this.treeView.setColumns([
     { name: "sampleCount", title: "Running time" },
@@ -29,9 +29,14 @@ function ProfileTreeManager(container) {
     var focusedCallstack = self._getCallstackUpTo(frameData);
     focusOnCallstack(focusedCallstack, frameData.name);
   });
-  container.appendChild(this.treeView.getContainer());
+  this._container = document.createElement("div");
+  this._container.className = "tree";
+  this._container.appendChild(this.treeView.getContainer());
 }
 ProfileTreeManager.prototype = {
+  getContainer: function ProfileTreeManager_getContainer() {
+    return this._container;
+  },
   highlightFrame: function Treedisplay_highlightFrame(frameData) {
     setHighlightedCallstack(this._getCallstackUpTo(frameData));
   },
@@ -917,7 +922,8 @@ function setHighlightedCallstack(samples) {
 function enterMainUI() {
   document.getElementById("dataentry").className = "hidden";
   document.getElementById("ui").className = "";
-  gTreeManager = new ProfileTreeManager(document.getElementsByClassName("tree")[0]);
+  gTreeManager = new ProfileTreeManager();
+  document.getElementById("mainarea").appendChild(gTreeManager.getContainer());
 
   gHistogramView = new HistogramView(document.getElementsByClassName("markers")[0]);
   document.getElementsByClassName("histogram")[0].appendChild(gHistogramView.getContainer());
