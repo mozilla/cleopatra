@@ -802,6 +802,9 @@ function loadProfileFile(fileList) {
   reader.onloadend = function () {
     loadProfile(reader.result);
   };
+  reader.onprogress = function (e) {
+    console.log("reader progress:" + e.loaded + " / " + e.total);
+  };
   reader.readAsText(file, "utf-8");
   enterProgressUI();
 }
@@ -933,6 +936,9 @@ function enterProgressUI() {
 }
 
 function enterFinishedProfileUI() {
+  var finishedProfilePaneBackgroundCover = document.createElement("div");
+  finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
+
   var finishedProfilePane = document.createElement("div");
   finishedProfilePane.className = "finishedProfilePane";
 
@@ -945,6 +951,7 @@ function enterFinishedProfileUI() {
   gBreadcrumbTrail = new BreadcrumbTrail();
   finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
 
+  gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
 
   gBreadcrumbTrail.add({
