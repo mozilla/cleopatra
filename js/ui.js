@@ -681,7 +681,7 @@ function filterUpdate() {
 var tooltip = {
   "mergeFunctions" : "Ignore line information and merge samples based on function names.",
   "showJank" : "Show only samples with >50ms responsiveness.",
-  //"mergeUnvranch" : "???",
+  "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
   "upload" : "Upload the full profile to public cloud storage to share with others.",
