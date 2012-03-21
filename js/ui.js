@@ -903,17 +903,22 @@ function enterMainUI() {
 
   var mainArea = document.createElement("div");
   mainArea.id = "mainarea";
-
-  gTreeManager = new ProfileTreeManager();
-  mainArea.appendChild(gTreeManager.getContainer());
-
-  gHistogramView = new HistogramView();
-  mainArea.appendChild(gHistogramView.getContainer());
-
-  gBreadcrumbTrail = new BreadcrumbTrail();
-  mainArea.appendChild(gBreadcrumbTrail.getContainer());
   uiContainer.appendChild(mainArea);
   document.body.appendChild(uiContainer);
+
+  var finishedProfilePane = document.createElement("div");
+  finishedProfilePane.className = "finishedProfilePane";
+
+  gTreeManager = new ProfileTreeManager();
+  finishedProfilePane.appendChild(gTreeManager.getContainer());
+
+  gHistogramView = new HistogramView();
+  finishedProfilePane.appendChild(gHistogramView.getContainer());
+
+  gBreadcrumbTrail = new BreadcrumbTrail();
+  finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
+
+  mainArea.appendChild(finishedProfilePane);
 
   gBreadcrumbTrail.add({
     title: "Complete Profile",
