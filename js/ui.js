@@ -855,7 +855,11 @@ function loadRawProfile(reporter, rawProfile) {
   reporter.begin("Parsing...");
   gRawProfile = rawProfile;
   var startTime = Date.now();
-  Parser.parse(rawProfile, function (parsedProfile) {
+  var parseRequest = Parser.parse(rawProfile);
+  parseRequest.addEventListener("progress", function (progress) {
+    reporter.setProgress(progress);
+  });
+  parseRequest.addEventListener("finished", function (parsedProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
     reporter.finish();
     gParsedProfile = parsedProfile;

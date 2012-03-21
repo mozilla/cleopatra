@@ -71,13 +71,13 @@ WorkerRequest.prototype = {
 }
 
 var Parser = {
-  parse: function Parser_parse(data, finishCallback) {
+  parse: function Parser_parse(data) {
     var request = new WorkerRequest(gParserWorker);
     request.send({
       task: "parseRawProfile",
       rawProfile: data
     });
-    request.addEventListener("finished", finishCallback);
+    return request;
   },
 
   filterByJank: function Parser_filterByJank(profile, filterThreshold) {

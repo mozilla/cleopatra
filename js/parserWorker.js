@@ -1,3 +1,5 @@
+importScripts("ProgressReporter.js");
+
 var gProfiles = [];
 
 self.onmessage = function (msg) {
@@ -43,6 +45,12 @@ function sendFinished(requestID, result) {
 }
 
 function parseRawProfile(requestID, rawProfile) {
+  var progressReporter = new ProgressReporter();
+  progressReporter.addListener(function (r) {
+    sendProgress(requestID, r.getProgress());
+  });
+  progressReporter.begin("Parsing...");
+
   var symbolicationTable = {};
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
@@ -182,7 +190,9 @@ function parseRawProfile(requestID, rawProfile) {
     }
     if (sample != null)
       sample.lines.push(line);
+    progressReporter.setProgress((i + 1) / lines.length);
   }
+  progressReporter.finish();
   sendFinished(requestID, { symbols: symbols, functions: functions, samples: samples });
 }
 function TreeNode(name, parent, startCount) {
