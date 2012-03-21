@@ -10,17 +10,6 @@
     <link rel="stylesheet" type="text/css" href="css/tree.css">
   </head>
   <body>
-    <div id="ui" class="hidden">
-      <div id="mainarea">
-      </div>
-      <ul id="fileList">
-        <li class="fileListItem">
-          <span class="fileListItemTitle">Current Profile</span>
-          <span class="fileListItemDescription"><a id="fileListItemSamples">...</a> Samples, 2012-03-08 22:12</span>
-        </li>
-      </ul>
-      <div id="infobar"></div>
-    </div>
     <div id="dataentry">
       <h1>Upload your profile here:</h1>
       <input type="file" id="datafile" onchange="loadProfileFile(this.files);">
@@ -37,7 +26,9 @@
         oXHR.onreadystatechange = function (oEvent) {  
           if (oXHR.readyState === 4) {  
             if (oXHR.status === 200) {  
+            try{
               loadProfile(oXHR.responseText);
+            } catch(e) { console.log(e.stack)}
             } else {  
               alert("Using the sample log needs XHR to work, so you can't run this from a file URL but need to start a webserver.");
             }  

@@ -7,6 +7,36 @@ function removeAllChildren(element) {
   }
 }
 
+function FileList() {
+  this._container = document.createElement("ul");
+  this._container.id = "fileList";
+}
+
+FileList.prototype = {
+  getContainer: function FileList_getContainer() {
+    return this._container;
+  },
+  addFile: function FileList_addFile() {
+    var li = document.createElement("li");
+    li.className = "fileListItem";
+
+    var fileListItemTitleSpan = document.createElement("span");
+    fileListItemTitleSpan.className = "fileListItemTitle";
+    fileListItemTitleSpan.textContent = "Current Profile";
+    li.appendChild(fileListItemTitleSpan);
+
+    var fileListItemDescriptionSpan = document.createElement("span");
+    fileListItemDescriptionSpan.className = "fileListItemDescription";
+    fileListItemDescriptionSpan.textContent = "Loading...";
+    li.appendChild(fileListItemDescriptionSpan);
+
+    this._container.appendChild(li);
+  },
+  profileParsingFinished: function FileList_profileParsingFinished() {
+    this._container.querySelector(".fileListItemDescription").textContent = gParsedProfile.samples.length + " Samples";
+  }
+}
+
 function treeObjSort(a, b) {
   return b.counter - a.counter;
 }
@@ -666,60 +696,66 @@ function addTooltips() {
   }
 }
 
-function updateDescription() {
-  // Temporary until fileListItem are built correctly
-  var sampleCount = document.getElementById("fileListItemSamples");
-  sampleCount.innerHTML = gParsedProfile.samples.length;
+function InfoBar() {
+  this._container = document.createElement("div");
+  this._container.id = "infobar";
+}
 
-  var infobar = document.getElementById("infobar");
-  var infoText = "";
-  
-  infoText += "<h2>Selection Info</h2>\n<ul>\n";
-  infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
-  infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
-  infoText += "</ul>\n";
-  infoText += "<h2>Pre Filtering</h2>\n";
-  infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
+InfoBar.prototype = {
+  getContainer: function InfoBar_getContainer() {
+    return this._container;
+  },
+  display: function InfoBar_display() {
+    var infobar = this._container;
+    var infoText = "";
+    
+    infoText += "<h2>Selection Info</h2>\n<ul>\n";
+    infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
+    infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
+    infoText += "</ul>\n";
+    infoText += "<h2>Pre Filtering</h2>\n";
+    infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
 
-  var filterNameInputOld = document.getElementById("filterName");
-  infoText += "Filter:\n";
-  infoText += "<input type='text' id='filterName' oninput='filterOnChange()'/><br>\n";
+    var filterNameInputOld = document.getElementById("filterName");
+    infoText += "Filter:\n";
+    infoText += "<input type='text' id='filterName' oninput='filterOnChange()'/><br>\n";
 
-  infoText += "<h2>Post Filtering</h2>\n";
-  infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label><br>\n";
-  infoText += "<h2>View Options</h2>\n";
-  infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
-  infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
+    infoText += "<h2>Post Filtering</h2>\n";
+    infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label><br>\n";
+    infoText += "<h2>View Options</h2>\n";
+    infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
+    infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
-  infoText += "<h2>Share</h2>\n";
-  infoText += "<a id='upload_status'>No upload in progress</a><br>\n";
-  infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
-  infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
-  infoText += "<input type='button' id='download' value='Download full profile'><br>\n";
+    infoText += "<h2>Share</h2>\n";
+    infoText += "<a id='upload_status'>No upload in progress</a><br>\n";
+    infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
+    infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
+    infoText += "<input type='button' id='download' value='Download full profile'><br>\n";
 
-  //infoText += "<br>\n";
-  //infoText += "Skip functions:<br>\n";
-  //infoText += "<select size=8 id='skipsymbol'></select><br />"
-  //infoText += "<input type='button' id='delete_skipsymbol' value='Delete'/><br />\n";
-  //infoText += "<input type='button' id='add_skipsymbol' value='Add'/><br />\n";
-  
-  infobar.innerHTML = infoText;
-  addTooltips();
+    //infoText += "<br>\n";
+    //infoText += "Skip functions:<br>\n";
+    //infoText += "<select size=8 id='skipsymbol'></select><br />"
+    //infoText += "<input type='button' id='delete_skipsymbol' value='Delete'/><br />\n";
+    //infoText += "<input type='button' id='add_skipsymbol' value='Add'/><br />\n";
+    
+    infobar.innerHTML = infoText;
+    addTooltips();
 
-  var filterNameInputNew = document.getElementById("filterName");
-  if (filterNameInputOld != null && filterNameInputNew != null) {
-    filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
-    //filterNameInputNew.value = filterNameInputOld.value;
+    var filterNameInputNew = document.getElementById("filterName");
+    if (filterNameInputOld != null && filterNameInputNew != null) {
+      filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
+      //filterNameInputNew.value = filterNameInputOld.value;
+    }
+    document.getElementById('upload').onclick = uploadProfile;
+    document.getElementById('download').onclick = downloadProfile;
+    document.getElementById('upload_select').onclick = function() {
+      uploadProfile(true);
+    };
+    //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
+    //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
+
+    //populate_skip_symbol();
   }
-  document.getElementById('upload').onclick = uploadProfile;
-  document.getElementById('download').onclick = downloadProfile;
-  document.getElementById('upload_select').onclick = function() {
-    uploadProfile(true);
-  };
-  //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
-  //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
-
-  //populate_skip_symbol();
 }
 
 var gRawProfile = "";
@@ -728,6 +764,8 @@ var gHighlightedCallstack = [];
 var gTreeManager = null;
 var gBreadcrumbTrail = null;
 var gHistogramView = null;
+var gFileList = null;
+var gInfoBar = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 
@@ -772,10 +810,11 @@ function rawProfileString() {
 function loadProfile(rawProfile) {
   gRawProfile = rawProfile;
   var startTime = Date.now();
-  gParsedProfile = Parser.parse(rawProfile, function (parsedProfile) {
+  Parser.parse(rawProfile, function (parsedProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
     gParsedProfile = parsedProfile;
     enterMainUI();
+    gFileList.profileParsingFinished();
   });
 }
 
@@ -847,19 +886,35 @@ function focusOnCallstack(focusedCallstack, name) {
 function setHighlightedCallstack(samples) {
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
-  updateDescription();
 }
 
 function enterMainUI() {
   document.getElementById("dataentry").className = "hidden";
-  document.getElementById("ui").className = "";
+  var uiContainer = document.createElement("div");
+  uiContainer.id = "ui";
+
+  gFileList = new FileList();
+  uiContainer.appendChild(gFileList.getContainer());
+
+  gFileList.addFile();
+
+  gInfoBar = new InfoBar();
+  uiContainer.appendChild(gInfoBar.getContainer());
+
+  var mainArea = document.createElement("div");
+  mainArea.id = "mainarea";
+
   gTreeManager = new ProfileTreeManager();
-  document.getElementById("mainarea").appendChild(gTreeManager.getContainer());
+  mainArea.appendChild(gTreeManager.getContainer());
 
   gHistogramView = new HistogramView();
-  document.getElementById("mainarea").appendChild(gHistogramView.getContainer());
+  mainArea.appendChild(gHistogramView.getContainer());
 
   gBreadcrumbTrail = new BreadcrumbTrail();
+  mainArea.appendChild(gBreadcrumbTrail.getContainer());
+  uiContainer.appendChild(mainArea);
+  document.body.appendChild(uiContainer);
+
   gBreadcrumbTrail.add({
     title: "Complete Profile",
     enterCallback: function () {
@@ -867,8 +922,6 @@ function enterMainUI() {
       refreshUI();
     }
   })
-  document.getElementById("mainarea").appendChild(gBreadcrumbTrail.getContainer());
-
 }
 
 function refreshUI() {
@@ -905,6 +958,6 @@ function refreshUI() {
     gHistogramView.display(data, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
     start = Date.now();
-    updateDescription();
+    gInfoBar.display();
   });
 }
