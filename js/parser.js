@@ -15,20 +15,69 @@ function cloneSample(sample) {
 var gParserWorker = new Worker("js/parserWorker.js");
 gParserWorker.nextRequestID = 0;
 
+function WorkerRequest(worker) {
+  this._eventListeners = {};
+  var requestID = worker.nextRequestID++;
+  this._requestID = requestID;
+  this._worker = worker;
+  var self = this;
+  worker.addEventListener("message", function onMessageFromWorker(msg) {
+    if (msg.data.requestID == requestID) {
+      switch(msg.data.type) {
+        case "error":
+          self._fireEvent("error", msg.data.error);
+          break;
+        case "progress":
+          self._fireEvent("progress", msg.data.progress);
+          break;
+        case "finished":
+          self._fireEvent("finished", msg.data.result);
+          worker.removeEventListener("message", onMessageFromWorker);
+          break;
+      }
+    }
+  });
+}
+
+WorkerRequest.prototype = {
+  send: function WorkerRequest_send(startMessage) {
+    startMessage.requestID = this._requestID;
+    this._worker.postMessage(startMessage);
+  },
+
+  // TODO: share code with TreeView
+  addEventListener: function WorkerRequest_addEventListener(eventName, callbackFunction) {
+    if (!(eventName in this._eventListeners))
+      this._eventListeners[eventName] = [];
+    if (this._eventListeners[eventName].indexOf(callbackFunction) != -1)
+      return;
+    this._eventListeners[eventName].push(callbackFunction);
+  },
+  removeEventListener: function WorkerRequest_removeEventListener(eventName, callbackFunction) {
+    if (!(eventName in this._eventListeners))
+      return;
+    var index = this._eventListeners[eventName].indexOf(callbackFunction);
+    if (index == -1)
+      return;
+    this._eventListeners[eventName].splice(index, 1);
+  },
+  _fireEvent: function WorkerRequest__fireEvent(eventName, eventObject) {
+    if (!(eventName in this._eventListeners))
+      return;
+    this._eventListeners[eventName].forEach(function (callbackFunction) {
+      callbackFunction(eventObject);
+    });
+  },
+}
+
 var Parser = {
   parse: function Parser_parse(data, finishCallback) {
-    var requestID = gParserWorker.nextRequestID++;
-    gParserWorker.addEventListener("message", function onMessageFromWorker(msg) {
-      if (msg.data.requestID == requestID) {
-        gParserWorker.removeEventListener("message", onMessageFromWorker);
-        finishCallback(msg.data.parsedProfile);
-      }
-    });
-    gParserWorker.postMessage({
-      requestID: requestID,
+    var request = new WorkerRequest(gParserWorker);
+    request.send({
       task: "parseRawProfile",
       rawProfile: data
     });
+    request.addEventListener("finished", finishCallback);
   },
 
   filterByJank: function Parser_filterByJank(profile, filterThreshold) {
@@ -147,19 +196,13 @@ var Parser = {
   },
 
   convertToCallTree: function Parser_convertToCallTree(profile, isReverse, finishCallback) {
-    var requestID = gParserWorker.nextRequestID++;
-    gParserWorker.addEventListener("message", function onMessageFromWorker(msg) {
-      if (msg.data.requestID == requestID) {
-        gParserWorker.removeEventListener("message", onMessageFromWorker);
-        finishCallback(msg.data.calltree);
-      }
-    });
-    gParserWorker.postMessage({
-      requestID: requestID,
+    var request = new WorkerRequest(gParserWorker);
+    request.send({
       task: "convertToCallTree",
       profile: profile,
       isReverse: isReverse
     });
+    request.addEventListener("finished", finishCallback);
   },
   _clipText: function Tree__clipText(text, length) {
     if (text.length <= length)

@@ -1,6 +1,11 @@
+var gProfiles = [];
+
 self.onmessage = function (msg) {
   try {
     switch (msg.data.task) {
+      case "loadProfileFromURL":
+        loadProfileFromURL(msg.data.requestID, msg.data.profileID, msg.data.url);
+        break;
       case "parseRawProfile":
         parseRawProfile(msg.data.requestID, msg.data.rawProfile);
         break;
@@ -9,8 +14,52 @@ self.onmessage = function (msg) {
         break;
     }
   } catch (e) {
-    dump("Exception: " + e + "\n");
+    sendError(msg.data.requestID, "Exception: " + e + "\n");
   }
+}
+
+function sendError(requestID, error) {
+  self.postMessage({
+    requestID: requestID,
+    type: "error",
+    error: error
+  });
+}
+
+function sendProgress(requestID, progress) {
+  self.postMessage({
+    requestID: requestID,
+    type: "progress",
+    progress: progress
+  });
+}
+
+function sendFinished(requestID, result) {
+  self.postMessage({
+    requestID: requestID,
+    type: "finished",
+    result: result
+  });
+}
+
+function loadProfileFromURL(requestID, profileID, url) {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.responseType = "text";
+  xhr.onreadystatechange = function (e) {  
+    if (xhr.readyState === 4) {  
+      if (xhr.status === 200) {  
+        gProfiles[profileID] = { rawProfile: xhr.responseText };
+        sendFinished(requestID, xhr.responseText);
+      } else {  
+        sendError(requestID, "Using the sample log needs XHR to work, so you can't run this from a file URL but need to start a webserver.");
+      }  
+    }  
+  };
+  xhr.onprogress = function (e) {
+    sendProgress(requestID, e.loaded / e.total);
+  };
+  xhr.send(null);
 }
 
 function parseRawProfile(requestID, rawProfile) {
@@ -154,10 +203,7 @@ function parseRawProfile(requestID, rawProfile) {
     if (sample != null)
       sample.lines.push(line);
   }
-  self.postMessage({
-    requestID: requestID,
-    parsedProfile: { symbols: symbols, functions: functions, samples: samples}
-  });
+  sendFinished(requestID, { symbols: symbols, functions: functions, samples: samples });
 }
 function TreeNode(name, parent, startCount) {
   this.name = name;
@@ -222,8 +268,5 @@ function convertToCallTree(requestID, profile, isReverse) {
       node = child;
     }
   }
-  self.postMessage({
-    requestID: requestID,
-    calltree: treeRoot
-  });
+  sendFinished(requestID, treeRoot);
 }
