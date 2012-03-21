@@ -14,24 +14,7 @@
       enterMainUI();
       if (location.href.indexOf("usesample") != -1) {
         var filename = (location.href.indexOf("pseudo") != -1) ? 'sample.profile' : 'sample.log';
-        var oXHR = new XMLHttpRequest();
-        oXHR.open('GET', filename, true);
-        oXHR.responseType = "text";
-        oXHR.onreadystatechange = function (oEvent) {  
-          if (oXHR.readyState === 4) {  
-            if (oXHR.status === 200) {  
-              loadProfile(oXHR.responseText);
-            } else {  
-              alert("Using the sample log needs XHR to work, so you can't run this from a file URL but need to start a webserver.");
-            }  
-          }  
-        };  
-        oXHR.send(null);
-        enterProgressUI();
-      }
-      function xulContextMenu(event) {
-        console.log(event.target);
-        alert(event.target);
+        loadProfileURL(filename);
       }
     </script>
   </body>

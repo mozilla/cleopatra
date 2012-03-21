@@ -812,6 +812,23 @@ function loadProfileFile(fileList) {
   enterProgressUI();
 }
 
+function loadProfileURL(url) {
+  enterProgressUI();
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.responseType = "text";
+  xhr.onreadystatechange = function (e) {
+    if (xhr.readyState === 4 && xhr.status === 200)
+      loadProfile(xhr.responseText);
+  };
+  /*
+  xhr.onprogress = function (e) {
+    sendProgress(requestID, e.loaded / e.total);
+  };*/
+  xhr.send(null);
+}
+
 function rawProfileString() {
   return typeof gRawProfile == "string" ? gRawProfile : JSON.stringify(gRawProfile);
 }
