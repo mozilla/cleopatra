@@ -120,7 +120,7 @@ var Parser = {
   },
 
   filterByCallstackPrefix: function Parser_filterByCallstackPrefix(profile, callstack) {
-    var samples = profile.samples.map(function filterSample(origSample, i) {
+    var samples = profile.samples.map(function filterSample(origSample) {
       if (!origSample)
         return null;
       if (origSample.frames.length < callstack.length)
@@ -141,7 +141,7 @@ var Parser = {
   },
 
   filterByCallstackPostfix: function Parser_filterByCallstackPostfix(profile, callstack) {
-    var samples = profile.samples.map(function filterSample(origSample, i) {
+    var samples = profile.samples.map(function filterSample(origSample) {
       if (!origSample)
         return null;
       if (origSample.frames.length < callstack.length)
