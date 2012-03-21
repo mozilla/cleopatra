@@ -26,9 +26,7 @@
         oXHR.onreadystatechange = function (oEvent) {  
           if (oXHR.readyState === 4) {  
             if (oXHR.status === 200) {  
-            try{
               loadProfile(oXHR.responseText);
-            } catch(e) { console.log(e.stack)}
             } else {  
               alert("Using the sample log needs XHR to work, so you can't run this from a file URL but need to start a webserver.");
             }  
