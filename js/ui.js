@@ -1014,34 +1014,41 @@ function enterFinishedProfileUI() {
 }
 
 function refreshUI() {
-  var start = Date.now();
+  var start;
   var data = gParsedProfile;
-  console.log("visible range filtering: " + (Date.now() - start) + "ms.");
-  start = Date.now();
 
   if (gMergeFunctions) {
+    start = Date.now();
     data = Parser.discardLineLevelInformation(data);
     console.log("line information discarding: " + (Date.now() - start) + "ms.");
-    start = Date.now();
   }
   var filterNameInput = document.getElementById("filterName");
   if (filterNameInput != null && filterNameInput.value != "") {
+    start = Date.now();
     data = Parser.filterByName(data, document.getElementById("filterName").value);
+    console.log("filtering by name: " + (Date.now() - start) + "ms.");
   }
+  start = Date.now();
   for (var i = 0; i < gSampleFilters.length; i++) {
     data = gSampleFilters[i].filter(data);
   }
+  console.log("filtering with filter chain: " + (Date.now() - start) + "ms.");
   if (gJankOnly) {
+    start = Date.now();
     data = Parser.filterByJank(data, gJankThreshold);
+    console.log("filtering jank only: " + (Date.now() - start) + "ms.");
   }
   gCurrentlyShownSampleData = data;
   gInfoBar.display();
+  start = Date.now();
   Parser.convertToCallTree(data, gInvertCallstack, function (treeData) {
     console.log("conversion to calltree: " + (Date.now() - start) + "ms.");
-    start = Date.now();
     if (gMergeUnbranched) {
+      start = Date.now();
       Parser.mergeUnbranchedCallPaths(treeData);
+      console.log("merging unbranched call paths: " + (Date.now() - start) + "ms.");
     }
+    start = Date.now();
     gTreeManager.display(treeData, data.symbols, data.functions, gMergeFunctions);
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
     start = Date.now();
