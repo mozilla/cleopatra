@@ -11,14 +11,16 @@ body {
   right: 0;
 }
 .finishedProfilePane,
-.profileEntryPane {
+.profileEntryPane,
+.profileProgressPane {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
 }
-.profileEntryPane {
+.profileEntryPane,
+.profileProgressPane {
   padding: 20px;
   background-color: rgb(229,229,229);
   background-image: url(../images/noise.png),
@@ -32,6 +34,13 @@ body {
 }
 .profileEntryPane input[type="file"] {
   margin-bottom: 1em;
+}
+.profileProgressPane progress {
+  position: absolute;
+  top: 40%;
+  left: 30%;
+  width: 40%;
+  height: 16px;
 }
 .breadcrumbTrail {
   position: absolute;

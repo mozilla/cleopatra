@@ -803,6 +803,7 @@ function loadProfileFile(fileList) {
     loadProfile(reader.result);
   };
   reader.readAsText(file, "utf-8");
+  enterProgressUI();
 }
 
 function rawProfileString() {
@@ -811,6 +812,7 @@ function rawProfileString() {
 
 function loadProfile(rawProfile) {
   gRawProfile = rawProfile;
+  enterProgressUI();
   var startTime = Date.now();
   Parser.parse(rawProfile, function (parsedProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
@@ -918,6 +920,16 @@ function enterMainUI() {
     '';
 
   gMainArea.appendChild(profileEntryPane);
+}
+
+function enterProgressUI() {
+  var profileProgressPane = document.createElement("div");
+  profileProgressPane.className = "profileProgressPane";
+
+  var progressBar = document.createElement("progress");
+  profileProgressPane.appendChild(progressBar);
+
+  gMainArea.appendChild(profileProgressPane);
 }
 
 function enterFinishedProfileUI() {
