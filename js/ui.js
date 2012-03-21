@@ -868,12 +868,33 @@ function loadRawProfile(reporter, rawProfile) {
   });
 }
 
-window.addEventListener("message", function listenToLoadProfileMessage(msg) {
+var gImportFromAddonSubreporters = null;
+
+window.addEventListener("message", function messageFromAddon(msg) {
   // This is triggered by the profiler add-on.
   var o = JSON.parse(msg.data);
-  if (o.task == "loadProfile")
-    loadProfile(o.rawProfile);
+  switch (o.task) {
+    case "importFromAddonStart":
+      var totalReporter = enterProgressUI();
+      gImportFromAddonSubreporters = totalReporter.addSubreporters({
+        import: 10000,
+        parsing: 1000
+      });
+      gImportFromAddonSubreporters.import.begin("Symbolicating...");
+      break;
+    case "importFromAddonProgress":
+      gImportFromAddonSubreporters.import.setProgress(o.progress);
+      break;
+    case "importFromAddonFinish":
+      importFromAddonFinish(o.rawProfile);
+      break;
+  }
 });
+
+function importFromAddonFinish(rawProfile) {
+  gImportFromAddonSubreporters.import.finish();
+  loadRawProfile(gImportFromAddonSubreporters.parsing, rawProfile);
+}
 
 var gInvertCallstack = false;
 function toggleInvertCallStack() {
