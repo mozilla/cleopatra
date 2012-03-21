@@ -67,7 +67,7 @@ body {
   to {
     -moz-transform: scale(1);
     opacity: 1;
-    pointer-events: normal;
+    pointer-events: auto;
   }
 }
 .breadcrumbTrail {
