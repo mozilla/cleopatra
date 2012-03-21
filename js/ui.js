@@ -801,32 +801,45 @@ function loadProfileFile(fileList) {
   if (fileList.length == 0)
     return;
   var file = fileList[0];
+  var reporter = enterProgressUI();
+  var subreporters = reporter.addSubreporters({
+    fileLoading: 1000,
+    parsing: 1000
+  });
+
   var reader = new FileReader();
   reader.onloadend = function () {
-    loadProfile(reader.result);
+    subreporters.fileLoading.finish();
+    loadRawProfile(subreporters.parsing, reader.result);
   };
   reader.onprogress = function (e) {
-    console.log("reader progress:" + e.loaded + " / " + e.total);
+    subreporters.fileLoading.setProgress(e.loaded / e.total);
   };
   reader.readAsText(file, "utf-8");
-  enterProgressUI();
+  subreporters.fileLoading.begin("Reading local file...");
 }
 
 function loadProfileURL(url) {
-  enterProgressUI();
+  var reporter = enterProgressUI();
+  var subreporters = reporter.addSubreporters({
+    fileLoading: 1000,
+    parsing: 1000
+  });
 
   var xhr = new XMLHttpRequest();
   xhr.open("GET", url, true);
   xhr.responseType = "text";
   xhr.onreadystatechange = function (e) {
-    if (xhr.readyState === 4 && xhr.status === 200)
-      loadProfile(xhr.responseText);
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      subreporters.fileLoading.finish();
+      loadRawProfile(subreporters.parsing, xhr.responseText);
+    }
   };
-  /*
   xhr.onprogress = function (e) {
-    sendProgress(requestID, e.loaded / e.total);
-  };*/
+    subreporters.fileLoading.setProgress(e.loaded / e.total);
+  };
   xhr.send(null);
+  subreporters.fileLoading.begin("Loading remote file...");
 }
 
 function rawProfileString() {
@@ -834,11 +847,17 @@ function rawProfileString() {
 }
 
 function loadProfile(rawProfile) {
+  var reporter = enterProgressUI();
+  loadRawProfile(reporter, rawProfile);
+}
+
+function loadRawProfile(reporter, rawProfile) {
+  reporter.begin("Parsing...");
   gRawProfile = rawProfile;
-  enterProgressUI();
   var startTime = Date.now();
   Parser.parse(rawProfile, function (parsedProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
+    reporter.finish();
     gParsedProfile = parsedProfile;
     enterFinishedProfileUI();
     gFileList.profileParsingFinished();
@@ -952,7 +971,14 @@ function enterProgressUI() {
   var progressBar = document.createElement("progress");
   profileProgressPane.appendChild(progressBar);
 
+  var totalProgressReporter = new ProgressReporter();
+  totalProgressReporter.addListener(function (r) {
+    progressBar.value = r.getProgress();
+  });
+
   gMainArea.appendChild(profileProgressPane);
+
+  return totalProgressReporter;
 }
 
 function enterFinishedProfileUI() {
