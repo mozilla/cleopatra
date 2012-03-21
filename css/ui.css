@@ -10,18 +10,28 @@ body {
   bottom: 0;
   right: 0;
 }
-.finishedProfilePane {
+.finishedProfilePane,
+.profileEntryPane {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
 }
-#dataentry {
-  display: block;
-  width: 1200px;
-  height: 1000px;
-  margin: 0 auto;
+.profileEntryPane {
+  padding: 20px;
+  background-color: rgb(229,229,229);
+  background-image: url(../images/noise.png),
+                    -moz-linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,.2));
+  text-shadow: rgba(255, 255, 255, 0.4) 0 1px;
+}
+.profileEntryPane h1 {
+  margin-top: 0;
+  font-size: 13px;
+  font-weight: normal;
+}
+.profileEntryPane input[type="file"] {
+  margin-bottom: 1em;
 }
 .breadcrumbTrail {
   position: absolute;

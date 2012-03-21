@@ -22,17 +22,18 @@ FileList.prototype = {
 
     var fileListItemTitleSpan = document.createElement("span");
     fileListItemTitleSpan.className = "fileListItemTitle";
-    fileListItemTitleSpan.textContent = "Current Profile";
+    fileListItemTitleSpan.textContent = "New Profile";
     li.appendChild(fileListItemTitleSpan);
 
     var fileListItemDescriptionSpan = document.createElement("span");
     fileListItemDescriptionSpan.className = "fileListItemDescription";
-    fileListItemDescriptionSpan.textContent = "Loading...";
+    fileListItemDescriptionSpan.textContent = "(empty)";
     li.appendChild(fileListItemDescriptionSpan);
 
     this._container.appendChild(li);
   },
   profileParsingFinished: function FileList_profileParsingFinished() {
+    this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
     this._container.querySelector(".fileListItemDescription").textContent = gParsedProfile.samples.length + " Samples";
   }
 }
@@ -766,6 +767,7 @@ var gBreadcrumbTrail = null;
 var gHistogramView = null;
 var gFileList = null;
 var gInfoBar = null;
+var gMainArea = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 
@@ -813,7 +815,7 @@ function loadProfile(rawProfile) {
   Parser.parse(rawProfile, function (parsedProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
     gParsedProfile = parsedProfile;
-    enterMainUI();
+    enterFinishedProfileUI();
     gFileList.profileParsingFinished();
   });
 }
@@ -889,7 +891,6 @@ function setHighlightedCallstack(samples) {
 }
 
 function enterMainUI() {
-  document.getElementById("dataentry").className = "hidden";
   var uiContainer = document.createElement("div");
   uiContainer.id = "ui";
 
@@ -901,11 +902,25 @@ function enterMainUI() {
   gInfoBar = new InfoBar();
   uiContainer.appendChild(gInfoBar.getContainer());
 
-  var mainArea = document.createElement("div");
-  mainArea.id = "mainarea";
-  uiContainer.appendChild(mainArea);
+  gMainArea = document.createElement("div");
+  gMainArea.id = "mainarea";
+  uiContainer.appendChild(gMainArea);
   document.body.appendChild(uiContainer);
 
+  var profileEntryPane = document.createElement("div");
+  profileEntryPane.className = "profileEntryPane";
+  profileEntryPane.innerHTML = '' +
+    '<h1>Upload your profile here:</h1>' +
+    '<input type="file" id="datafile" onchange="loadProfileFile(this.files);">' +
+    '<h1>Or, alternatively, enter your profile data here:</h1>' +
+    '<textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>' +
+    '<p><button onclick="loadProfile(document.getElementById(\'data\').value);">Parse</button></p>' +
+    '';
+
+  gMainArea.appendChild(profileEntryPane);
+}
+
+function enterFinishedProfileUI() {
   var finishedProfilePane = document.createElement("div");
   finishedProfilePane.className = "finishedProfilePane";
 
@@ -918,7 +933,7 @@ function enterMainUI() {
   gBreadcrumbTrail = new BreadcrumbTrail();
   finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
 
-  mainArea.appendChild(finishedProfilePane);
+  gMainArea.appendChild(finishedProfilePane);
 
   gBreadcrumbTrail.add({
     title: "Complete Profile",
@@ -926,7 +941,7 @@ function enterMainUI() {
       gSampleFilters = [];
       refreshUI();
     }
-  })
+  });
 }
 
 function refreshUI() {
@@ -951,6 +966,7 @@ function refreshUI() {
     data = Parser.filterByJank(data, gJankThreshold);
   }
   gCurrentlyShownSampleData = data;
+  gInfoBar.display();
   Parser.convertToCallTree(data, gInvertCallstack, function (treeData) {
     console.log("conversion to calltree: " + (Date.now() - start) + "ms.");
     start = Date.now();
@@ -962,7 +978,5 @@ function refreshUI() {
     start = Date.now();
     gHistogramView.display(data, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-    start = Date.now();
-    gInfoBar.display();
   });
 }

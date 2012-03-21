@@ -10,14 +10,8 @@
     <link rel="stylesheet" type="text/css" href="css/tree.css">
   </head>
   <body>
-    <div id="dataentry">
-      <h1>Upload your profile here:</h1>
-      <input type="file" id="datafile" onchange="loadProfileFile(this.files);">
-      <h1>Or, alternatively, enter your profile data here:</h1>
-      <textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>
-      <p><button onclick="loadProfile(document.getElementById('data').value);">Parse</button></p>
-    </div>
     <script>
+      enterMainUI();
       if (location.href.indexOf("usesample") != -1) {
         var filename = (location.href.indexOf("pseudo") != -1) ? 'sample.profile' : 'sample.log';
         var oXHR = new XMLHttpRequest();
