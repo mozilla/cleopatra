@@ -692,7 +692,10 @@ var tooltip = {
 function addTooltips() {
   for (var elemId in tooltip) {
     var elem = document.getElementById(elemId); 
-    if (elem == null) continue;
+    if (!elem)
+      continue;
+    if (elem.parentNode.nodeName.toLowerCase() == "label")
+      elem = elem.parentNode;
     elem.title = tooltip[elemId];
   }
 }
