@@ -406,7 +406,8 @@ TreeView.prototype = {
     }
     event.stopPropagation();
     event.preventDefault();
-    if (selected == null) return false;
+    if (!selected)
+      return;
     if (event.keyCode == 37) { // KEY_LEFT
       var isCollapsed = this._isCollapsed(selected);
       if (!isCollapsed) {
@@ -441,7 +442,6 @@ TreeView.prototype = {
     } else if (String.fromCharCode(event.charCode) == '*') {
       this._toggleAll(selected);
     }
-    return false;
   },
 };
 
