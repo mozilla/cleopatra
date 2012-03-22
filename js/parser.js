@@ -20,8 +20,13 @@ function WorkerRequest(worker) {
   var requestID = worker.nextRequestID++;
   this._requestID = requestID;
   this._worker = worker;
+  var partialResult = null;
   var self = this;
-  worker.addEventListener("message", function onMessageFromWorker(msg) {
+  function onMessageFromWorker(msg) {
+    pendingMessages.push(msg);
+    scheduleMessageProcessing();
+  }
+  function processMessage(msg) {
     var startTime = Date.now();
     var data = msg.data;
     var readTime = Date.now() - startTime;
@@ -40,9 +45,33 @@ function WorkerRequest(worker) {
           self._fireEvent("finished", data.result);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
+        case "finishedStart":
+          partialResult = null;
+          break;
+        case "finishedChunk":
+          partialResult = partialResult ? partialResult.concat(data.chunk) : data.chunk;
+          break;
+        case "finishedEnd":
+          self._fireEvent("finished", partialResult);
+          worker.removeEventListener("message", onMessageFromWorker);
+          break;
       }
     }
-  });
+  }
+  var pendingMessages = [];
+  var messageProcessingTimer = 0;
+  function processMessages() {
+    messageProcessingTimer = 0;
+    processMessage(pendingMessages.shift());
+    if (pendingMessages.length)
+      scheduleMessageProcessing();
+  }
+  function scheduleMessageProcessing() {
+    if (messageProcessingTimer)
+      return;
+    messageProcessingTimer = setTimeout(processMessages, 0);
+  }
+  worker.addEventListener("message", onMessageFromWorker);
 }
 
 WorkerRequest.prototype = {

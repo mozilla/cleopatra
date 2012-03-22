@@ -197,8 +197,8 @@ HistogramView.prototype = {
     var minWidth = 2000;
     return Math.ceil(minWidth / this._widthSum);
   },
-  display: function HistogramView_display(profile, highlightedCallstack) {
-    this._histogramData = this._convertToHistogramData(profile.samples);
+  display: function HistogramView_display(samples, highlightedCallstack) {
+    this._histogramData = this._convertToHistogramData(samples);
     var lastStep = this._histogramData[this._histogramData.length - 1];
     this._widthSum = lastStep.x + lastStep.width;
     this._widthMultiplier = this._calculateWidthMultiplier();
@@ -438,7 +438,7 @@ RangeSelector.prototype = {
   },
   _sampleIndexFromPoint: function RangeSelector__sampleIndexFromPoint(x) {
     // XXX this is completely wrong, fix please
-    var totalSamples = parseFloat(gCurrentlyShownSampleData.samples.length);
+    var totalSamples = parseFloat(gCurrentlyShownSampleData.length);
     var width = parseFloat(this._graph.parentNode.clientWidth);
     var factor = totalSamples / width;
     return parseInt(parseFloat(x) * factor);
@@ -535,7 +535,7 @@ BreadcrumbTrail.prototype = {
 };
 
 function maxResponsiveness() {
-  var data = gCurrentlyShownSampleData.samples;
+  var data = gCurrentlyShownSampleData;
   var maxRes = 0.0;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i] || !data[i].extraInfo["responsiveness"])
@@ -547,7 +547,7 @@ function maxResponsiveness() {
 }
 
 function numberOfCurrentlyShownSamples() {
-  var data = gCurrentlyShownSampleData.samples;
+  var data = gCurrentlyShownSampleData;
   var num = 0;
   for (var i = 0; i < data.length; ++i) {
     if (data[i])
@@ -557,7 +557,7 @@ function numberOfCurrentlyShownSamples() {
 }
 
 function avgResponsiveness() {
-  var data = gCurrentlyShownSampleData.samples;
+  var data = gCurrentlyShownSampleData;
   var totalRes = 0.0;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i] || !data[i].extraInfo["responsiveness"])
@@ -751,7 +751,7 @@ var gSkipSymbols = ["test2", "test1"];
 
 function getTextData() {
   var data = [];
-  var samples = gCurrentlyShownSampleData.samples;
+  var samples = gCurrentlyShownSampleData;
   for (var i = 0; i < samples.length; i++) {
     data.push(samples[i].lines.join("\n"));
   }
@@ -1010,9 +1010,9 @@ function refreshUI() {
     jankOnly: gJankOnly
   });
   start = Date.now();
-  updateRequest.addEventListener("finished", function (filteredProfile) {
+  updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
-    gCurrentlyShownSampleData = filteredProfile;
+    gCurrentlyShownSampleData = filteredSamples;
     gInfoBar.display();
     start = Date.now();
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);

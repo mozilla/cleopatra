@@ -47,6 +47,36 @@ function sendFinished(requestID, result) {
   });
 }
 
+function bucketsBySplittingArray(array, maxItemsPerBucket) {
+  var buckets = [];
+  while (buckets.length * maxItemsPerBucket < array.length) {
+    buckets.push(array.slice(buckets.length * maxItemsPerBucket,
+                             (buckets.length + 1) * maxItemsPerBucket));
+  }
+  return buckets;
+}
+
+function sendFinishedInChunks(requestID, result, chunkSize) {
+  if (!("length" in result) || !("slice" in result))
+    throw new Error("Can't slice result into chunks");
+  self.postMessage({
+    requestID: requestID,
+    type: "finishedStart"
+  });
+  var chunks = bucketsBySplittingArray(result, chunkSize);
+  for (var i = 0; i < chunks.length; i++) {
+    self.postMessage({
+      requestID: requestID,
+      type: "finishedChunk",
+      chunk: chunks[i]
+    });
+  }
+  self.postMessage({
+    requestID: requestID,
+    type: "finishedEnd"
+  });
+}
+
 function makeSample(frames, extraInfo, lines) {
   return {
     frames: frames,
@@ -411,7 +441,7 @@ function discardLineLevelInformation(profile) {
 function mergeUnbranchedCallPaths(root) {
   var mergedNames = [root.name];
   var node = root;
-  while (node.children.length == 1 && node.count == node.children[0].count) {
+  while (node.children.length == 1 && node.counter == node.children[0].counter) {
     node = node.children[0];
     mergedNames.push(node.name);
   }
@@ -504,7 +534,7 @@ function updateFilters(requestID, profileID, filters) {
   }
 
   gProfiles[profileID].filteredProfile = data;
-  sendFinished(requestID, data);
+  sendFinishedInChunks(requestID, data.samples, 500);
 }
 
 function updateViewOptions(requestID, profileID, options) {
