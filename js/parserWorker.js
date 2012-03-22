@@ -109,7 +109,7 @@ function makeSample(frames, extraInfo, lines) {
 function cloneSample(sample) {
   return makeSample(sample.frames.slice(0), sample.extraInfo, sample.lines.slice(0));
 }
-function parseRawProfile(requestID, rawProfile, profileID) {
+function parseRawProfile(requestID, rawProfile) {
   var progressReporter = new ProgressReporter();
   progressReporter.addListener(function (r) {
     sendProgress(requestID, r.getProgress());
@@ -252,6 +252,7 @@ function parseRawProfile(requestID, rawProfile, profileID) {
   };
   sendFinished(requestID, {
     numSamples: samples.length,
+    profileID: profileID,
     symbols: symbols,
     functions: functions
   });
