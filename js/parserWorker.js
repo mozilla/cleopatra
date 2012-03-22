@@ -11,8 +11,8 @@ self.onmessage = function (msg) {
     var requestID = msg.data.requestID;
     var task = msg.data.task;
     var taskData = msg.data.taskData;
-    if ((["chunkedStart", "chunkedChunk", "chunkedEnd"].indexOf(task) == -1) &&
-        !taskData) {
+    if (!taskData &&
+        (["chunkedStart", "chunkedChunk", "chunkedEnd"].indexOf(task) == -1)) {
       taskData = partialTaskData[requestID];
     }
     switch (task) {
@@ -22,7 +22,8 @@ self.onmessage = function (msg) {
       case "chunkedChunk":
         if (partialTaskData[requestID] === null)
           partialTaskData[requestID] = msg.data.chunk;
-        partialTaskData[requestID] = partialTaskData[requestID].concat(msg.data.chunk);
+        else
+          partialTaskData[requestID] = partialTaskData[requestID].concat(msg.data.chunk);
         break;
       case "chunkedEnd":
         break;
