@@ -34,7 +34,7 @@ FileList.prototype = {
   },
   profileParsingFinished: function FileList_profileParsingFinished() {
     this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
-    this._container.querySelector(".fileListItemDescription").textContent = gParsedProfile.samples.length + " Samples";
+    this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
   }
 }
 
@@ -419,7 +419,7 @@ RangeSelector.prototype = {
       hilite.classList.add("finished");
       var start = this._sampleIndexFromPoint(this._selectedRange.startX);
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
-      var newFilterChain = gSampleFilters.concat([new RangeSampleFilter(start, end)]);
+      var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
       self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
         title: "Sample Range [" + start + ", " + (end + 1) + "]",
         enterCallback: function () {
@@ -443,33 +443,6 @@ RangeSelector.prototype = {
     var factor = totalSamples / width;
     return parseInt(parseFloat(x) * factor);
   },
-};
-
-function FocusedFrameSampleFilter(focusedSymbol) {
-  this._focusedSymbol = focusedSymbol;
-}
-FocusedFrameSampleFilter.prototype = {
-  filter: function FocusedFrameSampleFilter_filter(profile) {
-    return Parser.filterBySymbol(profile, this._focusedSymbol);
-  },
-};
-
-function FocusedCallstackPrefixSampleFilter(focusedCallstack) {
-  this._focusedCallstackPrefix = focusedCallstack;
-}
-FocusedCallstackPrefixSampleFilter.prototype = {
-  filter: function FocusedCallstackPrefixSampleFilter_filter(profile) {
-    return Parser.filterByCallstackPrefix(profile, this._focusedCallstackPrefix);
-  }
-};
-
-function FocusedCallstackPostfixSampleFilter(focusedCallstack) {
-  this._focusedCallstackPostfix = focusedCallstack;
-}
-FocusedCallstackPostfixSampleFilter.prototype = {
-  filter: function FocusedCallstackPostfixSampleFilter_filter(profile) {
-    return Parser.filterByCallstackPostfix(profile, this._focusedCallstackPostfix);
-  }
 };
 
 function BreadcrumbTrail() {
@@ -763,7 +736,7 @@ InfoBar.prototype = {
 }
 
 var gRawProfile = "";
-var gParsedProfile = {};
+var gNumSamples = 0;
 var gHighlightedCallstack = [];
 var gTreeManager = null;
 var gBreadcrumbTrail = null;
@@ -773,20 +746,6 @@ var gInfoBar = null;
 var gMainArea = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
-
-function RangeSampleFilter(start, end) {
-  this._start = start;
-  this._end = end;
-}
-RangeSampleFilter.prototype = {
-  filter: function RangeSampleFilter_filter(profile) {
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: profile.samples.slice(this._start, this._end)
-    };
-  }
-}
 
 function getTextData() {
   var data = [];
@@ -859,10 +818,10 @@ function loadRawProfile(reporter, rawProfile) {
   parseRequest.addEventListener("progress", function (progress) {
     reporter.setProgress(progress);
   });
-  parseRequest.addEventListener("finished", function (parsedProfile) {
+  parseRequest.addEventListener("finished", function (result) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
     reporter.finish();
-    gParsedProfile = parsedProfile;
+    gNumSamples = result.numSamples;
     enterFinishedProfileUI();
     gFileList.profileParsingFinished();
   });
@@ -930,7 +889,7 @@ function toggleJank(/* optional */ threshold) {
 
 var gSampleFilters = [];
 function focusOnSymbol(focusSymbol, name) {
-  var newFilterChain = gSampleFilters.concat([new FocusedFrameSampleFilter(focusSymbol)]);
+  var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", focusedSymbol: focusSymbol}]);
   gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
@@ -941,9 +900,10 @@ function focusOnSymbol(focusSymbol, name) {
 }
 
 function focusOnCallstack(focusedCallstack, name) {
-  var filter = gInvertCallstack ?
-    new FocusedCallstackPostfixSampleFilter(focusedCallstack) :
-    new FocusedCallstackPrefixSampleFilter(focusedCallstack);
+  var filter = {
+    type: gInvertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    focusedCallstack: focusedCallstack
+  };
   var newFilterChain = gSampleFilters.concat([filter]);
   gBreadcrumbTrail.addAndEnter({
     title: name,
@@ -1036,44 +996,33 @@ function enterFinishedProfileUI() {
 
 function refreshUI() {
   var start;
-  var data = gParsedProfile;
+  var data = { symbols: {}, functions: {}, samples: [] };
 
-  if (gMergeFunctions) {
-    start = Date.now();
-    data = Parser.discardLineLevelInformation(data);
-    console.log("line information discarding: " + (Date.now() - start) + "ms.");
-  }
   var filterNameInput = document.getElementById("filterName");
-  if (filterNameInput != null && filterNameInput.value != "") {
+  var updateRequest = Parser.updateFilters({
+    mergeFunctions: gMergeFunctions,
+    nameFilter: (filterNameInput && filterNameInput.value) || "",
+    sampleFilters: gSampleFilters,
+    jankOnly: gJankOnly
+  });
+  var start = Date.now();
+  updateRequest.addEventListener("finished", function (filteredProfile) {
+    console.log("profile filtering: " + (Date.now() - start) + "ms.");
+    gCurrentlyShownSampleData = filteredProfile;
+    gInfoBar.display();
     start = Date.now();
-    data = Parser.filterByName(data, document.getElementById("filterName").value);
-    console.log("filtering by name: " + (Date.now() - start) + "ms.");
-  }
-  start = Date.now();
-  for (var i = 0; i < gSampleFilters.length; i++) {
-    data = gSampleFilters[i].filter(data);
-  }
-  console.log("filtering with filter chain: " + (Date.now() - start) + "ms.");
-  if (gJankOnly) {
-    start = Date.now();
-    data = Parser.filterByJank(data, gJankThreshold);
-    console.log("filtering jank only: " + (Date.now() - start) + "ms.");
-  }
-  gCurrentlyShownSampleData = data;
-  gInfoBar.display();
-  start = Date.now();
-  Parser.convertToCallTree(data, gInvertCallstack, function (treeData) {
-    console.log("conversion to calltree: " + (Date.now() - start) + "ms.");
-    if (gMergeUnbranched) {
-      start = Date.now();
-      Parser.mergeUnbranchedCallPaths(treeData);
-      console.log("merging unbranched call paths: " + (Date.now() - start) + "ms.");
-    }
-    start = Date.now();
-    gTreeManager.display(treeData, data.symbols, data.functions, gMergeFunctions);
-    console.log("tree displaying: " + (Date.now() - start) + "ms.");
-    start = Date.now();
-    gHistogramView.display(data, gHighlightedCallstack);
+    gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+    var updateViewOptionsRequest = Parser.updateViewOptions({
+      invertCallstack: gInvertCallstack,
+      mergeUnbranched: gMergeUnbranched
+    });
+    start = Date.now();
+    updateViewOptionsRequest.addEventListener("finished", function (calltree) {
+      console.log("tree construction: " + (Date.now() - start) + "ms.");
+      start = Date.now();
+      gTreeManager.display(calltree, filteredProfile.symbols, filteredProfile.functions, gMergeFunctions);
+      console.log("tree displaying: " + (Date.now() - start) + "ms.");
+    });
   });
 }

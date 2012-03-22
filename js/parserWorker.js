@@ -6,17 +6,20 @@ self.onmessage = function (msg) {
   try {
     switch (msg.data.task) {
       case "parseRawProfile":
-        parseRawProfile(msg.data.requestID, msg.data.rawProfile);
+        parseRawProfile(msg.data.requestID, msg.data.rawProfile, msg.data.profileID);
         break;
-      case "convertToCallTree":
-        convertToCallTree(msg.data.requestID, msg.data.profile, msg.data.isReverse)
+      case "updateFilters":
+        updateFilters(msg.data.requestID, msg.data.profileID, msg.data.filters);
+        break;
+      case "updateViewOptions":
+        updateViewOptions(msg.data.requestID, msg.data.profileID, msg.data.options);
         break;
       default:
         sendError(msg.data.requestID, "Unknown task " + msg.data.task);
         break;
     }
   } catch (e) {
-    sendError(msg.data.requestID, "Exception: " + e + "\n");
+    sendError(msg.data.requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
   }
 }
 
@@ -44,7 +47,18 @@ function sendFinished(requestID, result) {
   });
 }
 
-function parseRawProfile(requestID, rawProfile) {
+function makeSample(frames, extraInfo, lines) {
+  return {
+    frames: frames,
+    extraInfo: extraInfo,
+    lines: lines
+  };
+}
+
+function cloneSample(sample) {
+  return makeSample(sample.frames.slice(0), sample.extraInfo, sample.lines.slice(0));
+}
+function parseRawProfile(requestID, rawProfile, profileID) {
   var progressReporter = new ProgressReporter();
   progressReporter.addListener(function (r) {
     sendProgress(requestID, r.getProgress());
@@ -75,18 +89,6 @@ function parseRawProfile(requestID, rawProfile) {
   var symbolIndices = {};
   var functions = [];
   var functionIndices = {};
-
-  function makeSample(frames, extraInfo, lines) {
-    return {
-      frames: frames,
-      extraInfo: extraInfo,
-      lines: lines
-    };
-  }
-
-  function cloneSample(sample) {
-    return makeSample(sample.frames.slice(0), sample.extraInfo, sample.lines.clone());
-  }
 
   function cleanFunctionName(functionName) {
     var ignoredPrefix = "non-virtual thunk to ";
@@ -193,8 +195,12 @@ function parseRawProfile(requestID, rawProfile) {
     progressReporter.setProgress((i + 1) / lines.length);
   }
   progressReporter.finish();
-  sendFinished(requestID, { symbols: symbols, functions: functions, samples: samples });
+  gProfiles[profileID] = {
+    parsedProfile: { symbols: symbols, functions: functions, samples: samples }
+  };
+  sendFinished(requestID, { numSamples: samples.length });
 }
+
 function TreeNode(name, parent, startCount) {
   this.name = name;
   this.children = [];
@@ -234,7 +240,7 @@ TreeNode.prototype.incrementCountersInParentChain = function TreeNode_incrementC
     this.parent.incrementCountersInParentChain();
 };
 
-function convertToCallTree(requestID, profile, isReverse) {
+function convertToCallTree(profile, isReverse) {
   var samples = profile.samples.filter(function noNullSamples(sample) {
     return sample != null;
   });
@@ -258,5 +264,249 @@ function convertToCallTree(requestID, profile, isReverse) {
       node = child;
     }
   }
-  sendFinished(requestID, treeRoot);
+  return treeRoot;
+}
+
+function filterByJank(profile, filterThreshold) {
+  var samples = profile.samples.slice(0);
+  calltrace_it: for (var i = 0; i < samples.length; ++i) {
+    var sample = samples[i];
+    if (!sample)
+      continue;
+    if (!("responsiveness" in sample.extraInfo) ||
+        sample.extraInfo["responsiveness"] < filterThreshold) {
+      samples[i] = null;
+    }
+  }
+  return {
+    symbols: profile.symbols,
+    functions: profile.functions,
+    samples: samples
+  };
+}
+
+function filterBySymbol(profile, symbolOrFunctionIndex) {
+  var samples = profile.samples.map(function filterSample(origSample) {
+    if (!origSample)
+      return null;
+    var sample = cloneSample(origSample);
+    for (var i = 0; i < sample.frames.length; i++) {
+      if (symbolOrFunctionIndex == sample.frames[i]) {
+        sample.frames = sample.frames.slice(i);
+        return sample;
+      }
+    }
+    return null; // no frame matched; filter out complete sample
+  });
+  return {
+    symbols: profile.symbols,
+    functions: profile.functions,
+    samples: samples
+  };
+}
+
+function filterByCallstackPrefix(profile, callstack) {
+  var samples = profile.samples.map(function filterSample(origSample) {
+    if (!origSample)
+      return null;
+    if (origSample.frames.length < callstack.length)
+      return null;
+    var sample = cloneSample(origSample);
+    for (var i = 0; i < callstack.length; i++) {
+      if (sample.frames[i] != callstack[i])
+        return null;
+    }
+    sample.frames = sample.frames.slice(callstack.length - 1);
+    return sample;
+  });
+  return {
+    symbols: profile.symbols,
+    functions: profile.functions,
+    samples: samples
+  };
+}
+
+function filterByCallstackPostfix(profile, callstack) {
+  var samples = profile.samples.map(function filterSample(origSample) {
+    if (!origSample)
+      return null;
+    if (origSample.frames.length < callstack.length)
+      return null;
+    var sample = cloneSample(origSample);
+    for (var i = 0; i < callstack.length; i++) {
+      if (sample.frames[sample.frames.length - i - 1] != callstack[i])
+        return null;
+    }
+    sample.frames = sample.frames.slice(0, sample.frames.length - callstack.length + 1);
+    return sample;
+  });
+  return {
+    symbols: profile.symbols,
+    functions: profile.functions,
+    samples: samples
+  };
+}
+
+function filterByName(profile, filterName, useFunctions) {
+  function getSymbolOrFunctionName(index, profile, useFunctions) {
+    if (useFunctions) {
+      if (!(index in profile.functions))
+        return "";
+      return profile.functions[index].functionName;
+    }
+    if (!(index in profile.symbols))
+      return "";
+    return profile.symbols[index].symbolName;
+  }
+  var samples = profile.samples.slice(0);
+  filterName = filterName.toLowerCase();
+  calltrace_it: for (var i = 0; i < samples.length; ++i) {
+    var sample = samples[i];
+    if (!sample)
+      continue;
+    var callstack = sample.frames;
+    for (var j = 0; j < callstack.length; ++j) { 
+      var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], profile, useFunctions);
+      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1) {
+        continue calltrace_it;
+      }
+    }
+    samples[i] = null;
+  }
+  return {
+    symbols: profile.symbols,
+    functions: profile.functions,
+    samples: samples
+  };
+}
+
+function discardLineLevelInformation(profile) {
+  var symbols = profile.symbols;
+  var data = profile.samples;
+  var filteredData = [];
+  for (var i = 0; i < data.length; i++) {
+    if (!data[i]) {
+      filteredData.push(null);
+      continue;
+    }
+    filteredData.push(cloneSample(data[i]));
+    var frames = filteredData[i].frames;
+    for (var j = 0; j < frames.length; j++) {
+      if (!(frames[j] in symbols))
+        continue;
+      frames[j] = symbols[frames[j]].functionIndex;
+    }
+  }
+  return {
+    symbols: symbols,
+    functions: profile.functions,
+    samples: filteredData
+  };
+}
+
+function mergeUnbranchedCallPaths(root) {
+  var mergedNames = [root.name];
+  var node = root;
+  while (node.children.length == 1 && node.count == node.children[0].count) {
+    node = node.children[0];
+    mergedNames.push(node.name);
+  }
+  if (node != root) {
+    // Merge path from root to node into root.
+    root.children = node.children;
+    root.mergedNames = mergedNames;
+    //root.name = clipText(root.name, 50) + " to " + this._clipText(node.name, 50);
+  }
+  for (var i = 0; i < root.children.length; i++) {
+    mergeUnbranchedCallPaths(root.children[i]);
+  }
+}
+
+function FocusedFrameSampleFilter(focusedSymbol) {
+  this._focusedSymbol = focusedSymbol;
+}
+FocusedFrameSampleFilter.prototype = {
+  filter: function FocusedFrameSampleFilter_filter(profile) {
+    return filterBySymbol(profile, this._focusedSymbol);
+  }
+};
+
+function FocusedCallstackPrefixSampleFilter(focusedCallstack) {
+  this._focusedCallstackPrefix = focusedCallstack;
+}
+FocusedCallstackPrefixSampleFilter.prototype = {
+  filter: function FocusedCallstackPrefixSampleFilter_filter(profile) {
+    return filterByCallstackPrefix(profile, this._focusedCallstackPrefix);
+  }
+};
+
+function FocusedCallstackPostfixSampleFilter(focusedCallstack) {
+  this._focusedCallstackPostfix = focusedCallstack;
+}
+FocusedCallstackPostfixSampleFilter.prototype = {
+  filter: function FocusedCallstackPostfixSampleFilter_filter(profile) {
+    return filterByCallstackPostfix(profile, this._focusedCallstackPostfix);
+  }
+};
+
+function RangeSampleFilter(start, end) {
+  this._start = start;
+  this._end = end;
+}
+RangeSampleFilter.prototype = {
+  filter: function RangeSampleFilter_filter(profile) {
+    return {
+      symbols: profile.symbols,
+      functions: profile.functions,
+      samples: profile.samples.slice(this._start, this._end)
+    };
+  }
+}
+
+function unserializeSampleFilters(filters) {
+  return filters.map(function (filter) {
+    switch (filter.type) {
+      case "FocusedFrameSampleFilter":
+        return new FocusedFrameSampleFilter(filter.focusedSymbol);
+      case "FocusedCallstackPrefixSampleFilter":
+        return new FocusedCallstackPrefixSampleFilter(filter.focusedCallstack);
+      case "FocusedCallstackPostfixSampleFilter":
+        return new FocusedCallstackPostfixSampleFilter(filter.focusedCallstack);
+      case "RangeSampleFilter":
+        return new RangeSampleFilter(filter.start, filter.end);
+      default:
+        throw "Unknown filter";
+    }
+  })
+}
+
+var gJankThreshold = 50 /* ms */;
+
+function updateFilters(requestID, profileID, filters) {
+  var data = gProfiles[profileID].parsedProfile;
+
+  if (filters.mergeFunctions) {
+    data = discardLineLevelInformation(data);
+  }
+  if (filters.nameFilter) {
+    data = filterByName(data, filters.nameFilter);
+  }
+  var sampleFilters = unserializeSampleFilters(filters.sampleFilters);
+  for (var i = 0; i < sampleFilters.length; i++) {
+    data = sampleFilters[i].filter(data);
+  }
+  if (filters.jankOnly) {
+    data = filterByJank(data, gJankThreshold);
+  }
+
+  gProfiles[profileID].filteredProfile = data;
+  sendFinished(requestID, data);
+}
+
+function updateViewOptions(requestID, profileID, options) {
+  var data = gProfiles[profileID].filteredProfile;
+  var treeData = convertToCallTree(data, options.invertCallstack);
+  if (options.mergeUnbranched)
+    mergeUnbranchedCallPaths(treeData);
+  sendFinished(requestID, treeData);
 }
