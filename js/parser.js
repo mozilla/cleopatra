@@ -25,12 +25,20 @@ var gParserWorker = new Worker("js/parserWorker.js");
 gParserWorker.nextRequestID = 0;
 
 function WorkerRequest(worker) {
+  var self = this;
   this._eventListeners = {};
   var requestID = worker.nextRequestID++;
   this._requestID = requestID;
   this._worker = worker;
+  this._totalReporter = new ProgressReporter();
+  this._totalReporter.addListener(function (reporter) {
+    self._fireEvent("progress", reporter.getProgress());
+  })
+  this._sendChunkReporter = this._totalReporter.addSubreporter(500);
+  this._executeReporter = this._totalReporter.addSubreporter(1000);
+  this._receiveChunkReporter = this._totalReporter.addSubreporter(500);
+  this._totalReporter.begin("Processing task in worker...");
   var partialResult = null;
-  var self = this;
   function onMessageFromWorker(msg) {
     pendingMessages.push(msg);
     scheduleMessageProcessing();
@@ -48,19 +56,29 @@ function WorkerRequest(worker) {
           self._fireEvent("error", data.error);
           break;
         case "progress":
-          self._fireEvent("progress", data.progress);
+          self._executeReporter.setProgress(data.progress);
           break;
         case "finished":
+          self._executeReporter.finish();
+          self._receiveChunkReporter.begin("Receiving data from worker...");
+          self._receiveChunkReporter.finish();
           self._fireEvent("finished", data.result);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
         case "finishedStart":
           partialResult = null;
+          self._totalReceiveChunks = data.numChunks;
+          self._gotReceiveChunks = 0;
+          self._executeReporter.finish();
+          self._receiveChunkReporter.begin("Receiving data from worker...");
           break;
         case "finishedChunk":
           partialResult = partialResult ? partialResult.concat(data.chunk) : data.chunk;
+          var chunkIndex = self._gotReceiveChunks++;
+          self._receiveChunkReporter.setProgress((chunkIndex + 1) / self._totalReceiveChunks);
           break;
         case "finishedEnd":
+          self._receiveChunkReporter.finish();
           self._fireEvent("finished", partialResult);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
@@ -85,6 +103,7 @@ function WorkerRequest(worker) {
 
 WorkerRequest.prototype = {
   send: function WorkerRequest_send(task, taskData) {
+    this._sendChunkReporter.begin("Sending data to worker...");
     var startTime = Date.now();
     this._worker.postMessage({
       requestID: this._requestID,
@@ -94,14 +113,18 @@ WorkerRequest.prototype = {
     var postTime = Date.now() - startTime;
     if (postTime > 10)
       console.log("posting message to worker: " + postTime + "ms");
+    this._sendChunkReporter.finish();
+    this._executeReporter.begin("Processing worker request...");
   },
   sendInChunks: function WorkerRequest_sendInChunks(task, taskData, maxChunkSize) {
+    this._sendChunkReporter.begin("Sending data to worker...");
     var self = this;
     var chunks = bucketsBySplittingArray(taskData, maxChunkSize);
     var pendingMessages = [
       {
         requestID: this._requestID,
-        task: "chunkedStart"
+        task: "chunkedStart",
+        numChunks: chunks.length
       }
     ].concat(chunks.map(function (chunk) {
       return {
@@ -119,19 +142,27 @@ WorkerRequest.prototype = {
         task: task
       },
     ]);
+    var totalMessages = pendingMessages.length;
+    var numSentMessages = 0;
     function postMessage(msg) {
+      var msgIndex = numSentMessages++;
       var startTime = Date.now();
       self._worker.postMessage(msg);
       var postTime = Date.now() - startTime;
       if (postTime > 10)
         console.log("posting message to worker: " + postTime + "ms");
+      self._sendChunkReporter.setProgress((msgIndex + 1) / totalMessages);
     }
     var messagePostingTimer = 0;
     function postMessages() {
       messagePostingTimer = 0;
       postMessage(pendingMessages.shift());
-      if (pendingMessages.length)
+      if (pendingMessages.length) {
         scheduleMessagePosting();
+      } else {
+        self._sendChunkReporter.finish();
+        self._executeReporter.begin("Processing worker request...");
+      }
     }
     function scheduleMessagePosting() {
       if (messagePostingTimer)
