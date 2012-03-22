@@ -42,7 +42,9 @@ function WorkerRequest(worker) {
 WorkerRequest.prototype = {
   send: function WorkerRequest_send(startMessage) {
     startMessage.requestID = this._requestID;
+    var startTime = Date.now();
     this._worker.postMessage(startMessage);
+    console.log("time for posting to worker: " + (Date.now() - startTime) + "ms");
   },
 
   // TODO: share code with TreeView
