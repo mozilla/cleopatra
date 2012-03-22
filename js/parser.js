@@ -50,7 +50,9 @@ WorkerRequest.prototype = {
     startMessage.requestID = this._requestID;
     var startTime = Date.now();
     this._worker.postMessage(startMessage);
-    console.log("time for posting to worker: " + (Date.now() - startTime) + "ms");
+    var postTime = Date.now() - startTime;
+    if (postTime > 10)
+      console.log("posting message to worker: " + postTime + "ms");
   },
 
   // TODO: share code with TreeView

@@ -821,7 +821,7 @@ function loadRawProfile(reporter, rawProfile) {
     reporter.setProgress(progress);
   });
   parseRequest.addEventListener("finished", function (result) {
-    console.log("parse time: " + (Date.now() - startTime) + "ms");
+    console.log("parsing (in worker): " + (Date.now() - startTime) + "ms");
     reporter.finish();
     gNumSamples = result.numSamples;
     gSymbols = result.symbols;
@@ -1011,7 +1011,7 @@ function refreshUI() {
   });
   start = Date.now();
   updateRequest.addEventListener("finished", function (filteredProfile) {
-    console.log("profile filtering: " + (Date.now() - start) + "ms.");
+    console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
     gCurrentlyShownSampleData = filteredProfile;
     gInfoBar.display();
     start = Date.now();
