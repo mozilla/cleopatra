@@ -12,6 +12,15 @@ function cloneSample(sample) {
   return makeSample(sample.frames.clone(), sample.extraInfo, sample.lines.clone());
 }
 
+function bucketsBySplittingArray(array, maxItemsPerBucket) {
+  var buckets = [];
+  while (buckets.length * maxItemsPerBucket < array.length) {
+    buckets.push(array.slice(buckets.length * maxItemsPerBucket,
+                             (buckets.length + 1) * maxItemsPerBucket));
+  }
+  return buckets;
+}
+
 var gParserWorker = new Worker("js/parserWorker.js");
 gParserWorker.nextRequestID = 0;
 
@@ -75,13 +84,61 @@ function WorkerRequest(worker) {
 }
 
 WorkerRequest.prototype = {
-  send: function WorkerRequest_send(startMessage) {
-    startMessage.requestID = this._requestID;
+  send: function WorkerRequest_send(task, taskData) {
     var startTime = Date.now();
-    this._worker.postMessage(startMessage);
+    this._worker.postMessage({
+      requestID: this._requestID,
+      task: task,
+      taskData: taskData
+    });
     var postTime = Date.now() - startTime;
     if (postTime > 10)
       console.log("posting message to worker: " + postTime + "ms");
+  },
+  sendInChunks: function WorkerRequest_sendInChunks(task, taskData, maxChunkSize) {
+    var self = this;
+    var chunks = bucketsBySplittingArray(taskData, maxChunkSize);
+    var pendingMessages = [
+      {
+        requestID: this._requestID,
+        task: "chunkedStart"
+      }
+    ].concat(chunks.map(function (chunk) {
+      return {
+        requestID: self._requestID,
+        task: "chunkedChunk",
+        chunk: chunk
+      };
+    })).concat([
+      {
+        requestID: this._requestID,
+        task: "chunkedEnd"
+      },
+      {
+        requestID: this._requestID,
+        task: task
+      },
+    ]);
+    function postMessage(msg) {
+      var startTime = Date.now();
+      self._worker.postMessage(msg);
+      var postTime = Date.now() - startTime;
+      if (postTime > 10)
+        console.log("posting message to worker: " + postTime + "ms");
+    }
+    var messagePostingTimer = 0;
+    function postMessages() {
+      messagePostingTimer = 0;
+      postMessage(pendingMessages.shift());
+      if (pendingMessages.length)
+        scheduleMessagePosting();
+    }
+    function scheduleMessagePosting() {
+      if (messagePostingTimer)
+        return;
+      messagePostingTimer = setTimeout(postMessages, 0);
+    }
+    scheduleMessagePosting();
   },
 
   // TODO: share code with TreeView
@@ -111,19 +168,15 @@ WorkerRequest.prototype = {
 
 var Parser = {
   parse: function Parser_parse(data) {
+    console.log("profile num chars: " + data.length);
     var request = new WorkerRequest(gParserWorker);
-    request.send({
-      task: "parseRawProfile",
-      rawProfile: data,
-      profileID: 0
-    });
+    request.sendInChunks("parseRawProfile", data, 3000000);
     return request;
   },
 
   updateFilters: function Parser_updateFilters(filters) {
     var request = new WorkerRequest(gParserWorker);
-    request.send({
-      task: "updateFilters",
+    request.send("updateFilters", {
       filters: filters,
       profileID: 0
     });
@@ -132,8 +185,7 @@ var Parser = {
 
   updateViewOptions: function Parser_updateViewOptions(options) {
     var request = new WorkerRequest(gParserWorker);
-    request.send({
-      task: "updateViewOptions",
+    request.send("updateViewOptions", {
       options: options,
       profileID: 0
     });

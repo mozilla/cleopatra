@@ -2,24 +2,45 @@ importScripts("ProgressReporter.js");
 
 var gProfiles = [];
 
+var partialTaskData = {};
+
+var gNextProfileID = 0;
+
 self.onmessage = function (msg) {
   try {
-    switch (msg.data.task) {
+    var requestID = msg.data.requestID;
+    var task = msg.data.task;
+    var taskData = msg.data.taskData;
+    if ((["chunkedStart", "chunkedChunk", "chunkedEnd"].indexOf(task) == -1) &&
+        !taskData) {
+      taskData = partialTaskData[requestID];
+    }
+    switch (task) {
+      case "chunkedStart":
+        partialTaskData[requestID] = null;
+        break;
+      case "chunkedChunk":
+        if (partialTaskData[requestID] === null)
+          partialTaskData[requestID] = msg.data.chunk;
+        partialTaskData[requestID] = partialTaskData[requestID].concat(msg.data.chunk);
+        break;
+      case "chunkedEnd":
+        break;
       case "parseRawProfile":
-        parseRawProfile(msg.data.requestID, msg.data.rawProfile, msg.data.profileID);
+        parseRawProfile(requestID, taskData);
         break;
       case "updateFilters":
-        updateFilters(msg.data.requestID, msg.data.profileID, msg.data.filters);
+        updateFilters(requestID, taskData.profileID, taskData.filters);
         break;
       case "updateViewOptions":
-        updateViewOptions(msg.data.requestID, msg.data.profileID, msg.data.options);
+        updateViewOptions(requestID, taskData.profileID, taskData.options);
         break;
       default:
-        sendError(msg.data.requestID, "Unknown task " + msg.data.task);
+        sendError(requestID, "Unknown task " + task);
         break;
     }
   } catch (e) {
-    sendError(msg.data.requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
+    sendError(requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
   }
 }
 
@@ -225,6 +246,7 @@ function parseRawProfile(requestID, rawProfile, profileID) {
     progressReporter.setProgress((i + 1) / lines.length);
   }
   progressReporter.finish();
+  var profileID = gNextProfileID++;
   gProfiles[profileID] = {
     parsedProfile: { symbols: symbols, functions: functions, samples: samples }
   };
