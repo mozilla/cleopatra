@@ -737,6 +737,8 @@ InfoBar.prototype = {
 
 var gRawProfile = "";
 var gNumSamples = 0;
+var gSymbols = {};
+var gFunctions = {};
 var gHighlightedCallstack = [];
 var gTreeManager = null;
 var gBreadcrumbTrail = null;
@@ -822,6 +824,8 @@ function loadRawProfile(reporter, rawProfile) {
     console.log("parse time: " + (Date.now() - startTime) + "ms");
     reporter.finish();
     gNumSamples = result.numSamples;
+    gSymbols = result.symbols;
+    gFunctions = result.functions;
     enterFinishedProfileUI();
     gFileList.profileParsingFinished();
   });
@@ -1005,7 +1009,7 @@ function refreshUI() {
     sampleFilters: gSampleFilters,
     jankOnly: gJankOnly
   });
-  var start = Date.now();
+  start = Date.now();
   updateRequest.addEventListener("finished", function (filteredProfile) {
     console.log("profile filtering: " + (Date.now() - start) + "ms.");
     gCurrentlyShownSampleData = filteredProfile;
@@ -1013,16 +1017,15 @@ function refreshUI() {
     start = Date.now();
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-    var updateViewOptionsRequest = Parser.updateViewOptions({
-      invertCallstack: gInvertCallstack,
-      mergeUnbranched: gMergeUnbranched
-    });
+  });
+
+  var updateViewOptionsRequest = Parser.updateViewOptions({
+    invertCallstack: gInvertCallstack,
+    mergeUnbranched: gMergeUnbranched
+  });
+  updateViewOptionsRequest.addEventListener("finished", function (calltree) {
     start = Date.now();
-    updateViewOptionsRequest.addEventListener("finished", function (calltree) {
-      console.log("tree construction: " + (Date.now() - start) + "ms.");
-      start = Date.now();
-      gTreeManager.display(calltree, filteredProfile.symbols, filteredProfile.functions, gMergeFunctions);
-      console.log("tree displaying: " + (Date.now() - start) + "ms.");
-    });
+    gTreeManager.display(calltree, gSymbols, gFunctions, gMergeFunctions);
+    console.log("tree displaying: " + (Date.now() - start) + "ms.");
   });
 }

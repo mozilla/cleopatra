@@ -198,7 +198,11 @@ function parseRawProfile(requestID, rawProfile, profileID) {
   gProfiles[profileID] = {
     parsedProfile: { symbols: symbols, functions: functions, samples: samples }
   };
-  sendFinished(requestID, { numSamples: samples.length });
+  sendFinished(requestID, {
+    numSamples: samples.length,
+    symbols: symbols,
+    functions: functions
+  });
 }
 
 function TreeNode(name, parent, startCount) {

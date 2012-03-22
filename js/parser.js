@@ -22,17 +22,22 @@ function WorkerRequest(worker) {
   this._worker = worker;
   var self = this;
   worker.addEventListener("message", function onMessageFromWorker(msg) {
-    if (msg.data.requestID == requestID) {
-      switch(msg.data.type) {
+    var startTime = Date.now();
+    var data = msg.data;
+    var readTime = Date.now() - startTime;
+    if (readTime > 10)
+      console.log("reading data from worker message: " + readTime + "ms");
+    if (data.requestID == requestID) {
+      switch(data.type) {
         case "error":
-          console.log("Error in worker: " + msg.data.error);
-          self._fireEvent("error", msg.data.error);
+          console.log("Error in worker: " + data.error);
+          self._fireEvent("error", data.error);
           break;
         case "progress":
-          self._fireEvent("progress", msg.data.progress);
+          self._fireEvent("progress", data.progress);
           break;
         case "finished":
-          self._fireEvent("finished", msg.data.result);
+          self._fireEvent("finished", data.result);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
       }
