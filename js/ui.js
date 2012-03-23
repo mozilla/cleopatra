@@ -71,6 +71,9 @@ ProfileTreeManager.prototype = {
   highlightFrame: function Treedisplay_highlightFrame(frameData) {
     setHighlightedCallstack(this._getCallstackUpTo(frameData));
   },
+  dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
+    this.treeView.dataIsOutdated();
+  },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
     var callstack = [];
     var curr = frame;
@@ -167,9 +170,16 @@ function HistogramView() {
   this._rangeSelector.enableRangeSelectionOnHistogram();
   this._container.appendChild(this._rangeSelector.getContainer());
 
+  this._busyCover = document.createElement("div");
+  this._busyCover.className = "busyCover";
+  this._container.appendChild(this._busyCover);
+
   this._histogramData = [];
 }
 HistogramView.prototype = {
+  dataIsOutdated: function HistogramView_dataIsOutdated() {
+    this._busyCover.classList.add("busy");
+  },
   _createCanvas: function HistogramView__createSVGRoot() {
     var canvas = document.createElement("canvas");
     canvas.height = 60;
@@ -198,6 +208,7 @@ HistogramView.prototype = {
     return Math.ceil(minWidth / this._widthSum);
   },
   display: function HistogramView_display(samples, highlightedCallstack) {
+    this._busyCover.classList.remove("busy");
     this._histogramData = this._convertToHistogramData(samples);
     var lastStep = this._histogramData[this._histogramData.length - 1];
     this._widthSum = lastStep.x + lastStep.width;
@@ -1002,6 +1013,7 @@ function refreshUI() {
   var start;
   var data = { symbols: {}, functions: {}, samples: [] };
 
+  gHistogramView.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
   var updateRequest = Parser.updateFilters({
     mergeFunctions: gMergeFunctions,
@@ -1019,6 +1031,7 @@ function refreshUI() {
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
 
+  gTreeManager.dataIsOutdated();
   var updateViewOptionsRequest = Parser.updateViewOptions({
     invertCallstack: gInvertCallstack,
     mergeUnbranched: gMergeUnbranched

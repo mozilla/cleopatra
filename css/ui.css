@@ -221,3 +221,27 @@ body {
   line-height: 15px;
   font-size: 9px;
 }
+.busyCover {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.1);
+  -moz-transition: 200ms ease-in-out;
+  -moz-transition-property: visibility, opacity;
+}
+.busyCover.busy {
+  visibility: visible;
+  opacity: 1;
+}
+.busyCover::before {
+  content: url(../images/throbber.svg);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -12px;
+}

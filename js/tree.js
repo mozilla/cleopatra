@@ -31,6 +31,10 @@ function TreeView() {
   this._contextMenu.id = "contextMenuForTreeView" + TreeView.instanceCounter++;
   this._container.appendChild(this._contextMenu);
 
+  this._busyCover = document.createElement("div");
+  this._busyCover.className = "busyCover";
+  this._verticalScrollbox.appendChild(this._busyCover);
+
   var self = this;
   this._container.onkeypress = function (e) {
     self._onkeypress(e);
@@ -59,7 +63,11 @@ TreeView.prototype = {
       this._header.appendChild(li);
     }
   },
+  dataIsOutdated: function TreeView_dataIsOutdated() {
+    this._busyCover.classList.add("busy");
+  },
   display: function TreeView_display(data) {
+    this._busyCover.classList.remove("busy");
     this._horizontalScrollbox.innerHTML = "";
     if (this._pendingActionsProcessingCallback) {
       window.mozCancelAnimationFrame(this._pendingActionsProcessingCallback);
