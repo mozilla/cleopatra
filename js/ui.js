@@ -285,14 +285,15 @@ HistogramView.prototype = {
     // Except when seperated by a marker.
     // This is used to cut down the number of rects, since
     // there's no point in having more rects then pixels
-    var samplesPerStep = Math.floor(data.length / 2000);
+    var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
     for (var i = 0; i < data.length; i++) {
       var step = data[i];
       if (!step) {
         // Add a gap for the sample that was filtered out.
-        nextX += 1;
+        nextX += 1 / samplesPerStep;
         continue;
       }
+      nextX = Math.ceil(nextX);
       var value = step.frames.length / maxHeight;
       var frames = step.frames;
       var currHistrogramData = histogramData[histogramData.length-1];
@@ -335,7 +336,7 @@ HistogramView.prototype = {
       }
     }
     this._histogramData = histogramData;
-    this._widthSum = nextX;
+    this._widthSum = Math.ceil(nextX);
   },
 };
 
