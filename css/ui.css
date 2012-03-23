@@ -230,7 +230,7 @@ body {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(120, 120, 120, 0.2);
   -moz-transition: 200ms ease-in-out;
   -moz-transition-property: visibility, opacity;
 }
