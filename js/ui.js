@@ -209,9 +209,7 @@ HistogramView.prototype = {
   },
   display: function HistogramView_display(samples, highlightedCallstack) {
     this._busyCover.classList.remove("busy");
-    this._histogramData = this._convertToHistogramData(samples);
-    var lastStep = this._histogramData[this._histogramData.length - 1];
-    this._widthSum = lastStep.x + lastStep.width;
+    this._calculateHistogramData(samples);
     this._widthMultiplier = this._calculateWidthMultiplier();
     this._canvas.width = this._widthMultiplier * this._widthSum;
     this._render(highlightedCallstack);
@@ -271,7 +269,7 @@ HistogramView.prototype = {
 
       return "rgb(0,0,0)";
   },
-  _convertToHistogramData: function HistogramView_convertToHistogramData(data) {
+  _calculateHistogramData: function HistogramView__calculateHistogramData(data) {
     var histogramData = [];
     var maxHeight = 0;
     for (var i = 0; i < data.length; ++i) {
@@ -336,7 +334,8 @@ HistogramView.prototype = {
         nextX += 1;
       }
     }
-    return histogramData;
+    this._histogramData = histogramData;
+    this._widthSum = nextX;
   },
 };
 
