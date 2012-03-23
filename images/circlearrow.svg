@@ -1,6 +1,6 @@
 <svg  xmlns="http://www.w3.org/2000/svg"
       xmlns:xlink="http://www.w3.org/1999/xlink"
-      width="64" height="" viewBox="0 0 64 16">
+      width="64" height="16" viewBox="0 0 64 16">
   <defs>
     <mask id="arrowInCircle" maskContentUnits="userSpaceOnUse">
       <circle cx="8" cy="8" r="6" fill="white"/>
