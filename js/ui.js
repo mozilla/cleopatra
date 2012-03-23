@@ -436,7 +436,7 @@ RangeSelector.prototype = {
         enterCallback: function () {
           gSampleFilters = newFilterChain;
           self.collapseHistogramSelection();
-          refreshUI();
+          filtersChanged();
         }
       });
     } else {
@@ -653,7 +653,7 @@ function filterOnChange() {
 function filterUpdate() {
   gFilterChangeCallback = null;
 
-  refreshUI(); 
+  filtersChanged(); 
 
   filterNameInput = document.getElementById("filterName");
   if (filterNameInput != null) {
@@ -874,20 +874,20 @@ var gInvertCallstack = false;
 function toggleInvertCallStack() {
   gInvertCallstack = !gInvertCallstack;
   var startTime = Date.now();
-  refreshUI();
+  viewOptionsChanged();
   console.log("invert time: " + (Date.now() - startTime) + "ms");
 }
 
 var gMergeUnbranched = false;
 function toggleMergeUnbranched() {
   gMergeUnbranched = !gMergeUnbranched;
-  refreshUI(); 
+  viewOptionsChanged(); 
 }
 
 var gMergeFunctions = true;
 function toggleMergeFunctions() {
   gMergeFunctions = !gMergeFunctions;
-  refreshUI(); 
+  filtersChanged(); 
 }
 
 var gJankOnly = false;
@@ -899,7 +899,7 @@ function toggleJank(/* optional */ threshold) {
   if (threshold != null ) {
     gJankThreshold = threshold;
   }
-  refreshUI();
+  filtersChanged();
 }
 
 var gSampleFilters = [];
@@ -909,7 +909,7 @@ function focusOnSymbol(focusSymbol, name) {
     title: name,
     enterCallback: function () {
       gSampleFilters = newFilterChain;
-      refreshUI();
+      filtersChanged();
     }
   });
 }
@@ -924,7 +924,7 @@ function focusOnCallstack(focusedCallstack, name) {
     title: name,
     enterCallback: function () {
       gSampleFilters = newFilterChain;
-      refreshUI();
+      filtersChanged();
     }
   })
 }
@@ -1004,12 +1004,12 @@ function enterFinishedProfileUI() {
     title: "Complete Profile",
     enterCallback: function () {
       gSampleFilters = [];
-      refreshUI();
+      filtersChanged();
     }
   });
 }
 
-function refreshUI() {
+function filtersChanged() {
   var start;
   var data = { symbols: {}, functions: {}, samples: [] };
 
@@ -1030,7 +1030,10 @@ function refreshUI() {
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
+  viewOptionsChanged();
+}
 
+function viewOptionsChanged() {
   gTreeManager.dataIsOutdated();
   var updateViewOptionsRequest = Parser.updateViewOptions({
     invertCallstack: gInvertCallstack,
