@@ -79,7 +79,7 @@ function bucketsBySplittingArray(array, maxItemsPerBucket) {
 }
 
 function sendFinishedInChunks(requestID, result, chunkSize) {
-  if (result.length === undefined || result.slice === undefined)
+  if (!("length" in result) || !("slice" in result))
     throw new Error("Can't slice result into chunks");
   self.postMessage({
     requestID: requestID,
@@ -558,7 +558,7 @@ function updateFilters(requestID, profileID, filters) {
   }
 
   gProfiles[profileID].filteredProfile = data;
-  sendFinishedInChunks(requestID, JSON.stringify(data.samples), 2000000);
+  sendFinishedInChunks(requestID, data.samples, 500);
 }
 
 function updateViewOptions(requestID, profileID, options) {

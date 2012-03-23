@@ -245,6 +245,3 @@ body {
   left: 50%;
   margin: -12px;
 }
-label {
-  -moz-user-select: none;
-}
