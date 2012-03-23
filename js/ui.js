@@ -1024,7 +1024,7 @@ function filtersChanged() {
   start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
-    gCurrentlyShownSampleData = filteredSamples;
+    gCurrentlyShownSampleData = JSON.parse(filteredSamples);
     gInfoBar.display();
     start = Date.now();
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
