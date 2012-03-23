@@ -79,7 +79,7 @@ function bucketsBySplittingArray(array, maxItemsPerBucket) {
 }
 
 function sendFinishedInChunks(requestID, result, chunkSize) {
-  if (!("length" in result) || !("slice" in result))
+  if (result.length === undefined || result.slice === undefined)
     throw new Error("Can't slice result into chunks");
   self.postMessage({
     requestID: requestID,
