@@ -69,23 +69,33 @@ function sendFinished(requestID, result) {
   });
 }
 
-function bucketsBySplittingArray(array, maxItemsPerBucket) {
+function bucketsBySplittingArray(array, maxCostPerBucket, costOfElementCallback) {
   var buckets = [];
-  while (buckets.length * maxItemsPerBucket < array.length) {
-    buckets.push(array.slice(buckets.length * maxItemsPerBucket,
-                             (buckets.length + 1) * maxItemsPerBucket));
+  var currentBucket = [];
+  var currentBucketCost = 0;
+  for (var i = 0; i < array.length; i++) {
+    var element = array[i];
+    var costOfCurrentElement = costOfElementCallback ? costOfElementCallback(element) : 1;
+    if (currentBucketCost + costOfCurrentElement > maxCostPerBucket) {
+      buckets.push(currentBucket);
+      currentBucket = [];
+      currentBucketCost = 0;
+    }
+    currentBucket.push(element);
+    currentBucketCost += costOfCurrentElement;
   }
+  buckets.push(currentBucket);
   return buckets;
 }
 
-function sendFinishedInChunks(requestID, result, chunkSize) {
+function sendFinishedInChunks(requestID, result, maxChunkCost, costOfElementCallback) {
   if (result.length === undefined || result.slice === undefined)
     throw new Error("Can't slice result into chunks");
   self.postMessage({
     requestID: requestID,
     type: "finishedStart"
   });
-  var chunks = bucketsBySplittingArray(result, chunkSize);
+  var chunks = bucketsBySplittingArray(result, maxChunkCost, costOfElementCallback);
   for (var i = 0; i < chunks.length; i++) {
     self.postMessage({
       requestID: requestID,
@@ -558,7 +568,8 @@ function updateFilters(requestID, profileID, filters) {
   }
 
   gProfiles[profileID].filteredProfile = data;
-  sendFinishedInChunks(requestID, data.samples, 500);
+  sendFinishedInChunks(requestID, data.samples, 8000,
+                       function (sample) { return sample ? sample.frames.length : 1; });
 }
 
 function updateViewOptions(requestID, profileID, options) {
