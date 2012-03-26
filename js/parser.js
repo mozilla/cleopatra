@@ -96,7 +96,7 @@ function WorkerRequest(worker) {
   function scheduleMessageProcessing() {
     if (messageProcessingTimer)
       return;
-    messageProcessingTimer = setTimeout(processMessages, 0);
+    messageProcessingTimer = setTimeout(processMessages, 10);
   }
   worker.addEventListener("message", onMessageFromWorker);
 }
@@ -167,7 +167,7 @@ WorkerRequest.prototype = {
     function scheduleMessagePosting() {
       if (messagePostingTimer)
         return;
-      messagePostingTimer = setTimeout(postMessages, 0);
+      messagePostingTimer = setTimeout(postMessages, 10);
     }
     scheduleMessagePosting();
   },
@@ -221,5 +221,14 @@ var Parser = {
       profileID: 0
     });
     return request;
+  },
+
+  getSerializedProfile: function Parser_getSerializedProfile(complete, callback) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("getSerializedProfile", {
+      profileID: 0,
+      complete: complete
+    });
+    request.addEventListener("finished", callback);
   },
 };

@@ -125,7 +125,7 @@ ProfileTreeManager.prototype = {
       curObj.selfCounter = selfCounter;
       curObj.ratio = node.counter / totalSamples;
       curObj.fullFrameNamesAsInSample = node.mergedNames ? node.mergedNames : [node.name];
-      if (!(node.name in symbols)) {
+      if (useFunctions ? !(node.name in functions) : !(node.name in symbols)) {
         curObj.name = node.name;
         curObj.library = "";
       } else {
@@ -583,42 +583,38 @@ function copyProfile() {
 }
 
 function downloadProfile() {
-  var bb = new MozBlobBuilder();
-  bb.append(rawProfileString());
-  var blob = bb.getBlob("application/octet-stream");
-  location.href = window.URL.createObjectURL(blob);
+  Parser.getSerializedProfile(true, function (serializedProfile) {
+    var bb = new MozBlobBuilder();
+    bb.append(serializedProfile);
+    var blob = bb.getBlob("application/octet-stream");
+    location.href = window.URL.createObjectURL(blob);
+  });
 }
 
 function uploadProfile(selected) {
-  var oXHR = new XMLHttpRequest();
-  oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
-  oXHR.onload = function (oEvent) {
-    if (oXHR.status == 200) {  
-      document.getElementById("upload_status").innerHTML = document.URL.split('?')[0] + "?report=" + oXHR.responseText;
-    } else {  
-      document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
-    }  
-  };
+  Parser.getSerializedProfile(!selected, function (dataToUpload) {
+    var oXHR = new XMLHttpRequest();
+    oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
+    oXHR.onload = function (oEvent) {
+      if (oXHR.status == 200) {  
+        document.getElementById("upload_status").innerHTML = document.URL.split('?')[0] + "?report=" + oXHR.responseText;
+      } else {  
+        document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
+      }  
+    };
 
-  var dataToUpload;
-  var dataSize;
-  if (selected === true) {
-    dataToUpload = getTextData();
-  } else {
-    dataToUpload = rawProfileString();
-  }
+    var dataSize;
+    if (dataToUpload.length > 1024*1024) {
+      dataSize = (dataToUpload.length/1024/1024) + " MB(s)";
+    } else {
+      dataSize = (dataToUpload.length/1024) + " KB(s)";
+    }
 
-  if (dataToUpload.length > 1024*1024) {
-    dataSize = (dataToUpload.length/1024/1024) + " MB(s)";
-  } else {
-    dataSize = (dataToUpload.length/1024) + " KB(s)";
-  }
-
-  var formData = new FormData();
-  formData.append("file", dataToUpload);
-  document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
-  oXHR.send(formData);
-
+    var formData = new FormData();
+    formData.append("file", dataToUpload);
+    document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
+    oXHR.send(formData);
+  });
 }
 
 function populate_skip_symbol() {
@@ -746,7 +742,6 @@ InfoBar.prototype = {
   }
 }
 
-var gRawProfile = "";
 var gNumSamples = 0;
 var gSymbols = {};
 var gFunctions = {};
@@ -814,10 +809,6 @@ function loadProfileURL(url) {
   subreporters.fileLoading.begin("Loading remote file...");
 }
 
-function rawProfileString() {
-  return typeof gRawProfile == "string" ? gRawProfile : JSON.stringify(gRawProfile);
-}
-
 function loadProfile(rawProfile) {
   var reporter = enterProgressUI();
   loadRawProfile(reporter, rawProfile);
@@ -825,7 +816,6 @@ function loadProfile(rawProfile) {
 
 function loadRawProfile(reporter, rawProfile) {
   reporter.begin("Parsing...");
-  gRawProfile = rawProfile;
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile);
   parseRequest.addEventListener("progress", function (progress) {

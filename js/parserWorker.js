@@ -14,6 +14,7 @@ self.onmessage = function (msg) {
     if (!taskData &&
         (["chunkedStart", "chunkedChunk", "chunkedEnd"].indexOf(task) == -1)) {
       taskData = partialTaskData[requestID];
+      delete partialTaskData[requestID];
     }
     switch (task) {
       case "chunkedStart":
@@ -35,6 +36,9 @@ self.onmessage = function (msg) {
         break;
       case "updateViewOptions":
         updateViewOptions(requestID, taskData.profileID, taskData.options);
+        break;
+      case "getSerializedProfile":
+        getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
       default:
         sendError(requestID, "Unknown task " + task);
@@ -109,16 +113,15 @@ function sendFinishedInChunks(requestID, result, maxChunkCost, costOfElementCall
   });
 }
 
-function makeSample(frames, extraInfo, lines) {
+function makeSample(frames, extraInfo) {
   return {
     frames: frames,
-    extraInfo: extraInfo,
-    lines: lines
+    extraInfo: extraInfo
   };
 }
 
 function cloneSample(sample) {
-  return makeSample(sample.frames.slice(0), sample.extraInfo, sample.lines.slice(0));
+  return makeSample(sample.frames.slice(0), sample.extraInfo);
 }
 function parseRawProfile(requestID, rawProfile) {
   var progressReporter = new ProgressReporter();
@@ -128,29 +131,33 @@ function parseRawProfile(requestID, rawProfile) {
   progressReporter.begin("Parsing...");
 
   var symbolicationTable = {};
+  var symbols = [];
+  var symbolIndices = {};
+  var functions = [];
+  var functionIndices = {};
+  var samples = [];
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
     rawProfile = JSON.parse(rawProfile);
   }
+
   if (typeof rawProfile == "object") {
     switch (rawProfile.format) {
       case "profileStringWithSymbolicationTable,1":
         symbolicationTable = rawProfile.symbolicationTable;
-        rawProfile = rawProfile.profileString;
+        parseProfileString(rawProfile.profileString);
+        break;
+      case "profileJSONWithSymbolicationTable,1":
+        symbolicationTable = rawProfile.symbolicationTable;
+        parseProfileJSON(rawProfile.profileJSON);
         break;
       default:
         throw "Unsupported profile JSON format";
     }
+  } else {
+    parseProfileString(rawProfile);
   }
-
-  var data = rawProfile;
-  var lines = data.split("\n");
-  var extraInfo = {};
-  var symbols = [];
-  var symbolIndices = {};
-  var functions = [];
-  var functionIndices = {};
 
   function cleanFunctionName(functionName) {
     var ignoredPrefix = "non-virtual thunk to ";
@@ -206,60 +213,75 @@ function parseRawProfile(requestID, rawProfile) {
     return newIndex;
   }
 
-  var samples = [];
-  var sample = null;
-  for (var i = 0; i < lines.length; ++i) {
-    var line = lines[i];
-    if (line.length < 2 || line[1] != '-') {
-      // invalid line, ignore it
-      continue;
+  function parseProfileString(data) {
+    var extraInfo = {};
+    var lines = data.split("\n");
+    var sample = null;
+    for (var i = 0; i < lines.length; ++i) {
+      var line = lines[i];
+      if (line.length < 2 || line[1] != '-') {
+        // invalid line, ignore it
+        continue;
+      }
+      var info = line.substring(2);
+      switch (line[0]) {
+      //case 'l':
+      //  // leaf name
+      //  if ("leafName" in extraInfo) {
+      //    extraInfo.leafName += ":" + info;
+      //  } else {
+      //    extraInfo.leafName = info;
+      //  }
+      //  break;
+      case 'm':
+        // marker
+        if (!("marker" in extraInfo)) {
+          extraInfo.marker = [];
+        }
+        extraInfo.marker.push(info);
+        break;
+      case 's':
+        // sample
+        var sampleName = info;
+        sample = makeSample([indexForSymbol(sampleName)], extraInfo);
+        samples.push(sample);
+        extraInfo = {}; // reset the extra info for future rounds
+        break;
+      case 'c':
+      case 'l':
+        // continue sample
+        if (sample) { // ignore the case where we see a 'c' before an 's'
+          sample.frames.push(indexForSymbol(info));
+        }
+        break;
+      case 'r':
+        // responsiveness
+        if (sample) {
+          sample.extraInfo["responsiveness"] = parseFloat(info);
+        }
+        break;
+      }
+      progressReporter.setProgress((i + 1) / lines.length);
     }
-    var info = line.substring(2);
-    switch (line[0]) {
-    //case 'l':
-    //  // leaf name
-    //  if ("leafName" in extraInfo) {
-    //    extraInfo.leafName += ":" + info;
-    //  } else {
-    //    extraInfo.leafName = info;
-    //  }
-    //  break;
-    case 'm':
-      // marker
-      if (!("marker" in extraInfo)) {
-        extraInfo.marker = [];
-      }
-      extraInfo.marker.push(info);
-      break;
-    case 's':
-      // sample
-      var sampleName = info;
-      sample = makeSample([indexForSymbol(sampleName)], extraInfo, []);
-      samples.push(sample);
-      extraInfo = {}; // reset the extra info for future rounds
-      break;
-    case 'c':
-    case 'l':
-      // continue sample
-      if (sample) { // ignore the case where we see a 'c' before an 's'
-        sample.frames.push(indexForSymbol(info));
-      }
-      break;
-    case 'r':
-      // responsiveness
-      if (sample) {
-        sample.extraInfo["responsiveness"] = parseFloat(info);
-      }
-      break;
-    }
-    if (sample != null)
-      sample.lines.push(line);
-    progressReporter.setProgress((i + 1) / lines.length);
   }
+
+  function parseProfileJSON(data) {
+    for (var i = 0; i < data.length; i++) {
+      var sample = data[i];
+      var indicedFrames = sample.frames.map(function (frameName) {
+        return indexForSymbol(frameName);
+      });
+      samples.push(makeSample(indicedFrames, sample.extraInfo));
+      progressReporter.setProgress((i + 1) / data.length);
+    }
+  }
+
   progressReporter.finish();
   var profileID = gNextProfileID++;
   gProfiles[profileID] = {
-    parsedProfile: { symbols: symbols, functions: functions, samples: samples }
+    symbols: symbols,
+    functions: functions,
+    allSamples: samples
   };
   sendFinished(requestID, {
     numSamples: samples.length,
@@ -267,6 +289,20 @@ function parseRawProfile(requestID, rawProfile) {
     symbols: symbols,
     functions: functions
   });
+}
+
+function getSerializedProfile(requestID, profileID, complete) {
+  var profile = gProfiles[profileID];
+  var symbolicationTable = {};
+  for (var symbolIndex in profile.symbols) {
+    symbolicationTable[symbolIndex] = profile.symbols[symbolIndex].symbolName;
+  }
+  var serializedProfile = JSON.stringify({
+    format: "profileJSONWithSymbolicationTable,1",
+    profileJSON: complete ? profile.allSamples : profile.filteredSamples,
+    symbolicationTable: symbolicationTable
+  });
+  sendFinished(requestID, serializedProfile);
 }
 
 function TreeNode(name, parent, startCount) {
@@ -308,8 +344,8 @@ TreeNode.prototype.incrementCountersInParentChain = function TreeNode_incrementC
     this.parent.incrementCountersInParentChain();
 };
 
-function convertToCallTree(profile, isReverse) {
-  var samples = profile.samples.filter(function noNullSamples(sample) {
+function convertToCallTree(samples, isReverse) {
+  samples = samples.filter(function noNullSamples(sample) {
     return sample != null;
   });
   if (samples.length == 0)
@@ -335,26 +371,18 @@ function convertToCallTree(profile, isReverse) {
   return treeRoot;
 }
 
-function filterByJank(profile, filterThreshold) {
-  var samples = profile.samples.slice(0);
-  calltrace_it: for (var i = 0; i < samples.length; ++i) {
-    var sample = samples[i];
-    if (!sample)
-      continue;
-    if (!("responsiveness" in sample.extraInfo) ||
-        sample.extraInfo["responsiveness"] < filterThreshold) {
-      samples[i] = null;
-    }
-  }
-  return {
-    symbols: profile.symbols,
-    functions: profile.functions,
-    samples: samples
-  };
+function filterByJank(samples, filterThreshold) {
+  return samples.map(function nullNonJank(sample) {
+    if (!sample ||
+        !("responsiveness" in sample.extraInfo) ||
+        sample.extraInfo["responsiveness"] < filterThreshold)
+      return null;
+    return sample;
+  });
 }
 
-function filterBySymbol(profile, symbolOrFunctionIndex) {
-  var samples = profile.samples.map(function filterSample(origSample) {
+function filterBySymbol(samples, symbolOrFunctionIndex) {
+  return samples.map(function filterSample(origSample) {
     if (!origSample)
       return null;
     var sample = cloneSample(origSample);
@@ -366,15 +394,10 @@ function filterBySymbol(profile, symbolOrFunctionIndex) {
     }
     return null; // no frame matched; filter out complete sample
   });
-  return {
-    symbols: profile.symbols,
-    functions: profile.functions,
-    samples: samples
-  };
 }
 
-function filterByCallstackPrefix(profile, callstack) {
-  var samples = profile.samples.map(function filterSample(origSample) {
+function filterByCallstackPrefix(samples, callstack) {
+  return samples.map(function filterSample(origSample) {
     if (!origSample)
       return null;
     if (origSample.frames.length < callstack.length)
@@ -387,15 +410,10 @@ function filterByCallstackPrefix(profile, callstack) {
     sample.frames = sample.frames.slice(callstack.length - 1);
     return sample;
   });
-  return {
-    symbols: profile.symbols,
-    functions: profile.functions,
-    samples: samples
-  };
 }
 
-function filterByCallstackPostfix(profile, callstack) {
-  var samples = profile.samples.map(function filterSample(origSample) {
+function filterByCallstackPostfix(samples, callstack) {
+  return samples.map(function filterSample(origSample) {
     if (!origSample)
       return null;
     if (origSample.frames.length < callstack.length)
@@ -408,25 +426,20 @@ function filterByCallstackPostfix(profile, callstack) {
     sample.frames = sample.frames.slice(0, sample.frames.length - callstack.length + 1);
     return sample;
   });
-  return {
-    symbols: profile.symbols,
-    functions: profile.functions,
-    samples: samples
-  };
 }
 
-function filterByName(profile, filterName, useFunctions) {
+function filterByName(samples, symbols, functions, filterName, useFunctions) {
   function getSymbolOrFunctionName(index, profile, useFunctions) {
     if (useFunctions) {
-      if (!(index in profile.functions))
+      if (!(index in functions))
         return "";
-      return profile.functions[index].functionName;
+      return functions[index].functionName;
     }
-    if (!(index in profile.symbols))
+    if (!(index in symbols))
       return "";
-    return profile.symbols[index].symbolName;
+    return symbols[index].symbolName;
   }
-  var samples = profile.samples.slice(0);
+  samples = samples.slice(0);
   filterName = filterName.toLowerCase();
   calltrace_it: for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
@@ -441,16 +454,11 @@ function filterByName(profile, filterName, useFunctions) {
     }
     samples[i] = null;
   }
-  return {
-    symbols: profile.symbols,
-    functions: profile.functions,
-    samples: samples
-  };
+  return samples;
 }
 
-function discardLineLevelInformation(profile) {
-  var symbols = profile.symbols;
-  var data = profile.samples;
+function discardLineLevelInformation(samples, symbols, functions) {
+  var data = samples;
   var filteredData = [];
   for (var i = 0; i < data.length; i++) {
     if (!data[i]) {
@@ -465,11 +473,7 @@ function discardLineLevelInformation(profile) {
       frames[j] = symbols[frames[j]].functionIndex;
     }
   }
-  return {
-    symbols: symbols,
-    functions: profile.functions,
-    samples: filteredData
-  };
+  return filteredData;
 }
 
 function mergeUnbranchedCallPaths(root) {
@@ -494,8 +498,8 @@ function FocusedFrameSampleFilter(focusedSymbol) {
   this._focusedSymbol = focusedSymbol;
 }
 FocusedFrameSampleFilter.prototype = {
-  filter: function FocusedFrameSampleFilter_filter(profile) {
-    return filterBySymbol(profile, this._focusedSymbol);
+  filter: function FocusedFrameSampleFilter_filter(samples, symbols, functions) {
+    return filterBySymbol(samples, this._focusedSymbol);
   }
 };
 
@@ -503,8 +507,8 @@ function FocusedCallstackPrefixSampleFilter(focusedCallstack) {
   this._focusedCallstackPrefix = focusedCallstack;
 }
 FocusedCallstackPrefixSampleFilter.prototype = {
-  filter: function FocusedCallstackPrefixSampleFilter_filter(profile) {
-    return filterByCallstackPrefix(profile, this._focusedCallstackPrefix);
+  filter: function FocusedCallstackPrefixSampleFilter_filter(samples, symbols, functions) {
+    return filterByCallstackPrefix(samples, this._focusedCallstackPrefix);
   }
 };
 
@@ -512,8 +516,8 @@ function FocusedCallstackPostfixSampleFilter(focusedCallstack) {
   this._focusedCallstackPostfix = focusedCallstack;
 }
 FocusedCallstackPostfixSampleFilter.prototype = {
-  filter: function FocusedCallstackPostfixSampleFilter_filter(profile) {
-    return filterByCallstackPostfix(profile, this._focusedCallstackPostfix);
+  filter: function FocusedCallstackPostfixSampleFilter_filter(samples, symbols, functions) {
+    return filterByCallstackPostfix(samples, this._focusedCallstackPostfix);
   }
 };
 
@@ -522,12 +526,8 @@ function RangeSampleFilter(start, end) {
   this._end = end;
 }
 RangeSampleFilter.prototype = {
-  filter: function RangeSampleFilter_filter(profile) {
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: profile.samples.slice(this._start, this._end)
-    };
+  filter: function RangeSampleFilter_filter(samples, symbols, functions) {
+    return samples.slice(this._start, this._end);
   }
 }
 
@@ -551,30 +551,36 @@ function unserializeSampleFilters(filters) {
 var gJankThreshold = 50 /* ms */;
 
 function updateFilters(requestID, profileID, filters) {
-  var data = gProfiles[profileID].parsedProfile;
+  var profile = gProfiles[profileID];
+  var samples = profile.allSamples;
+  var symbols = profile.symbols;
+  var functions = profile.functions;
 
   if (filters.mergeFunctions) {
-    data = discardLineLevelInformation(data);
+    samples = discardLineLevelInformation(samples, symbols, functions);
   }
   if (filters.nameFilter) {
-    data = filterByName(data, filters.nameFilter);
+    samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
   }
-  var sampleFilters = unserializeSampleFilters(filters.sampleFilters);
-  for (var i = 0; i < sampleFilters.length; i++) {
-    data = sampleFilters[i].filter(data);
-  }
+  samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
+    return currentFilter.filter(filteredSamples, symbols, functions);
+  }, samples);
   if (filters.jankOnly) {
-    data = filterByJank(data, gJankThreshold);
+    samples = filterByJank(samples, gJankThreshold);
   }
 
-  gProfiles[profileID].filteredProfile = data;
-  sendFinishedInChunks(requestID, data.samples, 8000,
+  gProfiles[profileID].filteredSamples = samples;
+  sendFinishedInChunks(requestID, samples, 40000,
                        function (sample) { return sample ? sample.frames.length : 1; });
 }
 
 function updateViewOptions(requestID, profileID, options) {
-  var data = gProfiles[profileID].filteredProfile;
-  var treeData = convertToCallTree(data, options.invertCallstack);
+  var profile = gProfiles[profileID];
+  var samples = profile.filteredSamples;
+  var symbols = profile.symbols;
+  var functions = profile.functions;
+
+  var treeData = convertToCallTree(samples, options.invertCallstack);
   if (options.mergeUnbranched)
     mergeUnbranchedCallPaths(treeData);
   sendFinished(requestID, treeData);
