@@ -1000,7 +1000,6 @@ function enterFinishedProfileUI() {
 }
 
 function filtersChanged() {
-  var start;
   var data = { symbols: {}, functions: {}, samples: [] };
 
   gHistogramView.dataIsOutdated();
@@ -1011,7 +1010,7 @@ function filtersChanged() {
     sampleFilters: gSampleFilters,
     jankOnly: gJankOnly
   });
-  start = Date.now();
+  var start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
     gCurrentlyShownSampleData = filteredSamples;
@@ -1030,7 +1029,7 @@ function viewOptionsChanged() {
     mergeUnbranched: gMergeUnbranched
   });
   updateViewOptionsRequest.addEventListener("finished", function (calltree) {
-    start = Date.now();
+    var start = Date.now();
     gTreeManager.display(calltree, gSymbols, gFunctions, gMergeFunctions);
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
   });
