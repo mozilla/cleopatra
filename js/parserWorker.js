@@ -213,6 +213,10 @@ function parseRawProfile(requestID, rawProfile) {
     return newIndex;
   }
 
+  function clearRegExpLastMatch() {
+    /./.exec(" ");
+  }
+
   function parseProfileString(data) {
     var extraInfo = {};
     var lines = data.split("\n");
@@ -278,11 +282,12 @@ function parseRawProfile(requestID, rawProfile) {
 
   progressReporter.finish();
   var profileID = gNextProfileID++;
-  gProfiles[profileID] = {
+  gProfiles[profileID] = JSON.parse(JSON.stringify({
     symbols: symbols,
     functions: functions,
     allSamples: samples
-  };
+  }));
+  clearRegExpLastMatch();
   sendFinished(requestID, {
     numSamples: samples.length,
     profileID: profileID,
