@@ -296,7 +296,7 @@ HistogramView.prototype = {
       nextX = Math.ceil(nextX);
       var value = step.frames.length / maxHeight;
       var frames = step.frames;
-      var currHistrogramData = histogramData[histogramData.length-1];
+      var currHistogramData = histogramData[histogramData.length-1];
       if ("marker" in step.extraInfo) {
         // A new marker boundary has been discovered.
         histogramData.push({
@@ -316,13 +316,13 @@ HistogramView.prototype = {
           color: this._getStepColor(step),
         });
         nextX += 1;
-      } else if (currHistrogramData != null &&
-        currHistrogramData.frames.length < samplesPerStep) {
-        currHistrogramData.frames.push(frames);
+      } else if (currHistogramData != null &&
+        currHistogramData.frames.length < samplesPerStep) {
+        currHistogramData.frames.push(frames);
         // When merging data items take the average:
-        currHistrogramData.value =
-          (currHistrogramData.value * (currHistrogramData.frames.length - 1) + value) /
-          currHistrogramData.frames.length;
+        currHistogramData.value =
+          (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
+          currHistogramData.frames.length;
         // Merge the colors? For now we keep the first color set.
       } else {
         // A new name boundary has been discovered.
