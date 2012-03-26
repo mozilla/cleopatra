@@ -319,9 +319,10 @@ HistogramView.prototype = {
       } else if (currHistrogramData != null &&
         currHistrogramData.frames.length < samplesPerStep) {
         currHistrogramData.frames.push(frames);
-        // When merging data items take the highest frame
-        if (value > currHistrogramData.value)
-          currHistrogramData.value = value;
+        // When merging data items take the average:
+        currHistrogramData.value =
+          (currHistrogramData.value * (currHistrogramData.frames.length - 1) + value) /
+          currHistrogramData.frames.length;
         // Merge the colors? For now we keep the first color set.
       } else {
         // A new name boundary has been discovered.
