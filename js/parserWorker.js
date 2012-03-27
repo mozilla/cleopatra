@@ -272,10 +272,14 @@ function parseRawProfile(requestID, rawProfile) {
   function parseProfileJSON(data) {
     for (var i = 0; i < data.length; i++) {
       var sample = data[i];
-      var indicedFrames = sample.frames.map(function (frameName) {
-        return indexForSymbol(frameName);
-      });
-      samples.push(makeSample(indicedFrames, sample.extraInfo));
+      if (sample) {
+        var indicedFrames = sample.frames.map(function (frameName) {
+          return indexForSymbol(frameName);
+        });
+        samples.push(makeSample(indicedFrames, sample.extraInfo));
+      } else {
+        samples.push(null);
+      }
       progressReporter.setProgress((i + 1) / data.length);
     }
   }
@@ -299,8 +303,15 @@ function parseRawProfile(requestID, rawProfile) {
 function getSerializedProfile(requestID, profileID, complete) {
   var profile = gProfiles[profileID];
   var symbolicationTable = {};
-  for (var symbolIndex in profile.symbols) {
-    symbolicationTable[symbolIndex] = profile.symbols[symbolIndex].symbolName;
+  if (complete || !profile.filterSettings.mergeFunctions) {
+    for (var symbolIndex in profile.symbols) {
+      symbolicationTable[symbolIndex] = profile.symbols[symbolIndex].symbolName;
+    }
+  } else {
+    for (var functionIndex in profile.functions) {
+      var f = profile.functions[functionIndex];
+      symbolicationTable[functionIndex] = f.functionName + " in " + f.libraryName;
+    }
   }
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
@@ -574,6 +585,7 @@ function updateFilters(requestID, profileID, filters) {
     samples = filterByJank(samples, gJankThreshold);
   }
 
+  gProfiles[profileID].filterSettings = filters;
   gProfiles[profileID].filteredSamples = samples;
   sendFinishedInChunks(requestID, samples, 40000,
                        function (sample) { return sample ? sample.frames.length : 1; });
