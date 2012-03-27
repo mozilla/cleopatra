@@ -967,7 +967,8 @@ function enterProgressUI() {
 
   var totalProgressReporter = new ProgressReporter();
   totalProgressReporter.addListener(function (r) {
-    progressBar.value = r.getProgress();
+    var progress = r.getProgress();
+    progressBar.value = isNaN(progress) ? -1 : progress;
   });
 
   gMainArea.appendChild(profileProgressPane);
