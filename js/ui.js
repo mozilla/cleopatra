@@ -804,7 +804,7 @@ function loadProfileURL(url) {
     }
   };
   xhr.onprogress = function (e) {
-    if (e.lengthComputable)
+    if (e.lengthComputable && (e.loaded <= e.total))
       subreporters.fileLoading.setProgress(e.loaded / e.total);
     else
       subreporters.fileLoading.setProgress(NaN);
