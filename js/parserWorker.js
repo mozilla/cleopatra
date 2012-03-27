@@ -310,7 +310,7 @@ function getSerializedProfile(requestID, profileID, complete) {
   } else {
     for (var functionIndex in profile.functions) {
       var f = profile.functions[functionIndex];
-      symbolicationTable[functionIndex] = f.functionName + " in " + f.libraryName;
+      symbolicationTable[functionIndex] = f.functionName + " (in " + f.libraryName + ")";
     }
   }
   var serializedProfile = JSON.stringify({
