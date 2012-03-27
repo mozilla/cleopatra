@@ -13,8 +13,11 @@
   <body>
     <script>
       enterMainUI();
-      if (location.href.indexOf("usesample") != -1) {
-        var filename = (location.href.indexOf("pseudo") != -1) ? 'sample.profile' : 'sample.log';
+      var queryData = new QueryData();
+      if (queryData.report) {
+        loadProfileURL('http://profile-logs.appspot.com/serve/' + queryData.report);
+      } else if (queryData.usesample !== undefined) {
+        var filename = (queryData.usesample == "pseudo") ? 'sample.profile' : 'sample.log';
         loadProfileURL(filename);
       }
     </script>
