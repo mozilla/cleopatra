@@ -804,7 +804,10 @@ function loadProfileURL(url) {
     }
   };
   xhr.onprogress = function (e) {
-    subreporters.fileLoading.setProgress(e.loaded / e.total);
+    if (e.lengthComputable)
+      subreporters.fileLoading.setProgress(e.loaded / e.total);
+    else
+      subreporters.fileLoading.setProgress(NaN);
   };
   xhr.send(null);
   subreporters.fileLoading.begin("Loading remote file...");

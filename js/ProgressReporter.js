@@ -12,7 +12,8 @@
  *
  *  - state is one of STATE_WAITING, STATE_DOING and STATE_FINISHED.
  *  - action is a string that describes the current task.
- *  - progress is the progress value as a number between 0 and 1.
+ *  - progress is the progress value as a number between 0 and 1, or NaN if
+ *    indeterminate.
  *
  * A progress reporter starts out in the WAITING state. The DOING state is
  * entered with the begin method which also sets the action. While the task is
@@ -103,7 +104,9 @@ ProgressReporter.prototype = {
     if (this._subreporters.length > 0)
       throw "Can't call setProgress on a progress reporter with subreporters";
     if (progress != this._progress &&
-        (progress == 1 || (progress - this._progress >= 0.01))) {
+        (progress == 1 ||
+         (isNaN(progress) != isNaN(this._progress)) ||
+         (progress - this._progress >= 0.01))) {
       this._progress = progress;
       if (progress == 1)
         this._transitionToFinished();
