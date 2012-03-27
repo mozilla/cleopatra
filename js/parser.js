@@ -35,8 +35,8 @@ function WorkerRequest(worker) {
     self._fireEvent("progress", reporter.getProgress());
   })
   this._sendChunkReporter = this._totalReporter.addSubreporter(500);
-  this._executeReporter = this._totalReporter.addSubreporter(1000);
-  this._receiveChunkReporter = this._totalReporter.addSubreporter(500);
+  this._executeReporter = this._totalReporter.addSubreporter(3000);
+  this._receiveChunkReporter = this._totalReporter.addSubreporter(100);
   this._totalReporter.begin("Processing task in worker...");
   var partialResult = null;
   function onMessageFromWorker(msg) {
