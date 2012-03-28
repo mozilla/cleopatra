@@ -1,4 +1,5 @@
 var kMaxChunkDuration = 4; // ms
+var kMaxRenderDepth = 100;
 
 function TreeView() {
   this._eventListeners = {};
@@ -25,6 +26,15 @@ function TreeView() {
   this._horizontalScrollbox.className = "treeViewHorizontalScrollbox";
   this._verticalScrollbox.appendChild(this._horizontalScrollbox);
 
+  this._contextMenu = document.createElement("menu");
+  this._contextMenu.setAttribute("type", "context");
+  this._contextMenu.id = "contextMenuForTreeView" + TreeView.instanceCounter++;
+  this._container.appendChild(this._contextMenu);
+
+  this._busyCover = document.createElement("div");
+  this._busyCover.className = "busyCover";
+  this._verticalScrollbox.appendChild(this._busyCover);
+
   var self = this;
   this._container.onkeypress = function (e) {
     self._onkeypress(e);
@@ -33,10 +43,11 @@ function TreeView() {
     self._onclick(e);
   };
   this._verticalScrollbox.addEventListener("contextmenu", function(event) {
-    self._contextMenu(event);
+    self._populateContextMenu(event);
   }, true);
   this._setUpScrolling();
 };
+TreeView.instanceCounter = 0;
 
 TreeView.prototype = {
   getContainer: function TreeView_getContainer() {
@@ -52,10 +63,15 @@ TreeView.prototype = {
       this._header.appendChild(li);
     }
   },
+  dataIsOutdated: function TreeView_dataIsOutdated() {
+    this._busyCover.classList.add("busy");
+  },
   display: function TreeView_display(data) {
+    this._busyCover.classList.remove("busy");
     this._horizontalScrollbox.innerHTML = "";
     if (this._pendingActionsProcessingCallback) {
       window.mozCancelAnimationFrame(this._pendingActionsProcessingCallback);
+      this._pendingActionsProcessingCallback = 0;
     }
     this._pendingActions = [];
 
@@ -64,27 +80,36 @@ TreeView.prototype = {
       parentNode: null,
       data: data[0].getData()
     });
-    this._processPendingActions();
+    this._processPendingActionsChunk();
     this._select(this._horizontalScrollbox.firstChild);
     this._toggle(this._horizontalScrollbox.firstChild);
     this._container.focus();
   },
-  _processPendingActions: function TreeView__processPendingActions() {
+  _processPendingActionsChunk: function TreeView__processPendingActionsChunk() {
+    this._pendingActionsProcessingCallback = 0;
+
     var startTime = Date.now();
     var endTime = startTime + kMaxChunkDuration;
     while (Date.now() < endTime && this._pendingActions.length > 0) {
       this._processOneAction(this._pendingActions.shift());
     }
+    this._scrollHeightChanged();
 
-    if (this._pendingActions.length > 0) {
+    this._schedulePendingActionProcessing();
+  },
+  _schedulePendingActionProcessing: function TreeView__schedulePendingActionProcessing() {
+    if (!this._pendingActionsProcessingCallback && this._pendingActions.length > 0) {
       var self = this;
       this._pendingActionsProcessingCallback = window.mozRequestAnimationFrame(function () {
-        self._processPendingActions();
-      })
+        self._processPendingActionsChunk();
+      });
     }
   },
   _processOneAction: function TreeView__processOneAction(action) {
-    this._createTree(action.parentElement, action.parentNode, action.data);
+    var li = this._createTree(action.parentElement, action.parentNode, action.data);
+    if ("allChildrenCollapsedValue" in action) {
+      this._toggleAll(li, action.allChildrenCollapsedValue, true);
+    }
   },
   addEventListener: function TreeView_addEventListener(eventName, callbackFunction) {
     if (!(eventName in this._eventListeners))
@@ -155,7 +180,7 @@ TreeView.prototype = {
     li.appendChild(treeLine);
     li.treeChildren = [];
     li.treeParent = parentNode;
-    if (hasChildren) {
+    if (hasChildren && this._getDepth(parentElement) < kMaxRenderDepth) {
       var ol = document.createElement("ol");
       ol.className = "treeViewNodeList";
       for (var i = 0; i < data.children.length; ++i) {
@@ -167,8 +192,17 @@ TreeView.prototype = {
       parentNode.treeChildren.push(li);
     }
     parentElement.appendChild(li);
+    return li;
   },
-  _contextMenu: function TreeView__contextMenu(event) {
+  _getDepth: function TreeView__getDepth(element) {
+    var depth = 0;
+    while (element && element != this._horizontalScrollbox) {
+      depth++;
+      element = element.parentNode;
+    }
+    return depth;
+  },
+  _populateContextMenu: function TreeView__populateContextMenu(event) {
     this._verticalScrollbox.setAttribute("contextmenu", "");
 
     var target = event.target;
@@ -182,8 +216,7 @@ TreeView.prototype = {
 
     this._select(li);
 
-    var contextMenu = document.getElementById("xulContextMenu");
-    contextMenu.innerHTML = "";
+    this._contextMenu.innerHTML = "";
 
     var self = this;
     this._contextMenuForFunction(li.data).forEach(function (menuItem) {
@@ -194,12 +227,12 @@ TreeView.prototype = {
         };
       })(menuItem);
       menuItemNode.label = menuItem;
-      contextMenu.appendChild(menuItemNode);
+      self._contextMenu.appendChild(menuItemNode);
     });
 
-    this._verticalScrollbox.setAttribute("contextmenu", contextMenu.id);
+    this._verticalScrollbox.setAttribute("contextmenu", this._contextMenu.id);
   },
-  _contextMenuClick: function TreeView__ContextMenuClick(node, menuItem) {
+  _contextMenuClick: function TreeView__contextMenuClick(node, menuItem) {
     this._fireEvent("contextMenuClick", { node: node, menuItem: menuItem });
   },
   _contextMenuForFunction: function TreeView__contextMenuForFunction(node) {
@@ -222,28 +255,36 @@ TreeView.prototype = {
       '<span class="libraryName">' + node.library + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
-  _resolveChildren: function TreeView__resolveChildren(div) {
+  _resolveChildren: function TreeView__resolveChildren(div, childrenCollapsedValue) {
     while (div.pendingExpand != null && div.pendingExpand.length > 0) {
-      this._processOneAction(div.pendingExpand.shift());
+      var pendingExpand = div.pendingExpand.shift();
+      pendingExpand.allChildrenCollapsedValue = childrenCollapsedValue;
+      this._pendingActions.push(pendingExpand);
+      this._schedulePendingActionProcessing();
     }
   },
   _toggle: function TreeView__toggle(div, /* optional */ newCollapsedValue, /* optional */ suppressScrollHeightNotification) {
-    this._resolveChildren(div);
-    if (newCollapsedValue === undefined) {
-      div.classList.toggle("collapsed");
+    var currentCollapsedValue = this._isCollapsed(div);
+    if (newCollapsedValue === undefined)
+      newCollapsedValue = !currentCollapsedValue;
+    if (newCollapsedValue) {
+      div.classList.add("collapsed");
     } else {
-      if (newCollapsedValue)
-        div.classList.add("collapsed");
-      else
-        div.classList.remove("collapsed");
+      this._resolveChildren(div, true);
+      div.classList.remove("collapsed");
     }
     if (!suppressScrollHeightNotification)
       this._scrollHeightChanged();
   },
   _toggleAll: function TreeView__toggleAll(subtreeRoot, /* optional */ newCollapsedValue, /* optional */ suppressScrollHeightNotification) {
     // Expands / collapses all child nodes, too.
+
     if (newCollapsedValue === undefined)
       newCollapsedValue = !this._isCollapsed(subtreeRoot);
+    if (!newCollapsedValue) {
+      // expanding
+      this._resolveChildren(subtreeRoot, newCollapsedValue);
+    }
     this._toggle(subtreeRoot, newCollapsedValue, true);
     for (var i = 0; i < subtreeRoot.treeChildren.length; ++i) {
       this._toggleAll(subtreeRoot.treeChildren[i], newCollapsedValue, true);
@@ -373,7 +414,8 @@ TreeView.prototype = {
     }
     event.stopPropagation();
     event.preventDefault();
-    if (selected == null) return false;
+    if (!selected)
+      return;
     if (event.keyCode == 37) { // KEY_LEFT
       var isCollapsed = this._isCollapsed(selected);
       if (!isCollapsed) {
@@ -408,7 +450,6 @@ TreeView.prototype = {
     } else if (String.fromCharCode(event.charCode) == '*') {
       this._toggleAll(selected);
     }
-    return false;
   },
 };
 
