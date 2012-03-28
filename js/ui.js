@@ -7,11 +7,42 @@ function removeAllChildren(element) {
   }
 }
 
+function FileList() {
+  this._container = document.createElement("ul");
+  this._container.id = "fileList";
+}
+
+FileList.prototype = {
+  getContainer: function FileList_getContainer() {
+    return this._container;
+  },
+  addFile: function FileList_addFile() {
+    var li = document.createElement("li");
+    li.className = "fileListItem";
+
+    var fileListItemTitleSpan = document.createElement("span");
+    fileListItemTitleSpan.className = "fileListItemTitle";
+    fileListItemTitleSpan.textContent = "New Profile";
+    li.appendChild(fileListItemTitleSpan);
+
+    var fileListItemDescriptionSpan = document.createElement("span");
+    fileListItemDescriptionSpan.className = "fileListItemDescription";
+    fileListItemDescriptionSpan.textContent = "(empty)";
+    li.appendChild(fileListItemDescriptionSpan);
+
+    this._container.appendChild(li);
+  },
+  profileParsingFinished: function FileList_profileParsingFinished() {
+    this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
+    this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
+  }
+}
+
 function treeObjSort(a, b) {
   return b.counter - a.counter;
 }
 
-function ProfileTreeManager(container) {
+function ProfileTreeManager() {
   this.treeView = new TreeView();
   this.treeView.setColumns([
     { name: "sampleCount", title: "Running time" },
@@ -29,11 +60,19 @@ function ProfileTreeManager(container) {
     var focusedCallstack = self._getCallstackUpTo(frameData);
     focusOnCallstack(focusedCallstack, frameData.name);
   });
-  container.appendChild(this.treeView.getContainer());
+  this._container = document.createElement("div");
+  this._container.className = "tree";
+  this._container.appendChild(this.treeView.getContainer());
 }
 ProfileTreeManager.prototype = {
+  getContainer: function ProfileTreeManager_getContainer() {
+    return this._container;
+  },
   highlightFrame: function Treedisplay_highlightFrame(frameData) {
     setHighlightedCallstack(this._getCallstackUpTo(frameData));
+  },
+  dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
+    this.treeView.dataIsOutdated();
   },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
     var callstack = [];
@@ -86,7 +125,7 @@ ProfileTreeManager.prototype = {
       curObj.selfCounter = selfCounter;
       curObj.ratio = node.counter / totalSamples;
       curObj.fullFrameNamesAsInSample = node.mergedNames ? node.mergedNames : [node.name];
-      if (!(node.name in symbols)) {
+      if (useFunctions ? !(node.name in functions) : !(node.name in symbols)) {
         curObj.name = node.name;
         curObj.library = "";
       } else {
@@ -120,14 +159,27 @@ ProfileTreeManager.prototype = {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function HistogramView(markerContainer) {
-  this._canvas = this._createCanvas();
-  this._rangeSelector = new RangeSelector(markerContainer, this._canvas);
-  this._rangeSelector.enableRangeSelectionOnHistogram();
-  this._histogramData = [];
+function HistogramView() {
+  this._container = document.createElement("div");
+  this._container.className = "histogram";
 
+  this._canvas = this._createCanvas();
+  this._container.appendChild(this._canvas);
+
+  this._rangeSelector = new RangeSelector(this._canvas);
+  this._rangeSelector.enableRangeSelectionOnHistogram();
+  this._container.appendChild(this._rangeSelector.getContainer());
+
+  this._busyCover = document.createElement("div");
+  this._busyCover.className = "busyCover";
+  this._container.appendChild(this._busyCover);
+
+  this._histogramData = [];
 }
 HistogramView.prototype = {
+  dataIsOutdated: function HistogramView_dataIsOutdated() {
+    this._busyCover.classList.add("busy");
+  },
   _createCanvas: function HistogramView__createSVGRoot() {
     var canvas = document.createElement("canvas");
     canvas.height = 60;
@@ -136,7 +188,7 @@ HistogramView.prototype = {
     return canvas;
   },
   getContainer: function HistogramView_getContainer() {
-    return this._canvas;
+    return this._container;
   },
   _gatherMarkersList: function HistogramView__gatherMarkersList(histogramData) {
     var markers = [];
@@ -155,10 +207,9 @@ HistogramView.prototype = {
     var minWidth = 2000;
     return Math.ceil(minWidth / this._widthSum);
   },
-  display: function HistogramView_display(profile, highlightedCallstack) {
-    this._histogramData = this._convertToHistogramData(profile.samples);
-    var lastStep = this._histogramData[this._histogramData.length - 1];
-    this._widthSum = lastStep.x + lastStep.width;
+  display: function HistogramView_display(samples, highlightedCallstack) {
+    this._busyCover.classList.remove("busy");
+    this._calculateHistogramData(samples);
     this._widthMultiplier = this._calculateWidthMultiplier();
     this._canvas.width = this._widthMultiplier * this._widthSum;
     this._render(highlightedCallstack);
@@ -177,8 +228,6 @@ HistogramView.prototype = {
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
     });
 
-    var markers = this._gatherMarkersList(this._histogramData);
-    this._rangeSelector.display(markers);
     this._finishedRendering = true;
   },
   highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
@@ -220,7 +269,7 @@ HistogramView.prototype = {
 
       return "rgb(0,0,0)";
   },
-  _convertToHistogramData: function HistogramView_convertToHistogramData(data) {
+  _calculateHistogramData: function HistogramView__calculateHistogramData(data) {
     var histogramData = [];
     var maxHeight = 0;
     for (var i = 0; i < data.length; ++i) {
@@ -236,17 +285,18 @@ HistogramView.prototype = {
     // Except when seperated by a marker.
     // This is used to cut down the number of rects, since
     // there's no point in having more rects then pixels
-    var samplesPerStep = Math.floor(data.length / 2000);
+    var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
     for (var i = 0; i < data.length; i++) {
       var step = data[i];
       if (!step) {
         // Add a gap for the sample that was filtered out.
-        nextX += 1;
+        nextX += 1 / samplesPerStep;
         continue;
       }
+      nextX = Math.ceil(nextX);
       var value = step.frames.length / maxHeight;
       var frames = step.frames;
-      var currHistrogramData = histogramData[histogramData.length-1];
+      var currHistogramData = histogramData[histogramData.length-1];
       if ("marker" in step.extraInfo) {
         // A new marker boundary has been discovered.
         histogramData.push({
@@ -266,12 +316,13 @@ HistogramView.prototype = {
           color: this._getStepColor(step),
         });
         nextX += 1;
-      } else if (currHistrogramData != null &&
-        currHistrogramData.frames.length < samplesPerStep) {
-        currHistrogramData.frames.push(frames);
-        // When merging data items take the highest frame
-        if (value > currHistrogramData.value)
-          currHistrogramData.value = value;
+      } else if (currHistogramData != null &&
+        currHistogramData.frames.length < samplesPerStep) {
+        currHistogramData.frames.push(frames);
+        // When merging data items take the average:
+        currHistogramData.value =
+          (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
+          currHistogramData.frames.length;
         // Merge the colors? For now we keep the first color set.
       } else {
         // A new name boundary has been discovered.
@@ -285,100 +336,28 @@ HistogramView.prototype = {
         nextX += 1;
       }
     }
-    return histogramData;
+    this._histogramData = histogramData;
+    this._widthSum = Math.ceil(nextX);
   },
 };
 
-function RangeSelector(container, graph) {
-  this.container = container;
+function RangeSelector(graph) {
+  this.container = document.createElement("div");
+  this.container.className = "rangeSelectorContainer";
   this._graph = graph;
   this._selectedRange = { startX: 0, endX: 0 };
   this._selectedSampleRange = { start: 0, end: 0 };
+
+  this._highlighter = document.createElement("div");
+  this._highlighter.className = "histogramHilite collapsed";
+  this.container.appendChild(this._highlighter);
 }
 RangeSelector.prototype = {
-  display: function RangeSelector_display(markers) {
-    var graph = this._graph;
-    removeAllChildren(this.container);
-    removeAllChildren(markers);
-
-    var select = document.createElement("select");
-    select.setAttribute("multiple", "multiple");
-    select.setAttribute("size", markers.length);
-    this.container.appendChild(select);
-    this.selector = select;
-
-    for (var i = 0; i < markers.length; ++i) {
-      var marker = markers[i];
-      var option = document.createElement("option");
-      option.appendChild(document.createTextNode(marker.name));
-      option.setAttribute("data-index", marker.index);
-      select.appendChild(option);
-    }
-
-    try {
-      select.removeEventListener("click", select_onChange, false);
-    } catch (err) {
-    }
-    select.addEventListener("change", function select_onChange(e) {
-      if (self.changeEventSuppressed) {
-        return;
-      }
-
-      // look for non-consecutive ranges, and make them consecutive
-      var range = [];
-      var children = select.childNodes;
-      for (var i = 0; i < children.length; ++i) {
-        range.push(children[i].selected);
-      }
-      var begin = -1, end = -1;
-      for (var i = 0; i < range.length; ++i) {
-        if (begin == -1 && range[i]) {
-          begin = i;
-        } else if (begin != -1 && range[i]) {
-          end = i;
-        }
-      }
-      if (begin > -1) {
-        for (var i = begin; i <= end; ++i) {
-          children[i].selected = true;
-        }
-      }
-      if (end > -1) {
-        for (var i = end + 1; i < children.length; ++i) {
-          children[i].selected = false;
-        }
-      }
-
-      // highlight the range in the histogram
-      var prevHilite = document.querySelector("." + hiliteClassName);
-      if (prevHilite) {
-        prevHilite.parentNode.removeChild(prevHilite);
-      }
-      const hilitedMarker = "markerHilite";
-      var prevMarkerHilite = document.querySelector("#" + hilitedMarker);
-      if (prevMarkerHilite) {
-        prevMarkerHilite.removeAttribute("id");
-        prevMarkerHilite.removeAttribute("style");
-      }
-      function rect(index) {
-        return graph.querySelectorAll(".rect")[children[index].getAttribute("data-index")];
-      }
-      if (begin > end) {
-        // Just highlight the respective marker in the histogram
-        rect(begin).setAttribute("id", hilitedMarker);
-        rect(begin).setAttribute("style", "fill: red;");
-      } else if (end > begin) {
-        self.drawHiliteRectangle(rect(begin).getAttribute("x"),
-                                 0,
-                                 parseFloat(rect(end).getAttribute("width")) +
-                                 parseFloat(rect(end).getAttribute("x")) -
-                                 parseFloat(rect(begin).getAttribute("x")),
-                                 graph.getAttribute("height"));
-      }
-    }, false);
+  getContainer: function RangeSelector_getContainer() {
+    return this.container;
   },
   drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.style.left = x + "px";
     hilite.style.top = "0";
     hilite.style.width = width + "px";
@@ -436,7 +415,7 @@ RangeSelector.prototype = {
     }, false);
   },
   beginHistogramSelection: function RangeSelector_beginHistgramSelection() {
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.classList.remove("finished");
     hilite.classList.add("selecting");
     hilite.classList.remove("collapsed");
@@ -446,19 +425,19 @@ RangeSelector.prototype = {
   },
   finishHistogramSelection: function RangeSelector_finishHistgramSelection(isSomethingSelected) {
     var self = this;
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.classList.remove("selecting");
     if (isSomethingSelected) {
       hilite.classList.add("finished");
       var start = this._sampleIndexFromPoint(this._selectedRange.startX);
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
-      var newFilterChain = gSampleFilters.concat([new RangeSampleFilter(start, end)]);
-      self._transientRestrictionEnteringAffordance = gNestedRestrictions.add({
+      var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
+      self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
         title: "Sample Range [" + start + ", " + (end + 1) + "]",
         enterCallback: function () {
           gSampleFilters = newFilterChain;
           self.collapseHistogramSelection();
-          refreshUI();
+          filtersChanged();
         }
       });
     } else {
@@ -466,43 +445,16 @@ RangeSelector.prototype = {
     }
   },
   collapseHistogramSelection: function RangeSelector_collapseHistogramSelection() {
-    var hilite = document.querySelector("." + hiliteClassName);
+    var hilite = this._highlighter;
     hilite.classList.add("collapsed");
   },
   _sampleIndexFromPoint: function RangeSelector__sampleIndexFromPoint(x) {
     // XXX this is completely wrong, fix please
-    var totalSamples = parseFloat(gCurrentlyShownSampleData.samples.length);
+    var totalSamples = parseFloat(gCurrentlyShownSampleData.length);
     var width = parseFloat(this._graph.parentNode.clientWidth);
     var factor = totalSamples / width;
     return parseInt(parseFloat(x) * factor);
   },
-};
-
-function FocusedFrameSampleFilter(focusedSymbol) {
-  this._focusedSymbol = focusedSymbol;
-}
-FocusedFrameSampleFilter.prototype = {
-  filter: function FocusedFrameSampleFilter_filter(profile) {
-    return Parser.filterBySymbol(profile, this._focusedSymbol);
-  },
-};
-
-function FocusedCallstackPrefixSampleFilter(focusedCallstack) {
-  this._focusedCallstackPrefix = focusedCallstack;
-}
-FocusedCallstackPrefixSampleFilter.prototype = {
-  filter: function FocusedCallstackPrefixSampleFilter_filter(profile) {
-    return Parser.filterByCallstackPrefix(profile, this._focusedCallstackPrefix);
-  }
-};
-
-function FocusedCallstackPostfixSampleFilter(focusedCallstack) {
-  this._focusedCallstackPostfix = focusedCallstack;
-}
-FocusedCallstackPostfixSampleFilter.prototype = {
-  filter: function FocusedCallstackPostfixSampleFilter_filter(profile) {
-    return Parser.filterByCallstackPostfix(profile, this._focusedCallstackPostfix);
-  }
 };
 
 function BreadcrumbTrail() {
@@ -595,7 +547,7 @@ BreadcrumbTrail.prototype = {
 };
 
 function maxResponsiveness() {
-  var data = gCurrentlyShownSampleData.samples;
+  var data = gCurrentlyShownSampleData;
   var maxRes = 0.0;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i] || !data[i].extraInfo["responsiveness"])
@@ -607,7 +559,7 @@ function maxResponsiveness() {
 }
 
 function numberOfCurrentlyShownSamples() {
-  var data = gCurrentlyShownSampleData.samples;
+  var data = gCurrentlyShownSampleData;
   var num = 0;
   for (var i = 0; i < data.length; ++i) {
     if (data[i])
@@ -617,7 +569,7 @@ function numberOfCurrentlyShownSamples() {
 }
 
 function avgResponsiveness() {
-  var data = gCurrentlyShownSampleData.samples;
+  var data = gCurrentlyShownSampleData;
   var totalRes = 0.0;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i] || !data[i].extraInfo["responsiveness"])
@@ -632,42 +584,38 @@ function copyProfile() {
 }
 
 function downloadProfile() {
-  var bb = new MozBlobBuilder();
-  bb.append(gRawProfile);
-  var blob = bb.getBlob("application/octet-stream");
-  location.href = window.URL.createObjectURL(blob);
+  Parser.getSerializedProfile(true, function (serializedProfile) {
+    var bb = new MozBlobBuilder();
+    bb.append(serializedProfile);
+    var blob = bb.getBlob("application/octet-stream");
+    location.href = window.URL.createObjectURL(blob);
+  });
 }
 
 function uploadProfile(selected) {
-  var oXHR = new XMLHttpRequest();
-  oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
-  oXHR.onload = function (oEvent) {
-    if (oXHR.status == 200) {  
-      document.getElementById("upload_status").innerHTML = document.URL.split('?')[0] + "?report=" + oXHR.responseText;
-    } else {  
-      document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
-    }  
-  };
+  Parser.getSerializedProfile(!selected, function (dataToUpload) {
+    var oXHR = new XMLHttpRequest();
+    oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
+    oXHR.onload = function (oEvent) {
+      if (oXHR.status == 200) {  
+        document.getElementById("upload_status").innerHTML = document.URL.split('?')[0] + "?report=" + oXHR.responseText;
+      } else {  
+        document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
+      }  
+    };
 
-  var dataToUpload;
-  var dataSize;
-  if (selected === true) {
-    dataToUpload = getTextData();
-  } else {
-    dataToUpload = gRawProfile;
-  }
+    var dataSize;
+    if (dataToUpload.length > 1024*1024) {
+      dataSize = (dataToUpload.length/1024/1024) + " MB(s)";
+    } else {
+      dataSize = (dataToUpload.length/1024) + " KB(s)";
+    }
 
-  if (dataToUpload.length > 1024*1024) {
-    dataSize = (dataToUpload.length/1024/1024) + " MB(s)";
-  } else {
-    dataSize = (dataToUpload.length/1024) + " KB(s)";
-  }
-
-  var formData = new FormData();
-  formData.append("file", dataToUpload);
-  document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
-  oXHR.send(formData);
-
+    var formData = new FormData();
+    formData.append("file", dataToUpload);
+    document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
+    oXHR.send(formData);
+  });
 }
 
 function populate_skip_symbol() {
@@ -702,7 +650,7 @@ function filterOnChange() {
 function filterUpdate() {
   gFilterChangeCallback = null;
 
-  refreshUI(); 
+  filtersChanged(); 
 
   filterNameInput = document.getElementById("filterName");
   if (filterNameInput != null) {
@@ -714,7 +662,7 @@ function filterUpdate() {
 var tooltip = {
   "mergeFunctions" : "Ignore line information and merge samples based on function names.",
   "showJank" : "Show only samples with >50ms responsiveness.",
-  //"mergeUnvranch" : "???",
+  "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
   "upload" : "Upload the full profile to public cloud storage to share with others.",
@@ -725,93 +673,92 @@ var tooltip = {
 function addTooltips() {
   for (var elemId in tooltip) {
     var elem = document.getElementById(elemId); 
-    if (elem == null) continue;
+    if (!elem)
+      continue;
+    if (elem.parentNode.nodeName.toLowerCase() == "label")
+      elem = elem.parentNode;
     elem.title = tooltip[elemId];
   }
 }
 
-function updateDescription() {
-  // Temporary until fileListItem are built correctly
-  var sampleCount = document.getElementById("fileListItemSamples");
-  sampleCount.innerHTML = gParsedProfile.samples.length;
-
-  var infobar = document.getElementById("infobar");
-  var infoText = "";
-  
-  infoText += "<h2>Selection Info</h2>\n<ul>\n";
-  infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
-  infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
-  infoText += "</ul>\n";
-  infoText += "<h2>Pre Filtering</h2>\n";
-  infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
-
-  var filterNameInputOld = document.getElementById("filterName");
-  infoText += "Filter:\n";
-  infoText += "<input type='text' id='filterName' oninput='filterOnChange()'/><br>\n";
-
-  infoText += "<h2>Post Filtering</h2>\n";
-  infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label><br>\n";
-  infoText += "<h2>View Options</h2>\n";
-  infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
-  infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
-
-  infoText += "<h2>Share</h2>\n";
-  infoText += "<a id='upload_status'>No upload in progress</a><br>\n";
-  infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
-  infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
-  infoText += "<input type='button' id='download' value='Download full profile'><br>\n";
-
-  //infoText += "<br>\n";
-  //infoText += "Skip functions:<br>\n";
-  //infoText += "<select size=8 id='skipsymbol'></select><br />"
-  //infoText += "<input type='button' id='delete_skipsymbol' value='Delete'/><br />\n";
-  //infoText += "<input type='button' id='add_skipsymbol' value='Add'/><br />\n";
-  
-  infobar.innerHTML = infoText;
-  addTooltips();
-
-  var filterNameInputNew = document.getElementById("filterName");
-  if (filterNameInputOld != null && filterNameInputNew != null) {
-    filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
-    //filterNameInputNew.value = filterNameInputOld.value;
-  }
-  document.getElementById('upload').onclick = uploadProfile;
-  document.getElementById('download').onclick = downloadProfile;
-  document.getElementById('upload_select').onclick = function() {
-    uploadProfile(true);
-  };
-  //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
-  //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
-
-  //populate_skip_symbol();
+function InfoBar() {
+  this._container = document.createElement("div");
+  this._container.id = "infobar";
 }
 
-var gRawProfile = "";
-var gParsedProfile = {};
+InfoBar.prototype = {
+  getContainer: function InfoBar_getContainer() {
+    return this._container;
+  },
+  display: function InfoBar_display() {
+    var infobar = this._container;
+    var infoText = "";
+    
+    infoText += "<h2>Selection Info</h2>\n<ul>\n";
+    infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
+    infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
+    infoText += "</ul>\n";
+    infoText += "<h2>Pre Filtering</h2>\n";
+    infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
+
+    var filterNameInputOld = document.getElementById("filterName");
+    infoText += "Filter:\n";
+    infoText += "<input type='text' id='filterName' oninput='filterOnChange()'/><br>\n";
+
+    infoText += "<h2>Post Filtering</h2>\n";
+    infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label><br>\n";
+    infoText += "<h2>View Options</h2>\n";
+    infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
+    infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
+
+    infoText += "<h2>Share</h2>\n";
+    infoText += "<a id='upload_status'>No upload in progress</a><br>\n";
+    infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
+    infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
+    infoText += "<input type='button' id='download' value='Download full profile'><br>\n";
+
+    //infoText += "<br>\n";
+    //infoText += "Skip functions:<br>\n";
+    //infoText += "<select size=8 id='skipsymbol'></select><br />"
+    //infoText += "<input type='button' id='delete_skipsymbol' value='Delete'/><br />\n";
+    //infoText += "<input type='button' id='add_skipsymbol' value='Add'/><br />\n";
+    
+    infobar.innerHTML = infoText;
+    addTooltips();
+
+    var filterNameInputNew = document.getElementById("filterName");
+    if (filterNameInputOld != null && filterNameInputNew != null) {
+      filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
+      //filterNameInputNew.value = filterNameInputOld.value;
+    }
+    document.getElementById('upload').onclick = uploadProfile;
+    document.getElementById('download').onclick = downloadProfile;
+    document.getElementById('upload_select').onclick = function() {
+      uploadProfile(true);
+    };
+    //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
+    //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
+
+    //populate_skip_symbol();
+  }
+}
+
+var gNumSamples = 0;
+var gSymbols = {};
+var gFunctions = {};
 var gHighlightedCallstack = [];
 var gTreeManager = null;
-var gNestedRestrictions = null;
+var gBreadcrumbTrail = null;
 var gHistogramView = null;
+var gFileList = null;
+var gInfoBar = null;
+var gMainArea = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 
-function RangeSampleFilter(start, end) {
-  this._start = start;
-  this._end = end;
-}
-RangeSampleFilter.prototype = {
-  filter: function RangeSampleFilter_filter(profile) {
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: profile.samples.slice(this._start, this._end)
-    };
-  }
-}
-
 function getTextData() {
   var data = [];
-  var samples = gCurrentlyShownSampleData.samples;
+  var samples = gCurrentlyShownSampleData;
   for (var i = 0; i < samples.length; i++) {
     data.push(samples[i].lines.join("\n"));
   }
@@ -822,41 +769,119 @@ function loadProfileFile(fileList) {
   if (fileList.length == 0)
     return;
   var file = fileList[0];
+  var reporter = enterProgressUI();
+  var subreporters = reporter.addSubreporters({
+    fileLoading: 1000,
+    parsing: 1000
+  });
+
   var reader = new FileReader();
   reader.onloadend = function () {
-    loadProfile(reader.result, enterMainUI);
+    subreporters.fileLoading.finish();
+    loadRawProfile(subreporters.parsing, reader.result);
+  };
+  reader.onprogress = function (e) {
+    subreporters.fileLoading.setProgress(e.loaded / e.total);
   };
   reader.readAsText(file, "utf-8");
+  subreporters.fileLoading.begin("Reading local file...");
 }
 
-function loadProfile(rawProfile, finishCallback) {
-  gRawProfile = rawProfile;
-  var startTime = Date.now();
-  gParsedProfile = Parser.parse(rawProfile, function (parsedProfile) {
-    console.log("parse time: " + (Date.now() - startTime) + "ms");
-    gParsedProfile = parsedProfile;
-    finishCallback();
+function loadProfileURL(url) {
+  var reporter = enterProgressUI();
+  var subreporters = reporter.addSubreporters({
+    fileLoading: 1000,
+    parsing: 1000
   });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.responseType = "text";
+  xhr.onreadystatechange = function (e) {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      subreporters.fileLoading.finish();
+      loadRawProfile(subreporters.parsing, xhr.responseText);
+    }
+  };
+  xhr.onprogress = function (e) {
+    if (e.lengthComputable && (e.loaded <= e.total))
+      subreporters.fileLoading.setProgress(e.loaded / e.total);
+    else
+      subreporters.fileLoading.setProgress(NaN);
+  };
+  xhr.send(null);
+  subreporters.fileLoading.begin("Loading remote file...");
+}
+
+function loadProfile(rawProfile) {
+  var reporter = enterProgressUI();
+  loadRawProfile(reporter, rawProfile);
+}
+
+function loadRawProfile(reporter, rawProfile) {
+  reporter.begin("Parsing...");
+  var startTime = Date.now();
+  var parseRequest = Parser.parse(rawProfile);
+  parseRequest.addEventListener("progress", function (progress) {
+    reporter.setProgress(progress);
+  });
+  parseRequest.addEventListener("finished", function (result) {
+    console.log("parsing (in worker): " + (Date.now() - startTime) + "ms");
+    reporter.finish();
+    gNumSamples = result.numSamples;
+    gSymbols = result.symbols;
+    gFunctions = result.functions;
+    enterFinishedProfileUI();
+    gFileList.profileParsingFinished();
+  });
+}
+
+var gImportFromAddonSubreporters = null;
+
+window.addEventListener("message", function messageFromAddon(msg) {
+  // This is triggered by the profiler add-on.
+  var o = JSON.parse(msg.data);
+  switch (o.task) {
+    case "importFromAddonStart":
+      var totalReporter = enterProgressUI();
+      gImportFromAddonSubreporters = totalReporter.addSubreporters({
+        import: 10000,
+        parsing: 1000
+      });
+      gImportFromAddonSubreporters.import.begin("Symbolicating...");
+      break;
+    case "importFromAddonProgress":
+      gImportFromAddonSubreporters.import.setProgress(o.progress);
+      break;
+    case "importFromAddonFinish":
+      importFromAddonFinish(o.rawProfile);
+      break;
+  }
+});
+
+function importFromAddonFinish(rawProfile) {
+  gImportFromAddonSubreporters.import.finish();
+  loadRawProfile(gImportFromAddonSubreporters.parsing, rawProfile);
 }
 
 var gInvertCallstack = false;
 function toggleInvertCallStack() {
   gInvertCallstack = !gInvertCallstack;
   var startTime = Date.now();
-  refreshUI();
+  viewOptionsChanged();
   console.log("invert time: " + (Date.now() - startTime) + "ms");
 }
 
 var gMergeUnbranched = false;
 function toggleMergeUnbranched() {
   gMergeUnbranched = !gMergeUnbranched;
-  refreshUI(); 
+  viewOptionsChanged(); 
 }
 
 var gMergeFunctions = true;
 function toggleMergeFunctions() {
   gMergeFunctions = !gMergeFunctions;
-  refreshUI(); 
+  filtersChanged(); 
 }
 
 var gJankOnly = false;
@@ -868,31 +893,32 @@ function toggleJank(/* optional */ threshold) {
   if (threshold != null ) {
     gJankThreshold = threshold;
   }
-  refreshUI();
+  filtersChanged();
 }
 
 var gSampleFilters = [];
 function focusOnSymbol(focusSymbol, name) {
-  var newFilterChain = gSampleFilters.concat([new FocusedFrameSampleFilter(focusSymbol)]);
-  gNestedRestrictions.addAndEnter({
+  var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", focusedSymbol: focusSymbol}]);
+  gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
       gSampleFilters = newFilterChain;
-      refreshUI();
+      filtersChanged();
     }
   });
 }
 
 function focusOnCallstack(focusedCallstack, name) {
-  var filter = gInvertCallstack ?
-    new FocusedCallstackPostfixSampleFilter(focusedCallstack) :
-    new FocusedCallstackPrefixSampleFilter(focusedCallstack);
+  var filter = {
+    type: gInvertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    focusedCallstack: focusedCallstack
+  };
   var newFilterChain = gSampleFilters.concat([filter]);
-  gNestedRestrictions.addAndEnter({
+  gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
       gSampleFilters = newFilterChain;
-      refreshUI();
+      filtersChanged();
     }
   })
 }
@@ -900,62 +926,119 @@ function focusOnCallstack(focusedCallstack, name) {
 function setHighlightedCallstack(samples) {
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
-  updateDescription();
 }
 
 function enterMainUI() {
-  document.getElementById("dataentry").className = "hidden";
-  document.getElementById("ui").className = "";
-  gTreeManager = new ProfileTreeManager(document.getElementById("tree"));
+  var uiContainer = document.createElement("div");
+  uiContainer.id = "ui";
 
-  gHistogramView = new HistogramView(document.getElementById("markers"));
-  document.getElementById("histogram").appendChild(gHistogramView.getContainer());
+  gFileList = new FileList();
+  uiContainer.appendChild(gFileList.getContainer());
 
-  gNestedRestrictions = new BreadcrumbTrail();
-  gNestedRestrictions.add({
+  gFileList.addFile();
+
+  gInfoBar = new InfoBar();
+  uiContainer.appendChild(gInfoBar.getContainer());
+
+  gMainArea = document.createElement("div");
+  gMainArea.id = "mainarea";
+  uiContainer.appendChild(gMainArea);
+  document.body.appendChild(uiContainer);
+
+  var profileEntryPane = document.createElement("div");
+  profileEntryPane.className = "profileEntryPane";
+  profileEntryPane.innerHTML = '' +
+    '<h1>Upload your profile here:</h1>' +
+    '<input type="file" id="datafile" onchange="loadProfileFile(this.files);">' +
+    '<h1>Or, alternatively, enter your profile data here:</h1>' +
+    '<textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>' +
+    '<p><button onclick="loadProfile(document.getElementById(\'data\').value);">Parse</button></p>' +
+    '';
+
+  gMainArea.appendChild(profileEntryPane);
+}
+
+function enterProgressUI() {
+  var profileProgressPane = document.createElement("div");
+  profileProgressPane.className = "profileProgressPane";
+
+  var progressBar = document.createElement("progress");
+  profileProgressPane.appendChild(progressBar);
+
+  var totalProgressReporter = new ProgressReporter();
+  totalProgressReporter.addListener(function (r) {
+    var progress = r.getProgress();
+    if (isNaN(progress))
+      progressBar.removeAttribute("value");
+    else
+      progressBar.value = progress;
+  });
+
+  gMainArea.appendChild(profileProgressPane);
+
+  return totalProgressReporter;
+}
+
+function enterFinishedProfileUI() {
+  var finishedProfilePaneBackgroundCover = document.createElement("div");
+  finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
+
+  var finishedProfilePane = document.createElement("div");
+  finishedProfilePane.className = "finishedProfilePane";
+
+  gTreeManager = new ProfileTreeManager();
+  finishedProfilePane.appendChild(gTreeManager.getContainer());
+
+  gHistogramView = new HistogramView();
+  finishedProfilePane.appendChild(gHistogramView.getContainer());
+
+  gBreadcrumbTrail = new BreadcrumbTrail();
+  finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
+
+  gMainArea.appendChild(finishedProfilePaneBackgroundCover);
+  gMainArea.appendChild(finishedProfilePane);
+
+  gBreadcrumbTrail.add({
     title: "Complete Profile",
     enterCallback: function () {
       gSampleFilters = [];
-      refreshUI();
+      filtersChanged();
     }
-  })
-  document.getElementById("mainarea").appendChild(gNestedRestrictions.getContainer());
-
+  });
 }
 
-function refreshUI() {
-  var start = Date.now();
-  var data = gParsedProfile;
-  console.log("visible range filtering: " + (Date.now() - start) + "ms.");
-  start = Date.now();
+function filtersChanged() {
+  var data = { symbols: {}, functions: {}, samples: [] };
 
-  if (gMergeFunctions) {
-    data = Parser.discardLineLevelInformation(data);
-    console.log("line information discarding: " + (Date.now() - start) + "ms.");
-    start = Date.now();
-  }
+  gHistogramView.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
-  if (filterNameInput != null && filterNameInput.value != "") {
-    data = Parser.filterByName(data, document.getElementById("filterName").value);
-  }
-  for (var i = 0; i < gSampleFilters.length; i++) {
-    data = gSampleFilters[i].filter(data);
-  }
-  if (gJankOnly) {
-    data = Parser.filterByJank(data, gJankThreshold);
-  }
-  gCurrentlyShownSampleData = data;
-  var treeData = Parser.convertToCallTree(data, gInvertCallstack);
-  console.log("conversion to calltree: " + (Date.now() - start) + "ms.");
-  start = Date.now();
-  if (gMergeUnbranched) {
-    Parser.mergeUnbranchedCallPaths(treeData);
-  }
-  gTreeManager.display(treeData, data.symbols, data.functions, gMergeFunctions);
-  console.log("tree displaying: " + (Date.now() - start) + "ms.");
-  start = Date.now();
-  gHistogramView.display(data, gHighlightedCallstack);
-  console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-  start = Date.now();
-  updateDescription();
+  var updateRequest = Parser.updateFilters({
+    mergeFunctions: gMergeFunctions,
+    nameFilter: (filterNameInput && filterNameInput.value) || "",
+    sampleFilters: gSampleFilters,
+    jankOnly: gJankOnly
+  });
+  var start = Date.now();
+  updateRequest.addEventListener("finished", function (filteredSamples) {
+    console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
+    gCurrentlyShownSampleData = filteredSamples;
+    gInfoBar.display();
+    start = Date.now();
+    gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
+    console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+  });
+  viewOptionsChanged();
+}
+
+function viewOptionsChanged() {
+  gTreeManager.dataIsOutdated();
+  var updateViewOptionsRequest = Parser.updateViewOptions({
+    invertCallstack: gInvertCallstack,
+    mergeUnbranched: gMergeUnbranched
+  });
+  updateViewOptionsRequest.addEventListener("finished", function (calltree) {
+    var start = Date.now();
+    gTreeManager.display(calltree, gSymbols, gFunctions, gMergeFunctions);
+    console.log("tree displaying: " + (Date.now() - start) + "ms.");
+  });
 }

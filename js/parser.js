@@ -12,248 +12,223 @@ function cloneSample(sample) {
   return makeSample(sample.frames.clone(), sample.extraInfo, sample.lines.clone());
 }
 
-function TreeNode(name, parent, startCount) {
-  this.name = name;
-  this.children = [];
-  this.counter = startCount;
-  this.parent = parent;
-}
-TreeNode.prototype.getDepth = function TreeNode__getDepth() {
-  if (this.parent)
-    return this.parent.getDepth() + 1;
-  return 0;
-};
-TreeNode.prototype.findChild = function TreeNode_findChild(name) {
-  for (var i = 0; i < this.children.length; i++) {
-    var child = this.children[i];
-    if (child.name == name)
-      return child;
+function bucketsBySplittingArray(array, maxItemsPerBucket) {
+  var buckets = [];
+  while (buckets.length * maxItemsPerBucket < array.length) {
+    buckets.push(array.slice(buckets.length * maxItemsPerBucket,
+                             (buckets.length + 1) * maxItemsPerBucket));
   }
-  return null;
+  return buckets;
 }
-// path is an array of strings which is matched to our nodes' names.
-// Try to walk path in our own tree and return the last matching node. The
-// length of the match can be calculated by the caller by comparing the
-// returned node's depth with the depth of the path's start node.
-TreeNode.prototype.followPath = function TreeNode_followPath(path) {
-  if (path.length == 0)
-    return this;
-
-  var matchingChild = this.findChild(path[0]);
-  if (!matchingChild)
-    return this;
-
-  return matchingChild.followPath(path.slice(1));
-};
-TreeNode.prototype.incrementCountersInParentChain = function TreeNode_incrementCountersInParentChain() {
-  this.counter++;
-  if (this.parent)
-    this.parent.incrementCountersInParentChain();
-};
 
 var gParserWorker = new Worker("js/parserWorker.js");
 gParserWorker.nextRequestID = 0;
 
+function WorkerRequest(worker) {
+  var self = this;
+  this._eventListeners = {};
+  var requestID = worker.nextRequestID++;
+  this._requestID = requestID;
+  this._worker = worker;
+  this._totalReporter = new ProgressReporter();
+  this._totalReporter.addListener(function (reporter) {
+    self._fireEvent("progress", reporter.getProgress());
+  })
+  this._sendChunkReporter = this._totalReporter.addSubreporter(500);
+  this._executeReporter = this._totalReporter.addSubreporter(3000);
+  this._receiveChunkReporter = this._totalReporter.addSubreporter(100);
+  this._totalReporter.begin("Processing task in worker...");
+  var partialResult = null;
+  function onMessageFromWorker(msg) {
+    pendingMessages.push(msg);
+    scheduleMessageProcessing();
+  }
+  function processMessage(msg) {
+    var startTime = Date.now();
+    var data = msg.data;
+    var readTime = Date.now() - startTime;
+    if (readTime > 10)
+      console.log("reading data from worker message: " + readTime + "ms");
+    if (data.requestID == requestID) {
+      switch(data.type) {
+        case "error":
+          console.log("Error in worker: " + data.error);
+          self._fireEvent("error", data.error);
+          break;
+        case "progress":
+          self._executeReporter.setProgress(data.progress);
+          break;
+        case "finished":
+          self._executeReporter.finish();
+          self._receiveChunkReporter.begin("Receiving data from worker...");
+          self._receiveChunkReporter.finish();
+          self._fireEvent("finished", data.result);
+          worker.removeEventListener("message", onMessageFromWorker);
+          break;
+        case "finishedStart":
+          partialResult = null;
+          self._totalReceiveChunks = data.numChunks;
+          self._gotReceiveChunks = 0;
+          self._executeReporter.finish();
+          self._receiveChunkReporter.begin("Receiving data from worker...");
+          break;
+        case "finishedChunk":
+          partialResult = partialResult ? partialResult.concat(data.chunk) : data.chunk;
+          var chunkIndex = self._gotReceiveChunks++;
+          self._receiveChunkReporter.setProgress((chunkIndex + 1) / self._totalReceiveChunks);
+          break;
+        case "finishedEnd":
+          self._receiveChunkReporter.finish();
+          self._fireEvent("finished", partialResult);
+          worker.removeEventListener("message", onMessageFromWorker);
+          break;
+      }
+    }
+  }
+  var pendingMessages = [];
+  var messageProcessingTimer = 0;
+  function processMessages() {
+    messageProcessingTimer = 0;
+    processMessage(pendingMessages.shift());
+    if (pendingMessages.length)
+      scheduleMessageProcessing();
+  }
+  function scheduleMessageProcessing() {
+    if (messageProcessingTimer)
+      return;
+    messageProcessingTimer = setTimeout(processMessages, 10);
+  }
+  worker.addEventListener("message", onMessageFromWorker);
+}
+
+WorkerRequest.prototype = {
+  send: function WorkerRequest_send(task, taskData) {
+    this._sendChunkReporter.begin("Sending data to worker...");
+    var startTime = Date.now();
+    this._worker.postMessage({
+      requestID: this._requestID,
+      task: task,
+      taskData: taskData
+    });
+    var postTime = Date.now() - startTime;
+    if (postTime > 10)
+      console.log("posting message to worker: " + postTime + "ms");
+    this._sendChunkReporter.finish();
+    this._executeReporter.begin("Processing worker request...");
+  },
+  sendInChunks: function WorkerRequest_sendInChunks(task, taskData, maxChunkSize) {
+    this._sendChunkReporter.begin("Sending data to worker...");
+    var self = this;
+    var chunks = bucketsBySplittingArray(taskData, maxChunkSize);
+    var pendingMessages = [
+      {
+        requestID: this._requestID,
+        task: "chunkedStart",
+        numChunks: chunks.length
+      }
+    ].concat(chunks.map(function (chunk) {
+      return {
+        requestID: self._requestID,
+        task: "chunkedChunk",
+        chunk: chunk
+      };
+    })).concat([
+      {
+        requestID: this._requestID,
+        task: "chunkedEnd"
+      },
+      {
+        requestID: this._requestID,
+        task: task
+      },
+    ]);
+    var totalMessages = pendingMessages.length;
+    var numSentMessages = 0;
+    function postMessage(msg) {
+      var msgIndex = numSentMessages++;
+      var startTime = Date.now();
+      self._worker.postMessage(msg);
+      var postTime = Date.now() - startTime;
+      if (postTime > 10)
+        console.log("posting message to worker: " + postTime + "ms");
+      self._sendChunkReporter.setProgress((msgIndex + 1) / totalMessages);
+    }
+    var messagePostingTimer = 0;
+    function postMessages() {
+      messagePostingTimer = 0;
+      postMessage(pendingMessages.shift());
+      if (pendingMessages.length) {
+        scheduleMessagePosting();
+      } else {
+        self._sendChunkReporter.finish();
+        self._executeReporter.begin("Processing worker request...");
+      }
+    }
+    function scheduleMessagePosting() {
+      if (messagePostingTimer)
+        return;
+      messagePostingTimer = setTimeout(postMessages, 10);
+    }
+    scheduleMessagePosting();
+  },
+
+  // TODO: share code with TreeView
+  addEventListener: function WorkerRequest_addEventListener(eventName, callbackFunction) {
+    if (!(eventName in this._eventListeners))
+      this._eventListeners[eventName] = [];
+    if (this._eventListeners[eventName].indexOf(callbackFunction) != -1)
+      return;
+    this._eventListeners[eventName].push(callbackFunction);
+  },
+  removeEventListener: function WorkerRequest_removeEventListener(eventName, callbackFunction) {
+    if (!(eventName in this._eventListeners))
+      return;
+    var index = this._eventListeners[eventName].indexOf(callbackFunction);
+    if (index == -1)
+      return;
+    this._eventListeners[eventName].splice(index, 1);
+  },
+  _fireEvent: function WorkerRequest__fireEvent(eventName, eventObject) {
+    if (!(eventName in this._eventListeners))
+      return;
+    this._eventListeners[eventName].forEach(function (callbackFunction) {
+      callbackFunction(eventObject);
+    });
+  },
+}
+
 var Parser = {
-  parse: function Parser_parse(data, finishCallback) {
-    var requestID = gParserWorker.nextRequestID++;
-    gParserWorker.addEventListener("message", function onMessageFromWorker(msg) {
-      if (msg.data.requestID == requestID) {
-        gParserWorker.removeEventListener("message", onMessageFromWorker);
-        finishCallback(msg.data.parsedProfile);
-      }
-    });
-    gParserWorker.postMessage({
-      requestID: requestID,
-      task: "parseRawProfile",
-      rawProfile: data
-    });
+  parse: function Parser_parse(data) {
+    console.log("profile num chars: " + data.length);
+    var request = new WorkerRequest(gParserWorker);
+    request.sendInChunks("parseRawProfile", data, 3000000);
+    return request;
   },
 
-  filterByJank: function Parser_filterByJank(profile, filterThreshold) {
-    var samples = profile.samples.clone();
-    calltrace_it: for (var i = 0; i < samples.length; ++i) {
-      var sample = samples[i];
-      if (!sample)
-        continue;
-      if (!("responsiveness" in sample.extraInfo) ||
-          sample.extraInfo["responsiveness"] < filterThreshold) {
-        samples[i] = null;
-      }
-    }
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: samples
-    };
-  },
-
-  filterBySymbol: function Parser_filterBySymbol(profile, symbolOrFunctionIndex) {
-    console.log("filtering profile by symbol " + symbolOrFunctionIndex);
-    var samples = profile.samples.map(function filterSample(origSample) {
-      if (!origSample)
-        return null;
-      var sample = cloneSample(origSample);
-      for (var i = 0; i < sample.frames.length; i++) {
-        if (symbolOrFunctionIndex == sample.frames[i]) {
-          sample.frames = sample.frames.slice(i);
-          return sample;
-        }
-      }
-      return null; // no frame matched; filter out complete sample
+  updateFilters: function Parser_updateFilters(filters) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("updateFilters", {
+      filters: filters,
+      profileID: 0
     });
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: samples
-    };
+    return request;
   },
 
-  filterByCallstackPrefix: function Parser_filterByCallstackPrefix(profile, callstack) {
-    var samples = profile.samples.map(function filterSample(origSample, i) {
-      if (!origSample)
-        return null;
-      if (origSample.frames.length < callstack.length)
-        return null;
-      var sample = cloneSample(origSample);
-      for (var i = 0; i < callstack.length; i++) {
-        if (sample.frames[i] != callstack[i])
-          return null;
-      }
-      sample.frames = sample.frames.slice(callstack.length - 1);
-      return sample;
+  updateViewOptions: function Parser_updateViewOptions(options) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("updateViewOptions", {
+      options: options,
+      profileID: 0
     });
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: samples
-    };
+    return request;
   },
 
-  filterByCallstackPostfix: function Parser_filterByCallstackPostfix(profile, callstack) {
-    var samples = profile.samples.map(function filterSample(origSample, i) {
-      if (!origSample)
-        return null;
-      if (origSample.frames.length < callstack.length)
-        return null;
-      var sample = cloneSample(origSample);
-      for (var i = 0; i < callstack.length; i++) {
-        if (sample.frames[sample.frames.length - i - 1] != callstack[i])
-          return null;
-      }
-      sample.frames = sample.frames.slice(0, sample.frames.length - callstack.length + 1);
-      return sample;
+  getSerializedProfile: function Parser_getSerializedProfile(complete, callback) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("getSerializedProfile", {
+      profileID: 0,
+      complete: complete
     });
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: samples
-    };
-  },
-
-  filterByName: function Parser_filterByName(profile, filterName, useFunctions) {
-    function getSymbolOrFunctionName(index, profile, useFunctions) {
-      if (useFunctions) {
-        if (!(index in profile.functions))
-          return "";
-        return profile.functions[index].functionName;
-      }
-      if (!(index in profile.symbols))
-        return "";
-      return profile.symbols[index].symbolName;
-    }
-    console.log("filtering profile by name " + filterName);
-    var samples = profile.samples.clone();
-    filterName = filterName.toLowerCase();
-    calltrace_it: for (var i = 0; i < samples.length; ++i) {
-      var sample = samples[i];
-      if (!sample)
-        continue;
-      var callstack = sample.frames;
-      for (var j = 0; j < callstack.length; ++j) { 
-        var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], profile, useFunctions);
-        if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1) {
-          continue calltrace_it;
-        }
-      }
-      samples[i] = null;
-    }
-    return {
-      symbols: profile.symbols,
-      functions: profile.functions,
-      samples: samples
-    };
-  },
-
-  convertToCallTree: function Parser_convertToCallTree(profile, isReverse) {
-    var samples = profile.samples.filter(function noNullSamples(sample) {
-      return sample != null;
-    });
-    if (samples.length == 0)
-      return new TreeNode("(empty)", null, 0);
-    var treeRoot = new TreeNode(isReverse ? "(total)" : samples[0].frames[0], null, 0);
-    for (var i = 0; i < samples.length; ++i) {
-      var sample = samples[i];
-      var callstack = sample.frames.clone();
-      callstack.shift();
-      if (isReverse)
-        callstack.reverse();
-      var deepestExistingNode = treeRoot.followPath(callstack);
-      var remainingCallstack = callstack.slice(deepestExistingNode.getDepth());
-      deepestExistingNode.incrementCountersInParentChain();
-      var node = deepestExistingNode;
-      for (var j = 0; j < remainingCallstack.length; ++j) {
-        var frame = remainingCallstack[j];
-        var child = new TreeNode(frame, node, 1);
-        node.children.push(child);
-        node = child;
-      }
-    }
-    return treeRoot;
-  },
-  _clipText: function Tree__clipText(text, length) {
-    if (text.length <= length)
-      return text;
-    return text.substr(0, length) + "...";
-  },
-  mergeUnbranchedCallPaths: function Tree_mergeUnbranchedCallPaths(root) {
-    var mergedNames = [root.name];
-    var node = root;
-    while (node.children.length == 1 && node.count == node.children[0].count) {
-      node = node.children[0];
-      mergedNames.push(node.name);
-    }
-    if (node != root) {
-      // Merge path from root to node into root.
-      root.children = node.children;
-      root.mergedNames = mergedNames;
-      //root.name = this._clipText(root.name, 50) + " to " + this._clipText(node.name, 50);
-    }
-    for (var i = 0; i < root.children.length; i++) {
-      this.mergeUnbranchedCallPaths(root.children[i]);
-    }
-  },
-  discardLineLevelInformation: function Tree_discardLineLevelInformation(profile) {
-    var symbols = profile.symbols;
-    var data = profile.samples;
-    var filteredData = [];
-    for (var i = 0; i < data.length; i++) {
-      if (!data[i]) {
-        filteredData.push(null);
-        continue;
-      }
-      filteredData.push(cloneSample(data[i]));
-      var frames = filteredData[i].frames;
-      for (var j = 0; j < frames.length; j++) {
-        if (!(frames[j] in symbols))
-          continue;
-        frames[j] = symbols[frames[j]].functionIndex;
-      }
-    }
-    return {
-      symbols: symbols,
-      functions: profile.functions,
-      samples: filteredData
-    };
+    request.addEventListener("finished", callback);
   },
 };
