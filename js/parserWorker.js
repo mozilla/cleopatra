@@ -153,7 +153,7 @@ function parseRawProfile(requestID, rawProfile) {
         parseProfileJSON(rawProfile.profileJSON);
         break;
       default:
-        throw "Unsupported profile JSON format";
+        throw new Error("Unsupported profile JSON format");
     }
   } else {
     parseProfileString(rawProfile);
@@ -559,7 +559,7 @@ function unserializeSampleFilters(filters) {
       case "RangeSampleFilter":
         return new RangeSampleFilter(filter.start, filter.end);
       default:
-        throw "Unknown filter";
+        throw new Error("Unknown filter");
     }
   })
 }
