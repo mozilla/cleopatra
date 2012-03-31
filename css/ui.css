@@ -36,6 +36,13 @@ body {
 .profileEntryPane input[type="file"] {
   margin-bottom: 1em;
 }
+.profileProgressPane a {
+  position: absolute;
+  top: 35%;
+  left: 30%;
+  width: 40%;
+  height: 16px;
+}
 .profileProgressPane progress {
   position: absolute;
   top: 40%;

@@ -962,12 +962,17 @@ function enterProgressUI() {
   var profileProgressPane = document.createElement("div");
   profileProgressPane.className = "profileProgressPane";
 
+  var progressLabel = document.createElement("a");
+  profileProgressPane.appendChild(progressLabel);
+
   var progressBar = document.createElement("progress");
   profileProgressPane.appendChild(progressBar);
 
   var totalProgressReporter = new ProgressReporter();
   totalProgressReporter.addListener(function (r) {
     var progress = r.getProgress();
+    progressLabel.innerHTML = r.getAction();
+    console.log("Action: " + r.getAction());
     if (isNaN(progress))
       progressBar.removeAttribute("value");
     else
