@@ -1,5 +1,4 @@
 const hiliteClassName = "histogramHilite";
-const kSVGNS = "http://www.w3.org/2000/svg";
 
 function removeAllChildren(element) {
   while (element.firstChild) {
@@ -180,7 +179,7 @@ HistogramView.prototype = {
   dataIsOutdated: function HistogramView_dataIsOutdated() {
     this._busyCover.classList.add("busy");
   },
-  _createCanvas: function HistogramView__createSVGRoot() {
+  _createCanvas: function HistogramView__createCanvas() {
     var canvas = document.createElement("canvas");
     canvas.height = 60;
     canvas.style.width = "100%";
