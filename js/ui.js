@@ -416,6 +416,13 @@ RangeSelector.prototype = {
         updateHiliteRectangle(e.pageX, e.pageY);
         isDrawingRectangle = false;
         self.finishHistogramSelection(e.pageX != origX);
+        if (e.pageX == origX) {
+          // Simple click in the histogram
+          var index = self._sampleIndexFromPoint(e.pageX - graph.parentNode.getBoundingClientRect().left);
+          // TODO Select this sample in the tree view
+          var sample = gCurrentlyShownSampleData[index];
+          console.log("Should select: " + sample);
+        }
       }
     }, false);
     graph.addEventListener("mousemove", function(e) {
