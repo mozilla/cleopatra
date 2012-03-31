@@ -395,7 +395,7 @@ RangeSelector.prototype = {
       self._selectedRange.endX = startX + width;
       self.drawHiliteRectangle(startX, startY, width, height);
     }
-    function updateMouseMarker(newX, newY) {
+    function updateMouseMarker(newX) {
       self.drawMouseMarker(newX - graph.parentNode.getBoundingClientRect().left);
     }
     graph.addEventListener("mousedown", function(e) {
@@ -420,13 +420,14 @@ RangeSelector.prototype = {
     }, false);
     graph.addEventListener("mousemove", function(e) {
       if (isDrawingRectangle) {
+        updateMouseMarker(-1); // Clear
         updateHiliteRectangle(e.pageX, e.pageY);
       } else {
-        updateMouseMarker(e.pageX, e.pageY);
+        updateMouseMarker(e.pageX);
       }
     }, false);
     graph.addEventListener("mouseout", function(e) {
-      updateMouseMarker(-1); //clear
+      updateMouseMarker(-1); // Clear
     }, false);
   },
   beginHistogramSelection: function RangeSelector_beginHistgramSelection() {
