@@ -657,13 +657,14 @@ function add_skip_symbol() {
 }
 
 var gFilterChangeCallback = null;
+var gFilterChangeDelay = 1200;
 function filterOnChange() {
   if (gFilterChangeCallback != null) {
     clearTimeout(gFilterChangeCallback);
     gFilterChangeCallback = null;
   }
 
-  gFilterChangeCallback = setTimeout(filterUpdate, 200); 
+  gFilterChangeCallback = setTimeout(filterUpdate, gFilterChangeDelay);
 }
 function filterUpdate() {
   gFilterChangeCallback = null;
