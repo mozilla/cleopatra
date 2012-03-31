@@ -351,10 +351,20 @@ function RangeSelector(graph) {
   this._highlighter = document.createElement("div");
   this._highlighter.className = "histogramHilite collapsed";
   this.container.appendChild(this._highlighter);
+
+  this._mouseMarker = document.createElement("div");
+  this._mouseMarker.className = "histogramMouseMarker";
+  this.container.appendChild(this._mouseMarker);
 }
 RangeSelector.prototype = {
   getContainer: function RangeSelector_getContainer() {
     return this.container;
+  },
+  // echo the location off the mouse on the histogram
+  drawMouseMarker: function RangeSelector_drawMouseMarker(x) {
+    console.log("Draw");
+    var mouseMarker = this._mouseMarker;
+    mouseMarker.style.left = x + "px";
   },
   drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
     var hilite = this._highlighter;
@@ -388,6 +398,9 @@ RangeSelector.prototype = {
       self._selectedRange.endX = startX + width;
       self.drawHiliteRectangle(startX, startY, width, height);
     }
+    function updateMouseMarker(newX, newY) {
+      self.drawMouseMarker(newX - graph.parentNode.getBoundingClientRect().left);
+    }
     graph.addEventListener("mousedown", function(e) {
       if (e.button != 0)
         return;
@@ -411,7 +424,12 @@ RangeSelector.prototype = {
     graph.addEventListener("mousemove", function(e) {
       if (isDrawingRectangle) {
         updateHiliteRectangle(e.pageX, e.pageY);
+      } else {
+        updateMouseMarker(e.pageX, e.pageY);
       }
+    }, false);
+    graph.addEventListener("mouseout", function(e) {
+      updateMouseMarker(-1); //clear
     }, false);
   },
   beginHistogramSelection: function RangeSelector_beginHistgramSelection() {

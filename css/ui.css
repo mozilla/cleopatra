@@ -196,6 +196,16 @@ body {
 .histogramHilite:not(.collapsed) {
   background: rgba(150, 150, 150, 0.5);
 }
+.histogramMouseMarker {
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+.histogramMouseMarker:not(.collapsed) {
+    background: rgba(0, 0, 150, 0.7);
+}
 #iconbox {
   display: none;
 }
