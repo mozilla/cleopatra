@@ -383,6 +383,8 @@ RangeSelector.prototype = {
       var startX = Math.min(newX, origX) - graph.parentNode.getBoundingClientRect().left;
       var startY = 0;
       var width = Math.abs(newX - origX);
+      if (startX + width > graph.parentNode.getBoundingClientRect().width)
+        width = graph.parentNode.getBoundingClientRect().width - startX;
       var height = graph.parentNode.clientHeight;
       self._selectedRange.startX = startX;
       self._selectedRange.endX = startX + width;
