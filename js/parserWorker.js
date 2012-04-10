@@ -205,6 +205,7 @@ function parseRawProfile(requestID, rawProfile) {
   }
 
   function indexForSymbol(symbol) {
+    dump("index for: " + symbol + "\n");
     if (symbol in symbolIndices)
       return symbolIndices[symbol];
     var newIndex = symbols.length;
@@ -269,18 +270,22 @@ function parseRawProfile(requestID, rawProfile) {
     }
   }
 
-  function parseProfileJSON(data) {
-    for (var i = 0; i < data.length; i++) {
-      var sample = data[i];
-      if (sample) {
-        var indicedFrames = sample.frames.map(function (frameName) {
-          return indexForSymbol(frameName);
-        });
-        samples.push(makeSample(indicedFrames, sample.extraInfo));
-      } else {
-        samples.push(null);
+  function parseProfileJSON(profile) {
+    // Thread 0 will always be the main thread of interest
+    // TODO support all the thread in the profile
+    var thread = profile.threads[0];
+    for (var j = 0; j < thread.samples.length; j++) {
+      var sample = thread.samples[j];
+      var indicedFrames = [];
+      for (var k = 0; k < sample.frames.length; k++) {
+        var frame = sample.frames[k];
+        indicedFrames.push(indexForSymbol(frame.location));
       }
-      progressReporter.setProgress((i + 1) / data.length);
+      if (sample.extraInfo == null) {
+        sample.extraInfo = {};
+      }
+      samples.push(makeSample(indicedFrames, sample.extraInfo));
+      progressReporter.setProgress((j + 1) / thread.samples.length);
     }
   }
 
