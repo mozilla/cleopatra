@@ -16,6 +16,7 @@ FileList.prototype = {
   addFile: function FileList_addFile() {
     var li = document.createElement("li");
     li.className = "fileListItem";
+    li.classList.add("selected");
 
     var fileListItemTitleSpan = document.createElement("span");
     fileListItemTitleSpan.className = "fileListItemTitle";
