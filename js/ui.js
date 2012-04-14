@@ -877,6 +877,9 @@ window.addEventListener("message", function messageFromAddon(msg) {
       break;
     case "importFromAddonProgress":
       gImportFromAddonSubreporters.import.setProgress(o.progress);
+      if (o.action != null) {
+          gImportFromAddonSubreporters.import.setAction(o.action);
+      }
       break;
     case "importFromAddonFinish":
       importFromAddonFinish(o.rawProfile);

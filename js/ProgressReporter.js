@@ -60,6 +60,10 @@ ProgressReporter.prototype = {
   getState: function () {
     return this._state;
   },
+  setAction: function (action) {
+    this._action = action;
+    this._reportProgress();
+  },
   getAction: function () {
     switch (this._state) {
       case ProgressReporter.STATE_WAITING:
