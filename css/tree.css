@@ -179,6 +179,7 @@
   overflow: hidden;
   vertical-align: top;
   color: transparent;
+  font-size: 0;
 }
 
 .expandCollapseButton {
