@@ -180,14 +180,15 @@ function parseRawProfile(requestID, rawProfile) {
   }
 
   function indexForFunction(functionName, libraryName) {
-    if (functionName in functionIndices)
-      return functionIndices[functionName];
+    var resolve = functionName+"_LIBNAME_"+libraryName;
+    if (resolve in functionIndices)
+      return functionIndices[resolve];
     var newIndex = functions.length;
     functions[newIndex] = {
       functionName: functionName,
       libraryName: libraryName
     };
-    functionIndices[functionName] = newIndex;
+    functionIndices[resolve] = newIndex;
     return newIndex;
   }
 
