@@ -205,7 +205,6 @@ function parseRawProfile(requestID, rawProfile) {
   }
 
   function indexForSymbol(symbol) {
-    dump("index for: " + symbol + "\n");
     if (symbol in symbolIndices)
       return symbolIndices[symbol];
     var newIndex = symbols.length;
