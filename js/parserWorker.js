@@ -273,9 +273,15 @@ function parseRawProfile(requestID, rawProfile) {
   function parseProfileJSON(profile) {
     // Thread 0 will always be the main thread of interest
     // TODO support all the thread in the profile
-    var thread = profile.threads[0];
-    for (var j = 0; j < thread.samples.length; j++) {
-      var sample = thread.samples[j];
+    var profileSamples = null;
+    // Support older format that aren't thread aware
+    if (profile.threads != null) {
+      profileSamples = profile.threads[0].samples;
+    } else {
+      profileSamples = profile;
+    }
+    for (var j = 0; j < profileSamples.length; j++) {
+      var sample = profileSamples[j];
       var indicedFrames = [];
       for (var k = 0; k < sample.frames.length; k++) {
         var frame = sample.frames[k];
