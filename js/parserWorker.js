@@ -286,7 +286,11 @@ function parseRawProfile(requestID, rawProfile) {
       var indicedFrames = [];
       for (var k = 0; k < sample.frames.length; k++) {
         var frame = sample.frames[k];
-        indicedFrames.push(indexForSymbol(frame.location));
+        if (frame.location !== undefined) {
+          indicedFrames.push(indexForSymbol(frame.location));
+        } else {
+          indicedFrames.push(indexForSymbol(frame));
+        }
       }
       if (sample.extraInfo == null) {
         sample.extraInfo = {};
