@@ -292,7 +292,7 @@ function parseRawProfile(requestID, rawProfile) {
         sample.extraInfo = {};
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
-      progressReporter.setProgress((j + 1) / thread.samples.length);
+      progressReporter.setProgress((j + 1) / profileSamples.length);
     }
   }
 
