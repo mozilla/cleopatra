@@ -45,6 +45,7 @@ self.onmessage = function (msg) {
         break;
     }
   } catch (e) {
+    dump("Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
     sendError(requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
   }
 }
