@@ -173,8 +173,8 @@ PluginView.prototype = {
   show: function() {
     this._container.style.visibility = '';
   },
-  display: function(data) {
-    this._iframe.src = "js/plugins/protovis/protovis.html";
+  display: function(pluginName, data) {
+    this._iframe.src = "js/plugins/" + pluginName + "/index.html";
     this.show();
     console.log(gSymbols); 
   },
@@ -1109,7 +1109,8 @@ function filtersChanged() {
 
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();
-      gPluginView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
+      gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName,
+                          gCurrentlyShownSampleData, gHighlightedCallstack);
       console.log("plugin displaying: " + (Date.now() - start) + "ms.");
     } else {
       gPluginView.hide();
