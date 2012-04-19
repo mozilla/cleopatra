@@ -175,7 +175,7 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*)$/.exec(fullName);
     if (match == null) {
       dump("Failed to match: " + fullName + "\n");
-      match = [fullName];
+      match = [fullName, fullName];
     }
     return {
       functionName: cleanFunctionName(match[1]),
