@@ -173,6 +173,9 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\)$/.exec(fullName) ||
       /^(.*)$/.exec(fullName);
+    if (match == null) {
+      dump("Failed to match: " + fullName + "\n");
+    }
     return {
       functionName: cleanFunctionName(match[1]),
       libraryName: match[2] || "",
