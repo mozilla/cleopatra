@@ -16,6 +16,7 @@ self.onmessage = function (msg) {
       taskData = partialTaskData[requestID];
       delete partialTaskData[requestID];
     }
+    dump("Start task: " + task + "\n");
     switch (task) {
       case "chunkedStart":
         partialTaskData[requestID] = null;
@@ -44,6 +45,7 @@ self.onmessage = function (msg) {
         sendError(requestID, "Unknown task " + task);
         break;
     }
+    dump("Complete task: " + task + "\n");
   } catch (e) {
     dump("Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
     sendError(requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
