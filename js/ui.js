@@ -96,6 +96,8 @@ ProfileTreeManager.prototype = {
       // Remove anything after ( since MXR doesn't handle search with the arguments.
       var symbol = node.name.split("(")[0];
       window.open("http://mxr.mozilla.org/mozilla-central/search?string=" + symbol, "View Source");
+    } else if (menuItem == "Plugin view") {
+      focusOnPluginView("protovis");
     } else if (menuItem == "Google Search") {
       var symbol = node.name;
       window.open("https://www.google.ca/search?q=" + symbol, "View Source");
@@ -152,6 +154,31 @@ ProfileTreeManager.prototype = {
     return getChildrenObjects([rootNode], null);
   },
 };
+
+function PluginView() {
+  this._container = document.createElement("div");
+  this._container.className = "pluginview";
+  this._container.style.visibility = 'hidden';
+  this._iframe = document.createElement("iframe");
+  this._iframe.className = "pluginviewIFrame";
+  this._container.appendChild(this._iframe);
+}
+PluginView.prototype = {
+  getContainer: function HistogramView_getContainer() {
+    return this._container;
+  },
+  hide: function() {
+    this._container.style.visibility = 'hidden';
+  },
+  show: function() {
+    this._container.style.visibility = '';
+  },
+  display: function(data) {
+    this._iframe.src = "js/plugins/protovis/protovis.html";
+    this.show();
+    console.log(gSymbols); 
+  },
+}
 
 // The responsiveness threshold (in ms) after which the sample shuold become
 // completely red in the histogram.
@@ -775,6 +802,7 @@ var gHighlightedCallstack = [];
 var gTreeManager = null;
 var gBreadcrumbTrail = null;
 var gHistogramView = null;
+var gPluginView = null;
 var gFileList = null;
 var gInfoBar = null;
 var gMainArea = null;
@@ -951,6 +979,21 @@ function focusOnCallstack(focusedCallstack, name) {
   })
 }
 
+function focusOnPluginView(pluginName) {
+  var filter = {
+    type: "PluginView",
+    pluginName: pluginName,
+  };
+  var newFilterChain = gSampleFilters.concat([filter]);
+  gBreadcrumbTrail.addAndEnter({
+    title: "Plugin View: " + pluginName,
+    enterCallback: function () {
+      gSampleFilters = newFilterChain;
+      filtersChanged();
+    }
+  })
+}
+
 function setHighlightedCallstack(samples) {
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
@@ -1025,6 +1068,9 @@ function enterFinishedProfileUI() {
   gHistogramView = new HistogramView();
   finishedProfilePane.appendChild(gHistogramView.getContainer());
 
+  gPluginView = new PluginView();
+  finishedProfilePane.appendChild(gPluginView.getContainer());
+
   gBreadcrumbTrail = new BreadcrumbTrail();
   finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
 
@@ -1056,9 +1102,14 @@ function filtersChanged() {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
     gCurrentlyShownSampleData = filteredSamples;
     gInfoBar.display();
+
     start = Date.now();
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+
+    start = Date.now();
+    gPluginView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
+    console.log("plugin displaying: " + (Date.now() - start) + "ms.");
   });
   viewOptionsChanged();
 }
