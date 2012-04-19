@@ -28,10 +28,10 @@ function mergeUnbranched(node) {
   
   if (keys.length == 1) {
     var singleChild = node[keys[0]];
-    if (singleChild.leaf != null && getkeys(singleChild).length == 1) {
-      node[keys[0]] = singleChild.leaf;
-      return;
-    }
+    //if (singleChild.leaf != null && getkeys(singleChild).length == 1) {
+    //  node[keys[0]] = singleChild.leaf;
+    //  return;
+    //}
     if (keys[0] == "leaf") return;
     delete node[keys[0]];
     for (var j in singleChild) {
