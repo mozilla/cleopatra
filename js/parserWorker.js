@@ -578,6 +578,8 @@ function unserializeSampleFilters(filters) {
         return new FocusedCallstackPostfixSampleFilter(filter.focusedCallstack);
       case "RangeSampleFilter":
         return new RangeSampleFilter(filter.start, filter.end);
+      case "PluginView":
+        return null;
       default:
         throw new Error("Unknown filter");
     }
@@ -599,6 +601,7 @@ function updateFilters(requestID, profileID, filters) {
     samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
   }
   samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
+    if (currentFilter===null) return filteredSamples;
     return currentFilter.filter(filteredSamples, symbols, functions);
   }, samples);
   if (filters.jankOnly) {

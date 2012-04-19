@@ -1107,9 +1107,13 @@ function filtersChanged() {
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
 
-    start = Date.now();
-    gPluginView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
-    console.log("plugin displaying: " + (Date.now() - start) + "ms.");
+    if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
+      start = Date.now();
+      gPluginView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
+      console.log("plugin displaying: " + (Date.now() - start) + "ms.");
+    } else {
+      gPluginView.hide();
+    }
   });
   viewOptionsChanged();
 }
