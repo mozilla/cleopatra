@@ -879,6 +879,7 @@ function loadProfile(rawProfile) {
 }
 
 function loadRawProfile(reporter, rawProfile) {
+  dump("Parse raw profile: ~" + rawProfile.length + " bytes\n");
   reporter.begin("Parsing...");
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile);
