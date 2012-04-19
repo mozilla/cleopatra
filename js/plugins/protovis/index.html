@@ -48,7 +48,7 @@ function mergeUnbranched(node) {
 
 }
 
-function initCleopatraPlugin(samples, symbols) {
+function initCleopatraPlugin(samples, param, symbols) {
   var tree = {};
   for(var i = 0; i < samples.length; i++) {
     var frames = samples[i].frames;
@@ -67,9 +67,13 @@ function initCleopatraPlugin(samples, symbols) {
     node.leaf++;
   }
 
-  mergeUnbranched(tree);
-  
-  renderSunbursts(tree);
+    mergeUnbranched(tree);
+  if (param.type === "pie") {
+    mergeUnbranched(tree);
+    renderSunbursts(tree);
+  } else {
+    renderTree(tree);
+  }
 }
 
 function renderSunbursts(tree) {
@@ -115,7 +119,7 @@ function renderTree(tree) {
 
   var layout = vis.add(pv.Layout.Cluster)
       .nodes(pv.dom(tree)
-          .root("flare")
+          .root("root")
           //.sort(function(a, b) pv.naturalOrder(a.nodeName, b.nodeName))
           .nodes())
       .group(true)

@@ -244,7 +244,8 @@ TreeView.prototype = {
     menu.push("Focus Frame");
     menu.push("Focus Callstack");
     menu.push("Google Search");
-    menu.push("Plugin view");
+    menu.push("Plugin View: Pie");
+    menu.push("Plugin View: Tree");
     return menu;
   },
   _HTMLForFunction: function TreeView__HTMLForFunction(node) {

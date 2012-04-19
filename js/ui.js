@@ -96,8 +96,10 @@ ProfileTreeManager.prototype = {
       // Remove anything after ( since MXR doesn't handle search with the arguments.
       var symbol = node.name.split("(")[0];
       window.open("http://mxr.mozilla.org/mozilla-central/search?string=" + symbol, "View Source");
-    } else if (menuItem == "Plugin view") {
-      focusOnPluginView("protovis");
+    } else if (menuItem == "Plugin View: Pie") {
+      focusOnPluginView("protovis", {type:"pie"});
+    } else if (menuItem == "Plugin View: Tree") {
+      focusOnPluginView("protovis", {type:"tree"});
     } else if (menuItem == "Google Search") {
       var symbol = node.name;
       window.open("https://www.google.ca/search?q=" + symbol, "View Source");
@@ -173,12 +175,12 @@ PluginView.prototype = {
   show: function() {
     this._container.style.visibility = '';
   },
-  display: function(pluginName, data) {
+  display: function(pluginName, param, data) {
     this._iframe.src = "js/plugins/" + pluginName + "/index.html";
     var self = this;
     this._iframe.onload = function() {
       console.log("Pluginview '" + pluginName + " iframe onload");
-      self._iframe.contentWindow.initCleopatraPlugin(data, gSymbols);
+      self._iframe.contentWindow.initCleopatraPlugin(data, param, gSymbols);
     }
     this.show();
     //console.log(gSymbols); 
@@ -984,10 +986,11 @@ function focusOnCallstack(focusedCallstack, name) {
   })
 }
 
-function focusOnPluginView(pluginName) {
+function focusOnPluginView(pluginName, param) {
   var filter = {
     type: "PluginView",
     pluginName: pluginName,
+    param: param,
   };
   var newFilterChain = gSampleFilters.concat([filter]);
   gBreadcrumbTrail.addAndEnter({
@@ -1114,7 +1117,7 @@ function filtersChanged() {
 
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();
-      gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName,
+      gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName, gSampleFilters[gSampleFilters.length-1].param,
                           gCurrentlyShownSampleData, gHighlightedCallstack);
       console.log("plugin displaying: " + (Date.now() - start) + "ms.");
     } else {
