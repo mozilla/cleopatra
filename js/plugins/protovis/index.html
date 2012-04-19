@@ -8,7 +8,45 @@
     </style>
   </head>
   <body><div id="center">
-    <script type="text/javascript+protovis">
+    <script type="text/javascript">
+
+function getkeys(obj)
+{
+  var keys = [];
+  for(var i in obj) if (obj.hasOwnProperty(i))
+  {
+    keys.push(i);
+  }
+  return keys;
+}
+
+
+
+function mergeUnbranched(node) {
+  if (node == null) return;
+  var keys = getkeys(node);
+  
+  if (keys.length == 1) {
+    var singleChild = node[keys[0]];
+    if (singleChild.leaf != null && getkeys(singleChild).length == 1) {
+      node[keys[0]] = singleChild.leaf;
+      return;
+    }
+    if (keys[0] == "leaf") return;
+    delete node[keys[0]];
+    for (var j in singleChild) {
+      node[j] = singleChild[j];
+    }
+    mergeUnbranched(node);
+  } else if (keys.length == 0) {
+    return;
+  } else {
+    for (var i = 0; i < keys.length; i++) {
+      mergeUnbranched(node[keys[i]]); 
+    }
+  }
+
+}
 
 function initCleopatraPlugin(samples, symbols) {
   var tree = {};
@@ -16,19 +54,57 @@ function initCleopatraPlugin(samples, symbols) {
     var frames = samples[i].frames;
     var node = tree;
     for (var j = 0; j < frames.length; j++) {
-      var frame = symbols[frames[j]].symbolName;
+      var frame = symbols[frames[j]].symbolName.substring(0,12);
+      //var frame = frames[j];
       if (node[frame] == null) {
         node[frame] = {};
       }
       node = node[frame];
     }
+    if (node.leaf == null) {
+      node.leaf = 0;
+    }
+    node.leaf++;
   }
-  dump("Tree: \n");
-  console.log(symbols);
-  render(tree);
+
+  mergeUnbranched(tree);
+  
+  renderSunbursts(tree);
 }
 
-function render(tree) {
+function renderSunbursts(tree) {
+  var vis = new pv.Panel()
+    .width(2000)
+    .height(2000)
+    .bottom(-80);
+
+  var partition = vis.add(pv.Layout.Partition.Fill)
+    .nodes(pv.dom(tree).root("Root").nodes())
+    .size(function(d) d.nodeValue)
+    .order("descending")
+    .orient("radial");
+
+  partition.node.add(pv.Wedge)
+    .fillStyle(pv.Colors.category19().by(function(d) d.parentNode && d.parentNode.nodeName))
+    .strokeStyle("#fff")
+    .lineWidth(.5);
+
+  partition.label.add(pv.Label)
+    .visible(function(d) d.angle * d.outerRadius >= 12);
+
+  vis.render();
+
+  /* Update the layout's size method and re-render. */
+  function update(method) {
+    switch (method) {
+      case "byte": partition.size(function(d) d.nodeValue); break;
+      case "file": partition.size(function(d) d.firstChild ? 0 : 1); break;
+    }
+    vis.render();
+  }
+}
+
+function renderTree(tree) {
   var vis = new pv.Panel()
       .width(2000)
       .height(4200)
