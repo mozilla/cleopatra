@@ -175,8 +175,13 @@ PluginView.prototype = {
   },
   display: function(pluginName, data) {
     this._iframe.src = "js/plugins/" + pluginName + "/index.html";
+    var self = this;
+    this._iframe.onload = function() {
+      console.log("Pluginview '" + pluginName + " iframe onload");
+      self._iframe.contentWindow.initCleopatraPlugin(data, gSymbols);
+    }
     this.show();
-    console.log(gSymbols); 
+    //console.log(gSymbols); 
   },
 }
 

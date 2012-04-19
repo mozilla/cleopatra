@@ -1,5 +1,62 @@
 <html>
-<body>
-Hello world
-</body>
+  <head>
+    <title>Dendrogram Layout</title>
+    <link type="text/css" rel="stylesheet" href="ex.css?3.2"/>
+    <script type="text/javascript" src="protovis-r3.2.js"></script>
+    <style type="text/css">
+
+    </style>
+  </head>
+  <body><div id="center">
+    <script type="text/javascript+protovis">
+
+function initCleopatraPlugin(samples, symbols) {
+  var tree = {};
+  for(var i = 0; i < samples.length; i++) {
+    var frames = samples[i].frames;
+    var node = tree;
+    for (var j = 0; j < frames.length; j++) {
+      var frame = symbols[frames[j]].symbolName;
+      if (node[frame] == null) {
+        node[frame] = {};
+      }
+      node = node[frame];
+    }
+  }
+  dump("Tree: \n");
+  console.log(symbols);
+  render(tree);
+}
+
+function render(tree) {
+  var vis = new pv.Panel()
+      .width(2000)
+      .height(4200)
+      .left(40)
+      .right(160)
+      .top(10)
+      .bottom(10);
+
+  var layout = vis.add(pv.Layout.Cluster)
+      .nodes(pv.dom(tree)
+          .root("flare")
+          //.sort(function(a, b) pv.naturalOrder(a.nodeName, b.nodeName))
+          .nodes())
+      .group(true)
+      .orient("left");
+
+  layout.link.add(pv.Line)
+      .strokeStyle("#ccc")
+      .lineWidth(1)
+      .antialias(false);
+
+  layout.node.add(pv.Dot)
+      .fillStyle(function(n) n.firstChild ? "#aec7e8" : "#ff7f0e");
+
+  layout.label.add(pv.Label);
+
+  vis.render();
+}
+    </script>
+  </div></div></body>
 </html>
