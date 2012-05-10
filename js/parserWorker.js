@@ -467,7 +467,7 @@ function filterByCallstackPostfix(samples, callstack) {
 }
 
 function filterByName(samples, symbols, functions, filterName, useFunctions) {
-  function getSymbolOrFunctionName(index, profile, useFunctions) {
+  function getSymbolOrFunctionName(index, useFunctions) {
     if (useFunctions) {
       if (!(index in functions))
         return "";
@@ -485,7 +485,7 @@ function filterByName(samples, symbols, functions, filterName, useFunctions) {
       continue;
     var callstack = sample.frames;
     for (var j = 0; j < callstack.length; ++j) { 
-      var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], profile, useFunctions);
+      var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
       if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1) {
         continue calltrace_it;
       }
@@ -600,7 +600,11 @@ function updateFilters(requestID, profileID, filters) {
     samples = discardLineLevelInformation(samples, symbols, functions);
   }
   if (filters.nameFilter) {
-    samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
+    try {
+      samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
+    } catch (e) {
+      dump("Could not filer by name: " + e + "\n");
+    }
   }
   samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
     if (currentFilter===null) return filteredSamples;

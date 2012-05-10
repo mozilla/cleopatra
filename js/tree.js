@@ -1,5 +1,5 @@
 var kMaxChunkDuration = 4; // ms
-var kMaxRenderDepth = 100;
+var kMaxRenderDepth = 200; // Effectively disable it
 
 function TreeView() {
   this._eventListeners = {};
