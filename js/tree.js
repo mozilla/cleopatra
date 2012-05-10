@@ -1,6 +1,10 @@
 var kMaxChunkDuration = 4; // ms
 var kMaxRenderDepth = 200; // Effectively disable it
 
+RegExp.escape = function(text) {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+}
+
 function TreeView() {
   this._eventListeners = {};
   this._pendingActions = [];
@@ -66,8 +70,12 @@ TreeView.prototype = {
   dataIsOutdated: function TreeView_dataIsOutdated() {
     this._busyCover.classList.add("busy");
   },
-  display: function TreeView_display(data) {
+  display: function TreeView_display(data, filterByName) {
     this._busyCover.classList.remove("busy");
+    this._filterByName = filterByName;
+    this._filterByNameReg = null; // lazy init
+    if (this._filterByName === "")
+      this._filterByName = null;
     this._horizontalScrollbox.innerHTML = "";
     if (this._pendingActionsProcessingCallback) {
       window.mozCancelAnimationFrame(this._pendingActionsProcessingCallback);
@@ -249,11 +257,19 @@ TreeView.prototype = {
     return menu;
   },
   _HTMLForFunction: function TreeView__HTMLForFunction(node) {
+    var nodeName = node.name;
+    if (this._filterByName) {
+      if (!this._filterByNameReg) {
+        this._filterByName = RegExp.escape(this._filterByName);
+        this._filterByNameReg = new RegExp("(" + this._filterByName + ")","gi");
+      }
+      nodeName = nodeName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
+    }
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
       '<span class="sampleCount">' + node.counter + '</span> ' +
       '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
-      '<span class="functionName">' + node.name + '</span>' +
+      '<span class="functionName">' + nodeName + '</span>' +
       '<span class="libraryName">' + node.library + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },

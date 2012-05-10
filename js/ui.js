@@ -111,8 +111,8 @@ ProfileTreeManager.prototype = {
       focusOnCallstack(focusedCallstack, node.name);
     }
   },
-  display: function ProfileTreeManager_display(tree, symbols, functions, useFunctions) {
-    this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions));
+  display: function ProfileTreeManager_display(tree, symbols, functions, useFunctions, filterByName) {
+    this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), filterByName);
   },
   convertToJSTreeData: function ProfileTreeManager__convertToJSTreeData(rootNode, symbols, functions, useFunctions) {
     var totalSamples = rootNode.counter;
@@ -1130,13 +1130,14 @@ function filtersChanged() {
 
 function viewOptionsChanged() {
   gTreeManager.dataIsOutdated();
+  var filterNameInput = document.getElementById("filterName");
   var updateViewOptionsRequest = Parser.updateViewOptions({
     invertCallstack: gInvertCallstack,
     mergeUnbranched: gMergeUnbranched
   });
   updateViewOptionsRequest.addEventListener("finished", function (calltree) {
     var start = Date.now();
-    gTreeManager.display(calltree, gSymbols, gFunctions, gMergeFunctions);
+    gTreeManager.display(calltree, gSymbols, gFunctions, gMergeFunctions, filterNameInput && filterNameInput.value);
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
   });
 }
