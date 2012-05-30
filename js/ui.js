@@ -515,6 +515,18 @@ RangeSelector.prototype = {
   },
 };
 
+window.onpopstate = function(ev) {
+  console.log("pop: " + JSON.stringify(ev.state));
+  gBreadcrumbTrail.pop();
+  if (ev.state) {
+    console.log("state");
+    if (ev.state.action === "popbreadcrumb") {
+      console.log("bread");
+      //gBreadcrumbTrail.pop();
+    }
+  }
+}
+
 function BreadcrumbTrail() {
   this._breadcrumbs = [];
   this._selectedBreadcrumbIndex = -1;
@@ -574,6 +586,10 @@ BreadcrumbTrail.prototype = {
     var removalHandle = this.add(breadcrumb);
     this._enter(this._breadcrumbs.length - 1);
   },
+  pop : function BreadcrumbTrail_pop() {
+    if (this._breadcrumbs.length-2 >= 0)
+      this._enter(this._breadcrumbs.length-2);
+  },
   _enter: function BreadcrumbTrail__select(index) {
     if (index == this._selectedBreadcrumbIndex)
       return;
@@ -581,6 +597,11 @@ BreadcrumbTrail.prototype = {
     if (prevSelected)
       prevSelected.classList.remove("selected");
     var li = this._breadcrumbs[index];
+    if (this === gBreadcrumbTrail && index != 0) {
+      // Support for back button, disabled until the forward button is implemented.
+      //var state = {action: "popbreadcrumb",};
+      //window.history.pushState(state, "Cleopatra");
+    }
     if (!li)
       console.log("li at index " + index + " is null!");
     delete li.breadcrumbIsTransient;
@@ -588,6 +609,7 @@ BreadcrumbTrail.prototype = {
     this._deleteBeyond(index);
     this._selectedBreadcrumbIndex = index;
     li.breadcrumbEnterCallback();
+    // Add history state
   },
   _deleteBeyond: function BreadcrumbTrail__deleteBeyond(index) {
     while (this._breadcrumbs.length > index + 1) {
