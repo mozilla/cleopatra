@@ -292,6 +292,9 @@ HistogramView.prototype = {
       return true;
     });
   },
+  getHistogramData: function HistogramView__getHistogramData() {
+    return this._histogramData;
+  },
   _getStepColor: function HistogramView__getStepColor(step) {
       if ("responsiveness" in step.extraInfo) {
         var res = step.extraInfo.responsiveness;
@@ -1141,6 +1144,8 @@ function filtersChanged() {
     start = Date.now();
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+
+    gDiagnosticBar.display(gCurrentlyShownSampleData, gHighlightedCallstack, gHistogramView.getHistogramData());
 
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();
