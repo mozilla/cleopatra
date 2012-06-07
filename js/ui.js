@@ -166,7 +166,7 @@ function PluginView() {
   this._container.appendChild(this._iframe);
 }
 PluginView.prototype = {
-  getContainer: function HistogramView_getContainer() {
+  getContainer: function PluginView_getContainer() {
     return this._container;
   },
   hide: function() {
