@@ -1,0 +1,9 @@
+.diagnostic {
+  height: 16px;
+  background-color: white;
+  border-bottom: 1px solid #CCC;
+  background: -moz-linear-gradient(#CCC, #EEE);
+  cursor: default;
+  -moz-user-select: none;
+}
+

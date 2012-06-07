@@ -831,6 +831,7 @@ var gHighlightedCallstack = [];
 var gTreeManager = null;
 var gBreadcrumbTrail = null;
 var gHistogramView = null;
+var gDiagnosticBar = null;
 var gPluginView = null;
 var gFileList = null;
 var gInfoBar = null;
@@ -1093,17 +1094,20 @@ function enterFinishedProfileUI() {
   var finishedProfilePane = document.createElement("div");
   finishedProfilePane.className = "finishedProfilePane";
 
-  gTreeManager = new ProfileTreeManager();
-  finishedProfilePane.appendChild(gTreeManager.getContainer());
+  gBreadcrumbTrail = new BreadcrumbTrail();
+  finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
 
   gHistogramView = new HistogramView();
   finishedProfilePane.appendChild(gHistogramView.getContainer());
 
+  gDiagnosticBar = new DiagnosticBar();
+  finishedProfilePane.appendChild(gDiagnosticBar.getContainer());
+
+  gTreeManager = new ProfileTreeManager();
+  finishedProfilePane.appendChild(gTreeManager.getContainer());
+
   gPluginView = new PluginView();
   finishedProfilePane.appendChild(gPluginView.getContainer());
-
-  gBreadcrumbTrail = new BreadcrumbTrail();
-  finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);

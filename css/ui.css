@@ -78,7 +78,6 @@ body {
   }
 }
 .breadcrumbTrail {
-  position: absolute;
   top: 0;
   right: 0;
   height: 29px;
@@ -135,11 +134,7 @@ body {
   margin-left: -270px;
 }
 .tree {
-  position: absolute;
-  top: 90px;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  height: 100%;
 }
 #fileList {
   position: absolute;
@@ -195,10 +190,9 @@ body {
   height: 100%;
 }
 .histogram {
-  position: absolute;
+  position: relative;
   height: 60px;
   right: 0;
-  top: 30px;
   left: 0;
   border-bottom: 1px solid #CCC;
   background: -moz-linear-gradient(#EEE, #CCC);
