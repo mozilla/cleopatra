@@ -1146,7 +1146,7 @@ function filtersChanged() {
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
 
     gDiagnosticBar.display(gCurrentlyShownSampleData, gHighlightedCallstack,
-                           gHistogramView.getHistogramData(), gSymbols);
+                           gHistogramView.getHistogramData(), gFunctions);
 
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();

@@ -7,21 +7,27 @@ var diagnosticList = [
     },
   },
 ];
-
+var once = true;
 function stepContains(substring, frames, symbols) {
+  if (once) {
+    once = false;
+    //dump(JSON.stringify(symbols) + "\n");
+  }
+  dump(JSON.stringify(frames) + "\n");
   //console.log("step: " + JSON.stringify(symbols));
   dump("start\n");
   for (var i = 0; i < frames.length; i++) {
-    var frameSym = symbols[frames[i]].symbolName;
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     dump("step: " + JSON.stringify(frameSym) + "\n");
   }
   for (var i = 0; i < frames.length; i++) {
-    var frameSym = symbols[frames[i]].symbolName;
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     if (frameSym.indexOf(substring) != -1) {
       return true;
     }
   }
-
+  dump("no\n");
+  return false;
 }
 
 function sameArray(arr1, arr2) {
@@ -51,6 +57,8 @@ DiagnosticBar.prototype = {
     return this._container;
   },
   _addDiagnosticItem: function(x, width, imageFile, title) {
+    x = x * 100;
+    width = width * 100;
     if (width < 1) return;
     var diagnostic = document.createElement("a");
 
@@ -80,8 +88,8 @@ DiagnosticBar.prototype = {
     //console.log("SYM: " + JSON.stringify(symbols));
     if (!histogramData || histogramData.length < 1) return;
 
-    var lastStep = histogramData[histogramData.length-1];
-    var widthSum = lastStep.x + lastStep.width;
+    var lastStep = data[data.length-1];
+    var widthSum = data.length;
     var self = this;
     var count = 0;
     var pendingDiagnosticX = null;
@@ -90,31 +98,29 @@ DiagnosticBar.prototype = {
     console.log("Check");
     dump("numb of steps: " + histogramData.length + "\n");
 
-    histogramData.forEach(function plotStep(step) {
-      var pos = 0;
-      while (pos < step.frames.length) {
-        if (pos+1 == step.frames.length || !sameArray(step.frames[pos], step.frames[pos+1])) {
-          // End of frame series
-          var frames = step.frames[pos];
+    var x = 0;
+    data.forEach(function plotStep(step) {
+          dump("call\n");
+          var frames = step.frames;
           var needFlush = true;
           for (var i = 0; i < diagnosticList.length; i++) {
             var currDiagnostic = diagnosticList[i];
-            if (currDiagnostic.check(step.frames[pos], symbols)) {
+            if (currDiagnostic.check(frames, symbols)) {
               if (pendingDiagnostic && pendingDiagnostic != currDiagnostic) {
                 console.log("flush");
                 var imgFile = pendingDiagnostic.image;
                 var title = pendingDiagnostic.title;
-                self._addDiagnosticItem(pendingDiagnosticX, pendingDiagnosticW, imgFile, title);
+                self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
                 count++;
                 pendingDiagnostic = null;
               }
               if (!pendingDiagnostic) {
                 pendingDiagnostic = currDiagnostic;
-                pendingDiagnosticX = step.x/widthSum*100;
-                pendingDiagnosticW = step.width/widthSum*100;
-              } else if (pendingDiagnostic == currDiagnostic) {
+                pendingDiagnosticX = x;
+                pendingDiagnosticW = 1;
+              } else if (pendingDiagnostic && pendingDiagnostic == currDiagnostic) {
                 console.log("Extend");
-                pendingDiagnosticW = step.x/widthSum*100 + step.width/widthSum*100 - pendingDiagnosticX;
+                pendingDiagnosticW++;
               }
               needFlush = false;
               break;
@@ -123,19 +129,17 @@ DiagnosticBar.prototype = {
           if (needFlush && pendingDiagnostic) {
             var imgFile = pendingDiagnostic.image;
             var title = pendingDiagnostic.title;
-            self._addDiagnosticItem(pendingDiagnosticX, pendingDiagnosticW, imgFile, title);
+            self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
             count++;
             pendingDiagnostic = null;
           }
-        }
-        pos++;
-      }
+          x++;
     });
     if (pendingDiagnostic) {
       console.log("final flush");
       var imgFile = pendingDiagnostic.image;
       var title = pendingDiagnostic.title;
-      self._addDiagnosticItem(pendingDiagnosticX, pendingDiagnosticW, imgFile, title);
+      self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
       count++;
       pendingDiagnostic = null;
     }
