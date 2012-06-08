@@ -1,9 +1,37 @@
 var diagnosticList = [
   {
     image: "js.png",
-    title: "Javascript",
+    title: "Garbage Collection",
     check: function(frames, symbols) {
-      return stepContains('mach_msg', frames, symbols);
+      return stepContains('GCCycle', frames, symbols);
+    },
+  },
+  {
+    image: "js.png",
+    title: "Sync Plugin Constructor",
+    check: function(frames, symbols) {
+      return stepContains('CallPPluginInstanceConstructor', frames, symbols) 
+          || stepContains('CallPCrashReporterConstructor', frames, symbols) 
+          || stepContains('PPluginModuleParent::CallNP_Initialize', frames, symbols)
+          || stepContains('GeckoChildProcessHost::SyncLaunch', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Font Loading",
+    check: function(frames, symbols) {
+      return stepContains('CreateFontTable', frames, symbols);
+    },
+  },
+  {
+    image: "js.png",
+    title: "Main Thread IO!",
+    check: function(frames, symbols) {
+      return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__open', frames, symbols) 
+          || stepContains('stat$INODE64', frames, symbols)
+          ;
     },
   },
 ];
