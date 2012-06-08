@@ -21,8 +21,14 @@ DiagnosticBar.prototype = {
       if (step.width / widthSum > 0.05) {
         //
         var diagnostic = document.createElement("a");
-        diagnostic.innerHTML = "test";
         diagnostic.style.position = "absolute";
+        diagnostic.style.backgroundImage = "url('images/diagnostic/js.png')";
+        diagnostic.style.width = step.width/widthSum*100 + "%";
+        diagnostic.style.height = "100%";
+        diagnostic.style.backgroundRepeat = "no-repeat";
+        //diagnostic.style.backgroundAttachment = "fixed";
+        diagnostic.style.backgroundPosition = "center";
+        diagnostic.title = "Javascript";
         diagnostic.style.left = step.x/widthSum*100 + "%";
         self._container.appendChild(diagnostic);
       }
