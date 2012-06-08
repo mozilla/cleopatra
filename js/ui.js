@@ -344,7 +344,7 @@ HistogramView.prototype = {
         });
         nextX += 2;
         histogramData.push({
-          frames: [frames],
+          frames: [step.frames],
           x: nextX,
           width: 1,
           value: value,
@@ -353,7 +353,7 @@ HistogramView.prototype = {
         nextX += 1;
       } else if (currHistogramData != null &&
         currHistogramData.frames.length < samplesPerStep) {
-        currHistogramData.frames.push(frames);
+        currHistogramData.frames.push(step.frames);
         // When merging data items take the average:
         currHistogramData.value =
           (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
@@ -362,7 +362,7 @@ HistogramView.prototype = {
       } else {
         // A new name boundary has been discovered.
         histogramData.push({
-          frames: [frames],
+          frames: [step.frames],
           x: nextX,
           width: 1,
           value: value,
@@ -1145,7 +1145,8 @@ function filtersChanged() {
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
 
-    gDiagnosticBar.display(gCurrentlyShownSampleData, gHighlightedCallstack, gHistogramView.getHistogramData());
+    gDiagnosticBar.display(gCurrentlyShownSampleData, gHighlightedCallstack,
+                           gHistogramView.getHistogramData(), gSymbols);
 
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();
