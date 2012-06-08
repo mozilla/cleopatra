@@ -1,13 +1,13 @@
 var diagnosticList = [
   {
-    image: "js.png",
+    image: "gc.png",
     title: "Garbage Collection",
     check: function(frames, symbols) {
       return stepContains('GCCycle', frames, symbols);
     },
   },
   {
-    image: "js.png",
+    image: "plugin.png",
     title: "Sync Plugin Constructor",
     check: function(frames, symbols) {
       return stepContains('CallPPluginInstanceConstructor', frames, symbols) 
@@ -18,14 +18,14 @@ var diagnosticList = [
     },
   },
   {
-    image: "js.png",
+    image: "text.png",
     title: "Font Loading",
     check: function(frames, symbols) {
       return stepContains('CreateFontTable', frames, symbols);
     },
   },
   {
-    image: "js.png",
+    image: "io.png",
     title: "Main Thread IO!",
     check: function(frames, symbols) {
       return stepContains('__getdirentries64', frames, symbols) 
