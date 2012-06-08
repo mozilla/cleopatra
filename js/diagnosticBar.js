@@ -3,7 +3,9 @@ var diagnosticList = [
     image: "gc.png",
     title: "Garbage Collection",
     check: function(frames, symbols) {
-      return stepContains('GCCycle', frames, symbols);
+      return stepContains('GCCycle', frames, symbols)
+          || stepContains('GarbageCollectNow', frames, symbols) // Label
+          ;
     },
   },
   {
@@ -21,7 +23,7 @@ var diagnosticList = [
     image: "text.png",
     title: "Font Loading",
     check: function(frames, symbols) {
-      return stepContains('CreateFontTable', frames, symbols);
+      return stepContains('gfxFontGroup::BuildFontList', frames, symbols);
     },
   },
   {
