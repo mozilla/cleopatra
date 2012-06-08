@@ -429,6 +429,10 @@ RangeSelector.prototype = {
       var startY = 0;
       var width = Math.abs(newX - origX);
       var height = graph.parentNode.clientHeight;
+      if (startX < 0) {
+        width += startX;
+        startX = 0;
+      }
       self._selectedRange.startX = startX;
       self._selectedRange.endX = startX + width;
       self.drawHiliteRectangle(startX, startY, width, height);
@@ -465,6 +469,7 @@ RangeSelector.prototype = {
     }, false);
     graph.addEventListener("mousemove", function(e) {
       if (isDrawingRectangle) {
+        console.log(e.pageX);
         updateMouseMarker(-1); // Clear
         updateHiliteRectangle(e.pageX, e.pageY);
       } else {
