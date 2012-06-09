@@ -180,7 +180,7 @@ TreeView.prototype = {
       li.classList.add("leaf");
     var treeLine = document.createElement("div");
     treeLine.className = "treeLine";
-    treeLine.textContent = this._HTMLForFunction(data);
+    treeLine.innerHTML = this._HTMLForFunction(data);
     // When this item is toggled we will expand its children
     li.pendingExpand = [];
     li.treeLine = treeLine;
