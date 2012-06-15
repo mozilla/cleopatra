@@ -1,4 +1,21 @@
 var diagnosticList = [
+  // *************** Known bugs first (highest priority)
+  {
+    image: "io.png",
+    title: "Main Thread IO - Bug 765135 - TISCreateInputSourceList",
+    check: function(frames, symbols) {
+
+      if (!stepContains('TISCreateInputSourceList', frames, symbols))
+        return false;
+
+      return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__open', frames, symbols) 
+          || stepContains('stat$INODE64', frames, symbols)
+          ;
+    },
+  },
+
+  // **************** General issues
   {
     image: "gc.png",
     title: "Garbage Collection",
