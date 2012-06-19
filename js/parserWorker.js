@@ -174,7 +174,7 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\)$/.exec(fullName) ||
-      /^(.*)$/.exec(fullName);
+      [fullName, fullName];
     if (match == null) {
       dump("Failed to match: " + fullName + "\n");
       match = [fullName, fullName];
@@ -300,6 +300,9 @@ function parseRawProfile(requestID, rawProfile) {
       }
       if (sample.extraInfo == null) {
         sample.extraInfo = {};
+      }
+      if (sample.resp) {
+        sample.extraInfo["responsiveness"] = sample.resp;
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
       progressReporter.setProgress((j + 1) / profileSamples.length);
