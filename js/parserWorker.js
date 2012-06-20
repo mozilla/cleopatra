@@ -301,8 +301,8 @@ function parseRawProfile(requestID, rawProfile) {
       if (sample.extraInfo == null) {
         sample.extraInfo = {};
       }
-      if (sample.resp) {
-        sample.extraInfo["responsiveness"] = sample.resp;
+      if (sample.responsiveness) {
+        sample.extraInfo["responsiveness"] = sample.responsiveness;
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
       progressReporter.setProgress((j + 1) / profileSamples.length);
