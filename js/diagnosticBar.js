@@ -9,6 +9,7 @@ var diagnosticList = [
         return false;
 
       return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__read', frames, symbols) 
           || stepContains('__open', frames, symbols) 
           || stepContains('stat$INODE64', frames, symbols)
           ;
