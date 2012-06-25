@@ -139,6 +139,7 @@ function parseRawProfile(requestID, rawProfile) {
   var functions = [];
   var functionIndices = {};
   var samples = [];
+  var meta = null;
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
@@ -281,6 +282,7 @@ function parseRawProfile(requestID, rawProfile) {
     // Thread 0 will always be the main thread of interest
     // TODO support all the thread in the profile
     var profileSamples = null;
+    meta = profile.meta;
     // Support older format that aren't thread aware
     if (profile.threads != null) {
       profileSamples = profile.threads[0].samples;
@@ -312,12 +314,14 @@ function parseRawProfile(requestID, rawProfile) {
   progressReporter.finish();
   var profileID = gNextProfileID++;
   gProfiles[profileID] = JSON.parse(JSON.stringify({
+    meta: meta,
     symbols: symbols,
     functions: functions,
     allSamples: samples
   }));
   clearRegExpLastMatch();
   sendFinished(requestID, {
+    meta: meta,
     numSamples: samples.length,
     profileID: profileID,
     symbols: symbols,
@@ -340,6 +344,7 @@ function getSerializedProfile(requestID, profileID, complete) {
   }
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
+    meta: meta,
     profileJSON: complete ? profile.allSamples : profile.filteredSamples,
     symbolicationTable: symbolicationTable
   });

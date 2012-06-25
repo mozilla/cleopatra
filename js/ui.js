@@ -780,9 +780,24 @@ InfoBar.prototype = {
     return this._container;
   },
   display: function InfoBar_display() {
+    function getMetaFeatureString() {
+      features = "Stackwalk: " + (gMeta.stackwalk ? "True" : "False");
+      features += ", Jank: " + (gMeta.stackwalk ? "True" : "False");
+      return features;
+    }
+    function getPlatformInfo() {
+      return gMeta.oscpu + " (" + gMeta.toolkit + ")";
+    }
     var infobar = this._container;
     var infoText = "";
     
+    if (gMeta) {
+      infoText += "<h2>Profile Info</h2>\n";
+      infoText += "Product: " + gMeta.product + "<br>";
+      infoText += "Platform: " + getPlatformInfo() + "<br>";
+      infoText += getMetaFeatureString() + "<br>";
+      infoText += "Interval: " + gMeta.interval + " ms<br>";
+    }
     infoText += "<h2>Selection Info</h2>\n<ul>\n";
     infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
     infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
@@ -833,6 +848,7 @@ InfoBar.prototype = {
 }
 
 var gNumSamples = 0;
+var gMeta = null;
 var gSymbols = {};
 var gFunctions = {};
 var gHighlightedCallstack = [];
@@ -920,6 +936,7 @@ function loadRawProfile(reporter, rawProfile) {
   parseRequest.addEventListener("finished", function (result) {
     console.log("parsing (in worker): " + (Date.now() - startTime) + "ms");
     reporter.finish();
+    gMeta = result.meta;
     gNumSamples = result.numSamples;
     gSymbols = result.symbols;
     gFunctions = result.functions;
