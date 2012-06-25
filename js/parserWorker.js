@@ -344,7 +344,7 @@ function getSerializedProfile(requestID, profileID, complete) {
   }
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
-    meta: meta,
+    meta: profile.meta,
     profileJSON: complete ? profile.allSamples : profile.filteredSamples,
     symbolicationTable: symbolicationTable
   });
