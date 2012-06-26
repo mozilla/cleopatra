@@ -1,3 +1,5 @@
+/* -*- Mode: js2; indent-tabs-mode: nil; js2-basic-offset: 2; -*- */
+
 importScripts("ProgressReporter.js");
 
 var gProfiles = [];
@@ -5,6 +7,40 @@ var gProfiles = [];
 var partialTaskData = {};
 
 var gNextProfileID = 0;
+
+// functions for which lr is unconditionally valid.  These are
+// largely going to be atomics and other similar functions
+// that don't touch lr.  This is currently populated with
+// some functions from bionic, largely via manual inspection
+// of the assembly in e.g.
+// http://androidxref.com/source/xref/bionic/libc/arch-arm/syscalls/
+var sARMFunctionsWithValidLR = [
+  "__atomic_dec",
+  "__atomic_inc",
+  "__atomic_cmpxchg",
+  "__atomic_swap",
+  "__atomic_dec",
+  "__atomic_inc",
+  "__atomic_cmpxchg",
+  "__atomic_swap",
+  "__futex_syscall3",
+  "__futex_wait",
+  "__futex_wake",
+  "__futex_syscall3",
+  "__futex_wait",
+  "__futex_wake",
+  "__futex_syscall4",
+  "__ioctl",
+  "__brk",
+  "__wait4",
+  "epoll_wait",
+  "fsync",
+  "futex",
+  "nanosleep",
+  "pause",
+  "sched_yield"
+  "syscall"
+];
 
 self.onmessage = function (msg) {
   try {
@@ -226,6 +262,20 @@ function parseRawProfile(requestID, rawProfile) {
     /./.exec(" ");
   }
 
+  var armIncludePCIndex = {};
+  function shouldIncludeARMLRForPC(pcIndex) {
+      if (pcIndex in armIncludePCIndex)
+          return true;
+
+      var pcName = symbols[pcIndex];
+      if (sARMFunctionsWithValidLR.indexOf(pcName) != -1) {
+          armIncludePCIndex[pcIndex] = true;
+          return true;
+      }
+
+      return false;
+  }
+
   function parseProfileString(data) {
     var extraInfo = {};
     var lines = data.split("\n");
@@ -265,6 +315,16 @@ function parseRawProfile(requestID, rawProfile) {
         // continue sample
         if (sample) { // ignore the case where we see a 'c' before an 's'
           sample.frames.push(indexForSymbol(info));
+        }
+        break;
+      case 'L':
+        // continue sample; this is an ARM LR record.  Stick it before the
+        // PC if it's one of the functions where we know LR is good.
+        if (sample && sample.frames.length > 1) {
+          var pcIndex = sample.frames[sample.frames.length - 1];
+          if (shouldIncludeARMLRForPC(pcIndex)) {
+            sample.frames.splice(-1, 0, indexForSymbol(info));
+          }
         }
         break;
       case 'r':
