@@ -121,6 +121,8 @@ DiagnosticBar.prototype = {
 
     var x = 0;
     data.forEach(function plotStep(step) {
+      if (!step) return;
+
       var frames = step.frames;
       var needFlush = true;
       for (var i = 0; i < diagnosticList.length; i++) {
