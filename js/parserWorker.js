@@ -170,14 +170,45 @@ function parseRawProfile(requestID, rawProfile) {
     return functionName;
   }
 
+  function parseResourceName(url) {
+    // TODO Fix me, this certainly doesn't handle all URLs formats
+    var match = /^.*:\/\/(.*?)\/.*$/.exec(url);
+
+    if (!match)
+      return url;
+
+    return match[1];
+  }
+
+  function parseScriptFile(url) {
+     // TODO Fix me, this certainly doesn't handle all URLs formats
+     var match = /^.*\/(.*)\.js$/.exec(url);
+
+     if (!match)
+       return url;
+
+     return match[1] + ".js";
+  }
+
   function getFunctionInfo(fullName) {
     var match =
       /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
-      /^(.*) \(in ([^\)]*)\)$/.exec(fullName) ||
-      [fullName, fullName];
-    if (match == null) {
-      dump("Failed to match: " + fullName + "\n");
+      /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
+      // Try to parse a JS frame
+    var jsMatch1 = match ||
+      /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
+    if (!match && jsMatch1) {
+      dump("JS: line=" + jsMatch1[3] + "\n");
+      match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
+    }
+    var jsMatch2 = match ||
+      /^(.*):([0-9]+)$/.exec(fullName);
+    if (!match && jsMatch2) {
+      dump("JS: " + jsMatch2[2] + "\n");
+      match = [0, "<Anoymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
+    }
+    if (!match) {
       match = [fullName, fullName];
     }
     return {

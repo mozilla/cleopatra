@@ -51,6 +51,7 @@ var diagnosticList = [
     check: function(frames, symbols) {
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+          || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
           || stepContains('__unlink', frames, symbols) 
           || stepContains('fsync', frames, symbols) 
           || stepContains('stat$INODE64', frames, symbols)
