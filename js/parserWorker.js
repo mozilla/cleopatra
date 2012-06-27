@@ -6,6 +6,11 @@ var partialTaskData = {};
 
 var gNextProfileID = 0;
 
+// http://stackoverflow.com/a/2548133
+function endsWith(str, suffix) {
+      return str.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
 self.onmessage = function (msg) {
   try {
     var requestID = msg.data.requestID;
@@ -177,7 +182,32 @@ function parseRawProfile(requestID, rawProfile) {
     if (!match)
       return url;
 
-    return match[1];
+    if (meta && meta.addons && url.indexOf("resource:") == 0 && endsWith(match[1], "-at-jetpack")) {
+      // Assume this is a jetpack url
+      var jetpackID = match[1].substring(0, match[1].length - 11) + "@jetpack";
+
+      for (var i in meta.addons) {
+        var addon = meta.addons[i];
+        dump("match " + addon.id + " vs. " + jetpackID + "\n");
+        // TODO handle lowercase name collision
+        if (addon.id.toLowerCase() == jetpackID.toLowerCase()) {
+          dump("Found addon: " + addon.name + "\n");
+          var iconHTML = "";
+          if (addon.iconURL)
+            iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
+          return iconHTML + addon.name;
+        }
+      }
+      dump("Found jetpackID: " + jetpackID + "\n");
+    }
+
+    var iconHTML = "";
+    if (url.indexOf("http://") == 0) {
+      iconHTML = "<img src=\"http://" + match[1] + "/favicon.ico\" style='width:12px; height:12px;'> ";
+    } else if (url.indexOf("https://") == 0) {
+      iconHTML = "<img src=\"https://" + match[1] + "/favicon.ico\" style='width:12px; height:12px;'> ";
+    }
+    return iconHTML + match[1];
   }
 
   function parseScriptFile(url) {
@@ -199,13 +229,11 @@ function parseRawProfile(requestID, rawProfile) {
     var jsMatch1 = match ||
       /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
     if (!match && jsMatch1) {
-      dump("JS: line=" + jsMatch1[3] + "\n");
       match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
     }
     var jsMatch2 = match ||
       /^(.*):([0-9]+)$/.exec(fullName);
     if (!match && jsMatch2) {
-      dump("JS: " + jsMatch2[2] + "\n");
       match = [0, "<Anoymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
     }
     if (!match) {
