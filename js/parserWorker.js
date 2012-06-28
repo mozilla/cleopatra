@@ -144,6 +144,7 @@ function parseRawProfile(requestID, rawProfile) {
   var functions = [];
   var functionIndices = {};
   var samples = [];
+  var threads = [];
   var meta = null;
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
@@ -289,6 +290,12 @@ function parseRawProfile(requestID, rawProfile) {
     var extraInfo = {};
     var lines = data.split("\n");
     var sample = null;
+    var mainThread = {
+      name: "Main Thread",
+      samples: samples,
+    };
+    threads.push(mainThread);
+
     for (var i = 0; i < lines.length; ++i) {
       var line = lines[i];
       if (line.length < 2 || line[1] != '-') {
@@ -337,17 +344,7 @@ function parseRawProfile(requestID, rawProfile) {
     }
   }
 
-  function parseProfileJSON(profile) {
-    // Thread 0 will always be the main thread of interest
-    // TODO support all the thread in the profile
-    var profileSamples = null;
-    meta = profile.meta;
-    // Support older format that aren't thread aware
-    if (profile.threads != null) {
-      profileSamples = profile.threads[0].samples;
-    } else {
-      profileSamples = profile;
-    }
+  function populateSampleArray(samples, profileSamples) {
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
@@ -366,7 +363,31 @@ function parseRawProfile(requestID, rawProfile) {
         sample.extraInfo["responsiveness"] = sample.responsiveness;
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
-      progressReporter.setProgress((j + 1) / profileSamples.length);
+    }
+  }
+
+  function parseProfileJSON(profile) {
+    // Thread 0 will always be the main thread of interest
+    // TODO support all the thread in the profile
+    var profileSamples = null;
+    meta = profile.meta;
+    // Support older format that aren't thread aware
+    if (profile.threads != null) {
+      profileSamples = profile.threads[0].samples;
+      for (var i = 0; i < profile.threads.length; i++) {
+        var thread = {
+          name: profile.threads[i].name,
+          samples: [],
+        };
+        threads.push(thread);
+        
+        populateSampleArray(thread.samples, profile.threads[i].samples);
+
+        progressReporter.setProgress((i + 1) / profile.threads.length);
+      }
+      samples = threads[0].samples;
+    } else {
+      populateSampleArray(samples, profile);
     }
   }
 
