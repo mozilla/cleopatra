@@ -387,6 +387,13 @@ function parseRawProfile(requestID, rawProfile) {
         }
         break;
       case 'r':
+        // time
+        if (sample) {
+          sample.extraInfo["time"] = parseFloat(info);
+        }
+        break;
+      }
+      case 'r':
         // responsiveness
         if (sample) {
           sample.extraInfo["responsiveness"] = parseFloat(info);
@@ -424,6 +431,9 @@ function parseRawProfile(requestID, rawProfile) {
       }
       if (sample.responsiveness) {
         sample.extraInfo["responsiveness"] = sample.responsiveness;
+      }
+      if (sample.responsiveness) {
+        sample.extraInfo["time"] = sample.time;
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
       progressReporter.setProgress((j + 1) / profileSamples.length);
