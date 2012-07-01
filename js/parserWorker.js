@@ -386,13 +386,12 @@ function parseRawProfile(requestID, rawProfile) {
           }
         }
         break;
-      case 'r':
+      case 't':
         // time
         if (sample) {
           sample.extraInfo["time"] = parseFloat(info);
         }
         break;
-      }
       case 'r':
         // responsiveness
         if (sample) {

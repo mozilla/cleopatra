@@ -646,6 +646,38 @@ function maxResponsiveness() {
   return maxRes;
 }
 
+function effectiveInterval() {
+  var data = gCurrentlyShownSampleData;
+  var interval = 0.0;
+  var sampleCount = 0;
+  var timeCount = 0;
+  var lastTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo["time"])
+      continue;
+    if (lastTime) {
+      sampleCount++;
+      timeCount += data[i].extraInfo["time"] - lastTime;
+    }
+    lastTime = data[i].extraInfo["time"];
+  }
+  var effectiveInterval = timeCount/sampleCount;
+  // Biggest diff
+  var biggestDiff = 0;
+  lastTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo["time"])
+      continue;
+    if (lastTime) {
+      if (biggestDiff < Math.abs(effectiveInterval - (data[i].extraInfo["time"] - lastTime)))
+        biggestDiff = Math.abs(effectiveInterval - (data[i].extraInfo["time"] - lastTime));
+    }
+    lastTime = data[i].extraInfo["time"];
+  }
+
+  return (effectiveInterval).toFixed(2) + " ms +-" + biggestDiff.toFixed(2);
+}
+
 function numberOfCurrentlyShownSamples() {
   var data = gCurrentlyShownSampleData;
   var num = 0;
@@ -801,6 +833,7 @@ InfoBar.prototype = {
     infoText += "<h2>Selection Info</h2>\n<ul>\n";
     infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
     infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
+    infoText += "  <li>Real Interval: " + effectiveInterval() + "</li>";
     infoText += "</ul>\n";
     infoText += "<h2>Pre Filtering</h2>\n";
     infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
