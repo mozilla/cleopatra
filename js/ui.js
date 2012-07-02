@@ -675,6 +675,9 @@ function effectiveInterval() {
     lastTime = data[i].extraInfo["time"];
   }
 
+  if (effectiveInterval != effectiveInterval)
+    return "Time info not collected";
+
   return (effectiveInterval).toFixed(2) + " ms +-" + biggestDiff.toFixed(2);
 }
 
