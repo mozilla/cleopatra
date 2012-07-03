@@ -726,6 +726,14 @@ function uploadProfile(selected) {
         document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
       }  
     };
+    oXHR.onerror = function (oEvent) {
+      document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
+    }
+    oXHR.onprogress = function (oEvent) {
+      if (oEvent.lengthComputable) {
+        document.getElementById("upload_status").innerHTML = "Uploading: " + ((oEvent.loaded / oEvent.total)*100) + "%";
+      }
+    }
 
     var dataSize;
     if (dataToUpload.length > 1024*1024) {
