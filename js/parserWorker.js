@@ -181,6 +181,7 @@ function parseRawProfile(requestID, rawProfile) {
   var functionIndices = {};
   var samples = [];
   var meta = null;
+  var armIncludePCIndex = {};
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
@@ -321,7 +322,6 @@ function parseRawProfile(requestID, rawProfile) {
     /./.exec(" ");
   }
 
-  var armIncludePCIndex = {};
   function shouldIncludeARMLRForPC(pcIndex) {
       if (pcIndex in armIncludePCIndex)
           return true;
