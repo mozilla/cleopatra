@@ -721,7 +721,7 @@ function uploadProfile(selected) {
     oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
     oXHR.onload = function (oEvent) {
       if (oXHR.status == 200) {  
-        document.getElementById("upload_status").innerHTML = document.URL.split('?')[0] + "?report=" + oXHR.responseText;
+        document.getElementById("upload_status").innerHTML = "Success! Use this <a href='" + document.URL.split('?')[0] + "?report=" + oXHR.responseText + "'>link</a>";
       } else {  
         document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
       }  
@@ -860,7 +860,7 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
     infoText += "<h2>Share</h2>\n";
-    infoText += "<a id='upload_status'>No upload in progress</a><br>\n";
+    infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
     infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
     infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
     infoText += "<input type='button' id='download' value='Download full profile'><br>\n";
