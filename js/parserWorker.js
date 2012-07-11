@@ -8,6 +8,8 @@ var partialTaskData = {};
 
 var gNextProfileID = 0;
 
+var gLogLines = [];
+
 // http://stackoverflow.com/a/2548133
 function endsWith(str, suffix) {
       return str.indexOf(suffix, this.length - suffix.length) !== -1;
@@ -47,6 +49,13 @@ var sARMFunctionsWithValidLR = [
   "syscall"
 ];
 
+function log() {
+  var z = [];
+  for (var i = 0; i < arguments.length; ++i)
+    z.push(arguments[i]);
+  gLogLines.push(z.join(" "));
+}
+
 self.onmessage = function (msg) {
   try {
     var requestID = msg.data.requestID;
@@ -58,6 +67,9 @@ self.onmessage = function (msg) {
       delete partialTaskData[requestID];
     }
     dump("Start task: " + task + "\n");
+
+    gLogLines = [];
+
     switch (task) {
       case "chunkedStart":
         partialTaskData[requestID] = null;
@@ -97,7 +109,8 @@ function sendError(requestID, error) {
   self.postMessage({
     requestID: requestID,
     type: "error",
-    error: error
+    error: error,
+    log: gLogLines
   });
 }
 
@@ -113,7 +126,8 @@ function sendFinished(requestID, result) {
   self.postMessage({
     requestID: requestID,
     type: "finished",
-    result: result
+    result: result,
+    log: gLogLines
   });
 }
 
@@ -153,7 +167,8 @@ function sendFinishedInChunks(requestID, result, maxChunkCost, costOfElementCall
   }
   self.postMessage({
     requestID: requestID,
-    type: "finishedEnd"
+    type: "finishedEnd",
+    log: gLogLines
   });
 }
 
@@ -300,6 +315,7 @@ function parseRawProfile(requestID, rawProfile) {
     var info = getFunctionInfo(symbol);
     return {
       symbolName: symbol,
+      functionName: info.functionName,
       functionIndex: indexForFunction(info.functionName, info.libraryName),
       lineInformation: info.lineInformation
     };
@@ -323,16 +339,13 @@ function parseRawProfile(requestID, rawProfile) {
   }
 
   function shouldIncludeARMLRForPC(pcIndex) {
-      if (pcIndex in armIncludePCIndex)
-          return true;
+    if (pcIndex in armIncludePCIndex)
+      return armIncludePCIndex[pcIndex];
 
-      var pcName = symbols[pcIndex];
-      if (sARMFunctionsWithValidLR.indexOf(pcName) != -1) {
-          armIncludePCIndex[pcIndex] = true;
-          return true;
-      }
-
-      return false;
+    var pcName = symbols[pcIndex].functionName;
+    var include = sARMFunctionsWithValidLR.indexOf(pcName) != -1;
+    armIncludePCIndex[pcIndex] = include;
+    return include;
   }
 
   function parseProfileString(data) {
