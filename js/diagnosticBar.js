@@ -16,6 +16,16 @@ var diagnosticList = [
     },
   },
 
+  {
+    image: "js.png",
+    title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
+    check: function(frames, symbols) {
+
+      return stepContains('Readability.js', frames, symbols) 
+          ;
+    },
+  },
+
   // **************** General issues
   {
     image: "gc.png",
