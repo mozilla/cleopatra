@@ -626,6 +626,16 @@ function filterByName(samples, symbols, functions, filterName, useFunctions) {
       return "";
     return symbols[index].symbolName;
   }
+  function getLibraryName(index, useFunctions) {
+    if (useFunctions) {
+      if (!(index in functions))
+        return "";
+      return functions[index].libraryName;
+    }
+    if (!(index in symbols))
+      return "";
+    return symbols[index].libraryName;
+  }
   samples = samples.slice(0);
   filterName = filterName.toLowerCase();
   calltrace_it: for (var i = 0; i < samples.length; ++i) {
@@ -635,7 +645,9 @@ function filterByName(samples, symbols, functions, filterName, useFunctions) {
     var callstack = sample.frames;
     for (var j = 0; j < callstack.length; ++j) { 
       var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
-      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1) {
+      var libraryName = getLibraryName(callstack[j], useFunctions);
+      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1 || 
+          libraryName.toLowerCase().indexOf(filterName) != -1) {
         continue calltrace_it;
       }
     }
