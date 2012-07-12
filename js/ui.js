@@ -658,8 +658,10 @@ function effectiveInterval() {
   var timeCount = 0;
   var lastTime = null;
   for (var i = 0; i < data.length; ++i) {
-    if (!data[i] || !data[i].extraInfo["time"])
+    if (!data[i] || !data[i].extraInfo["time"]) {
+      lastTime = null;
       continue;
+    }
     if (lastTime) {
       sampleCount++;
       timeCount += data[i].extraInfo["time"] - lastTime;
@@ -671,8 +673,10 @@ function effectiveInterval() {
   var biggestDiff = 0;
   lastTime = null;
   for (var i = 0; i < data.length; ++i) {
-    if (!data[i] || !data[i].extraInfo["time"])
+    if (!data[i] || !data[i].extraInfo["time"]) {
+      lastTime = null;
       continue;
+    }
     if (lastTime) {
       if (biggestDiff < Math.abs(effectiveInterval - (data[i].extraInfo["time"] - lastTime)))
         biggestDiff = Math.abs(effectiveInterval - (data[i].extraInfo["time"] - lastTime));
