@@ -83,6 +83,12 @@ function WorkerRequest(worker) {
           worker.removeEventListener("message", onMessageFromWorker);
           break;
       }
+      // dump log if present
+      if (data.log) {
+	for (var line in data.log) {
+	  console.log(line);
+	}
+      }
     }
   }
   var pendingMessages = [];

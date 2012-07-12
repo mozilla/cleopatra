@@ -1,3 +1,5 @@
+/* -*- Mode: js2; indent-tabs-mode: nil; js2-basic-offset: 2; -*- */
+
 importScripts("ProgressReporter.js");
 
 var gProfiles = [];
@@ -6,10 +8,53 @@ var partialTaskData = {};
 
 var gNextProfileID = 0;
 
+var gLogLines = [];
+
 // http://stackoverflow.com/a/2548133
 function endsWith(str, suffix) {
       return str.indexOf(suffix, this.length - suffix.length) !== -1;
 };
+
+// functions for which lr is unconditionally valid.  These are
+// largely going to be atomics and other similar functions
+// that don't touch lr.  This is currently populated with
+// some functions from bionic, largely via manual inspection
+// of the assembly in e.g.
+// http://androidxref.com/source/xref/bionic/libc/arch-arm/syscalls/
+var sARMFunctionsWithValidLR = [
+  "__atomic_dec",
+  "__atomic_inc",
+  "__atomic_cmpxchg",
+  "__atomic_swap",
+  "__atomic_dec",
+  "__atomic_inc",
+  "__atomic_cmpxchg",
+  "__atomic_swap",
+  "__futex_syscall3",
+  "__futex_wait",
+  "__futex_wake",
+  "__futex_syscall3",
+  "__futex_wait",
+  "__futex_wake",
+  "__futex_syscall4",
+  "__ioctl",
+  "__brk",
+  "__wait4",
+  "epoll_wait",
+  "fsync",
+  "futex",
+  "nanosleep",
+  "pause",
+  "sched_yield",
+  "syscall"
+];
+
+function log() {
+  var z = [];
+  for (var i = 0; i < arguments.length; ++i)
+    z.push(arguments[i]);
+  gLogLines.push(z.join(" "));
+}
 
 self.onmessage = function (msg) {
   try {
@@ -22,6 +67,9 @@ self.onmessage = function (msg) {
       delete partialTaskData[requestID];
     }
     dump("Start task: " + task + "\n");
+
+    gLogLines = [];
+
     switch (task) {
       case "chunkedStart":
         partialTaskData[requestID] = null;
@@ -61,7 +109,8 @@ function sendError(requestID, error) {
   self.postMessage({
     requestID: requestID,
     type: "error",
-    error: error
+    error: error,
+    log: gLogLines
   });
 }
 
@@ -77,7 +126,8 @@ function sendFinished(requestID, result) {
   self.postMessage({
     requestID: requestID,
     type: "finished",
-    result: result
+    result: result,
+    log: gLogLines
   });
 }
 
@@ -117,7 +167,8 @@ function sendFinishedInChunks(requestID, result, maxChunkCost, costOfElementCall
   }
   self.postMessage({
     requestID: requestID,
-    type: "finishedEnd"
+    type: "finishedEnd",
+    log: gLogLines
   });
 }
 
@@ -146,6 +197,7 @@ function parseRawProfile(requestID, rawProfile) {
   var samples = [];
   var threads = [];
   var meta = null;
+  var armIncludePCIndex = {};
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
@@ -264,6 +316,7 @@ function parseRawProfile(requestID, rawProfile) {
     var info = getFunctionInfo(symbol);
     return {
       symbolName: symbol,
+      functionName: info.functionName,
       functionIndex: indexForFunction(info.functionName, info.libraryName),
       lineInformation: info.lineInformation
     };
@@ -284,6 +337,16 @@ function parseRawProfile(requestID, rawProfile) {
 
   function clearRegExpLastMatch() {
     /./.exec(" ");
+  }
+
+  function shouldIncludeARMLRForPC(pcIndex) {
+    if (pcIndex in armIncludePCIndex)
+      return armIncludePCIndex[pcIndex];
+
+    var pcName = symbols[pcIndex].functionName;
+    var include = sARMFunctionsWithValidLR.indexOf(pcName) != -1;
+    armIncludePCIndex[pcIndex] = include;
+    return include;
   }
 
   function parseProfileString(data) {
@@ -333,6 +396,22 @@ function parseRawProfile(requestID, rawProfile) {
           sample.frames.push(indexForSymbol(info));
         }
         break;
+      case 'L':
+        // continue sample; this is an ARM LR record.  Stick it before the
+        // PC if it's one of the functions where we know LR is good.
+        if (sample && sample.frames.length > 1) {
+          var pcIndex = sample.frames[sample.frames.length - 1];
+          if (shouldIncludeARMLRForPC(pcIndex)) {
+            sample.frames.splice(-1, 0, indexForSymbol(info));
+          }
+        }
+        break;
+      case 't':
+        // time
+        if (sample) {
+          sample.extraInfo["time"] = parseFloat(info);
+        }
+        break;
       case 'r':
         // responsiveness
         if (sample) {
@@ -361,6 +440,9 @@ function parseRawProfile(requestID, rawProfile) {
       }
       if (sample.responsiveness) {
         sample.extraInfo["responsiveness"] = sample.responsiveness;
+      }
+      if (sample.responsiveness) {
+        sample.extraInfo["time"] = sample.time;
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
     }
@@ -565,6 +647,16 @@ function filterByName(samples, symbols, functions, filterName, useFunctions) {
       return "";
     return symbols[index].symbolName;
   }
+  function getLibraryName(index, useFunctions) {
+    if (useFunctions) {
+      if (!(index in functions))
+        return "";
+      return functions[index].libraryName;
+    }
+    if (!(index in symbols))
+      return "";
+    return symbols[index].libraryName;
+  }
   samples = samples.slice(0);
   filterName = filterName.toLowerCase();
   calltrace_it: for (var i = 0; i < samples.length; ++i) {
@@ -574,7 +666,9 @@ function filterByName(samples, symbols, functions, filterName, useFunctions) {
     var callstack = sample.frames;
     for (var j = 0; j < callstack.length; ++j) { 
       var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
-      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1) {
+      var libraryName = getLibraryName(callstack[j], useFunctions);
+      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1 || 
+          libraryName.toLowerCase().indexOf(filterName) != -1) {
         continue calltrace_it;
       }
     }

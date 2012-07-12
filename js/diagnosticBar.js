@@ -16,6 +16,16 @@ var diagnosticList = [
     },
   },
 
+  {
+    image: "js.png",
+    title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
+    check: function(frames, symbols) {
+
+      return stepContains('Readability.js', frames, symbols) 
+          ;
+    },
+  },
+
   // **************** General issues
   {
     image: "gc.png",
@@ -121,7 +131,11 @@ DiagnosticBar.prototype = {
 
     var x = 0;
     data.forEach(function plotStep(step) {
-      if (!step) return;
+      if (!step) {
+        // Add a gap for the sample that was filtered out.
+        x++;
+        return;
+      }
 
       var frames = step.frames;
       var needFlush = true;

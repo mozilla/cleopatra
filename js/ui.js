@@ -164,15 +164,20 @@ function PluginView() {
   this._iframe = document.createElement("iframe");
   this._iframe.className = "pluginviewIFrame";
   this._container.appendChild(this._iframe);
+  this._container.style.top = "";
 }
 PluginView.prototype = {
   getContainer: function PluginView_getContainer() {
     return this._container;
   },
   hide: function() {
+    // get rid of the scrollbars
+    this._container.style.top = "";
     this._container.style.visibility = 'hidden';
   },
   show: function() {
+    // This creates extra scrollbar so only do it when needed
+    this._container.style.top = "0px";
     this._container.style.visibility = '';
   },
   display: function(pluginName, param, data) {
@@ -646,6 +651,45 @@ function maxResponsiveness() {
   return maxRes;
 }
 
+function effectiveInterval() {
+  var data = gCurrentlyShownSampleData;
+  var interval = 0.0;
+  var sampleCount = 0;
+  var timeCount = 0;
+  var lastTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo["time"]) {
+      lastTime = null;
+      continue;
+    }
+    if (lastTime) {
+      sampleCount++;
+      timeCount += data[i].extraInfo["time"] - lastTime;
+    }
+    lastTime = data[i].extraInfo["time"];
+  }
+  var effectiveInterval = timeCount/sampleCount;
+  // Biggest diff
+  var biggestDiff = 0;
+  lastTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo["time"]) {
+      lastTime = null;
+      continue;
+    }
+    if (lastTime) {
+      if (biggestDiff < Math.abs(effectiveInterval - (data[i].extraInfo["time"] - lastTime)))
+        biggestDiff = Math.abs(effectiveInterval - (data[i].extraInfo["time"] - lastTime));
+    }
+    lastTime = data[i].extraInfo["time"];
+  }
+
+  if (effectiveInterval != effectiveInterval)
+    return "Time info not collected";
+
+  return (effectiveInterval).toFixed(2) + " ms +-" + biggestDiff.toFixed(2);
+}
+
 function numberOfCurrentlyShownSamples() {
   var data = gCurrentlyShownSampleData;
   var num = 0;
@@ -683,14 +727,22 @@ function downloadProfile() {
 function uploadProfile(selected) {
   Parser.getSerializedProfile(!selected, function (dataToUpload) {
     var oXHR = new XMLHttpRequest();
-    oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
+    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.onload = function (oEvent) {
       if (oXHR.status == 200) {  
-        document.getElementById("upload_status").innerHTML = document.URL.split('?')[0] + "?report=" + oXHR.responseText;
+        document.getElementById("upload_status").innerHTML = "Success! Use this <a href='" + document.URL.split('?')[0] + "?report=" + oXHR.responseText + "'>link</a>";
       } else {  
         document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
       }  
     };
+    oXHR.onerror = function (oEvent) {
+      document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
+    }
+    oXHR.onprogress = function (oEvent) {
+      if (oEvent.lengthComputable) {
+        document.getElementById("upload_status").innerHTML = "Uploading: " + ((oEvent.loaded / oEvent.total)*100) + "%";
+      }
+    }
 
     var dataSize;
     if (dataToUpload.length > 1024*1024) {
@@ -801,6 +853,7 @@ InfoBar.prototype = {
     infoText += "<h2>Selection Info</h2>\n<ul>\n";
     infoText += "  <li>Avg. Responsiveness:<br>" + avgResponsiveness().toFixed(2) + "ms</li>\n";
     infoText += "  <li>Max Responsiveness:<br>" + maxResponsiveness().toFixed(2) + "ms</li>\n";
+    infoText += "  <li>Real Interval: " + effectiveInterval() + "</li>";
     infoText += "</ul>\n";
     infoText += "<h2>Pre Filtering</h2>\n";
     infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
@@ -816,7 +869,7 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
     infoText += "<h2>Share</h2>\n";
-    infoText += "<a id='upload_status'>No upload in progress</a><br>\n";
+    infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
     infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
     infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
     infoText += "<input type='button' id='download' value='Download full profile'><br>\n";
@@ -1116,23 +1169,41 @@ function enterFinishedProfileUI() {
   var finishedProfilePaneBackgroundCover = document.createElement("div");
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
 
-  var finishedProfilePane = document.createElement("div");
+  var finishedProfilePane = document.createElement("table");
+  var currRow;
+  finishedProfilePane.style.height = "100%";
+  finishedProfilePane.border = "0";
+  finishedProfilePane.cellPadding = "0";
+  finishedProfilePane.cellSpacing = "0";
+  finishedProfilePane.borderCollapse = "collapse";
   finishedProfilePane.className = "finishedProfilePane";
 
   gBreadcrumbTrail = new BreadcrumbTrail();
-  finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
+  currRow = finishedProfilePane.insertRow(0);
+  currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
 
   gHistogramView = new HistogramView();
-  finishedProfilePane.appendChild(gHistogramView.getContainer());
+  currRow = finishedProfilePane.insertRow(1);
+  currRow.insertCell(0).appendChild(gHistogramView.getContainer());
 
   gDiagnosticBar = new DiagnosticBar();
-  finishedProfilePane.appendChild(gDiagnosticBar.getContainer());
+  currRow = finishedProfilePane.insertRow(2);
+  currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
+
+  var dummyDiv = document.createElement("div");
+  dummyDiv.style.width = "100%";
+  dummyDiv.style.height = "100%";
 
   gTreeManager = new ProfileTreeManager();
-  finishedProfilePane.appendChild(gTreeManager.getContainer());
+  currRow = finishedProfilePane.insertRow(3);
+  currRow.style.height = "100%";
+  var cell = currRow.insertCell(0);
+  cell.appendChild(dummyDiv);
+  dummyDiv.appendChild(gTreeManager.getContainer());
 
   gPluginView = new PluginView();
-  finishedProfilePane.appendChild(gPluginView.getContainer());
+  //currRow = finishedProfilePane.insertRow(4);
+  dummyDiv.appendChild(gPluginView.getContainer());
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);

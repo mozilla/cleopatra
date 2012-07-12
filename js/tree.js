@@ -1,6 +1,18 @@
 var kMaxChunkDuration = 4; // ms
 var kMaxRenderDepth = 200; // Effectively disable it
 
+var escape = document.createElement('textarea');
+
+function escapeHTML(html) {
+  escape.innerHTML = html;
+  return escape.innerHTML;
+}
+
+function unescapeHTML(html) {
+  escape.innerHTML = html;
+  return escape.value;
+}
+
 RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
@@ -246,7 +258,10 @@ TreeView.prototype = {
   _contextMenuForFunction: function TreeView__contextMenuForFunction(node) {
     // TODO move me outside tree.js
     var menu = [];
-    if (node.library != null && node.library.toLowerCase() == "xul") {
+    if (node.library != null && (
+      node.library.toLowerCase() == "xul" ||
+      node.library.toLowerCase() == "xul.dll"
+      )) {
       menu.push("View Source");
     }
     menu.push("Focus Frame");
@@ -257,20 +272,22 @@ TreeView.prototype = {
     return menu;
   },
   _HTMLForFunction: function TreeView__HTMLForFunction(node) {
-    var nodeName = node.name;
+    var nodeName = escapeHTML(node.name);
+    var libName = node.library;
     if (this._filterByName) {
       if (!this._filterByNameReg) {
         this._filterByName = RegExp.escape(this._filterByName);
         this._filterByNameReg = new RegExp("(" + this._filterByName + ")","gi");
       }
       nodeName = nodeName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
+      libName = libName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
     }
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
       '<span class="sampleCount">' + node.counter + '</span> ' +
       '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
       '<span class="functionName">' + nodeName + '</span>' +
-      '<span class="libraryName">' + node.library + '</span>' +
+      '<span class="libraryName">' + libName + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
   _resolveChildren: function TreeView__resolveChildren(div, childrenCollapsedValue) {
