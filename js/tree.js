@@ -269,7 +269,7 @@ TreeView.prototype = {
     return menu;
   },
   _HTMLForFunction: function TreeView__HTMLForFunction(node) {
-    var nodeName = node.name;
+    var nodeName = escapeHTML(node.name);
     if (this._filterByName) {
       if (!this._filterByNameReg) {
         this._filterByName = RegExp.escape(this._filterByName);
@@ -281,7 +281,7 @@ TreeView.prototype = {
       '<span class="sampleCount">' + node.counter + '</span> ' +
       '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
-      '<span class="functionName">' + escapeHTML(nodeName) + '</span>' +
+      '<span class="functionName">' + nodeName + '</span>' +
       '<span class="libraryName">' + escapeHTML(node.library) + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
