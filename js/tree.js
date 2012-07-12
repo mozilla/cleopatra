@@ -258,7 +258,10 @@ TreeView.prototype = {
   _contextMenuForFunction: function TreeView__contextMenuForFunction(node) {
     // TODO move me outside tree.js
     var menu = [];
-    if (node.library != null && node.library.toLowerCase() == "xul") {
+    if (node.library != null && (
+      node.library.toLowerCase() == "xul" ||
+      node.library.toLowerCase() == "xul.dll"
+      )) {
       menu.push("View Source");
     }
     menu.push("Focus Frame");
@@ -282,7 +285,7 @@ TreeView.prototype = {
       '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
       '<span class="functionName">' + nodeName + '</span>' +
-      '<span class="libraryName">' + escapeHTML(node.library) + '</span>' +
+      '<span class="libraryName">' + node.library + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
   _resolveChildren: function TreeView__resolveChildren(div, childrenCollapsedValue) {
