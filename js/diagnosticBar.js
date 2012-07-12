@@ -93,7 +93,7 @@ DiagnosticBar.prototype = {
   _addDiagnosticItem: function(x, width, imageFile, title) {
     x = x * 100;
     width = width * 100;
-    if (width < 1) return;
+    if (width < 1) return 0;
     var diagnostic = document.createElement("a");
 
     var backgroundImageStr = "url('images/diagnostic/"+imageFile+"')";
@@ -116,6 +116,8 @@ DiagnosticBar.prototype = {
     this._container.appendChild(diagnostic);
 
     this._colorCode++;
+
+    return 1;
   },
   display: function DiagnosticBar_display(data, filterByName, histogramData, symbols) {
     this._container.innerHTML = "";
@@ -145,8 +147,7 @@ DiagnosticBar.prototype = {
           if (pendingDiagnostic && pendingDiagnostic != currDiagnostic) {
             var imgFile = pendingDiagnostic.image;
             var title = pendingDiagnostic.title;
-            self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
-            count++;
+            count += self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
             pendingDiagnostic = null;
           }
           if (!pendingDiagnostic) {
@@ -163,8 +164,7 @@ DiagnosticBar.prototype = {
       if (needFlush && pendingDiagnostic) {
         var imgFile = pendingDiagnostic.image;
         var title = pendingDiagnostic.title;
-        self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
-        count++;
+        count += self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
         pendingDiagnostic = null;
       }
       x++;
@@ -172,8 +172,7 @@ DiagnosticBar.prototype = {
     if (pendingDiagnostic) {
       var imgFile = pendingDiagnostic.image;
       var title = pendingDiagnostic.title;
-      self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
-      count++;
+      count += self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum, imgFile, title);
       pendingDiagnostic = null;
     }
     if (count == 0) {
