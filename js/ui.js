@@ -164,15 +164,20 @@ function PluginView() {
   this._iframe = document.createElement("iframe");
   this._iframe.className = "pluginviewIFrame";
   this._container.appendChild(this._iframe);
+  this._container.style.top = "";
 }
 PluginView.prototype = {
   getContainer: function PluginView_getContainer() {
     return this._container;
   },
   hide: function() {
+    // get rid of the scrollbars
+    this._container.style.top = "";
     this._container.style.visibility = 'hidden';
   },
   show: function() {
+    // This creates extra scrollbar so only do it when needed
+    this._container.style.top = "0px";
     this._container.style.visibility = '';
   },
   display: function(pluginName, param, data) {
@@ -1181,14 +1186,20 @@ function enterFinishedProfileUI() {
   currRow = finishedProfilePane.insertRow(2);
   currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
 
+  var dummyDiv = document.createElement("div");
+  dummyDiv.style.width = "100%";
+  dummyDiv.style.height = "100%";
+
   gTreeManager = new ProfileTreeManager();
   currRow = finishedProfilePane.insertRow(3);
   currRow.style.height = "100%";
-  currRow.insertCell(0).appendChild(gTreeManager.getContainer());
+  var cell = currRow.insertCell(0);
+  cell.appendChild(dummyDiv);
+  dummyDiv.appendChild(gTreeManager.getContainer());
 
   gPluginView = new PluginView();
-  currRow = finishedProfilePane.insertRow(4);
-  currRow.insertCell(0).appendChild(gPluginView.getContainer());
+  //currRow = finishedProfilePane.insertRow(4);
+  dummyDiv.appendChild(gPluginView.getContainer());
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
