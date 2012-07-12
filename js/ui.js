@@ -1160,23 +1160,35 @@ function enterFinishedProfileUI() {
   var finishedProfilePaneBackgroundCover = document.createElement("div");
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
 
-  var finishedProfilePane = document.createElement("div");
+  var finishedProfilePane = document.createElement("table");
+  var currRow;
+  finishedProfilePane.style.height = "100%";
+  finishedProfilePane.border = "0";
+  finishedProfilePane.cellPadding = "0";
+  finishedProfilePane.cellSpacing = "0";
+  finishedProfilePane.borderCollapse = "collapse";
   finishedProfilePane.className = "finishedProfilePane";
 
   gBreadcrumbTrail = new BreadcrumbTrail();
-  finishedProfilePane.appendChild(gBreadcrumbTrail.getContainer());
+  currRow = finishedProfilePane.insertRow(0);
+  currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
 
   gHistogramView = new HistogramView();
-  finishedProfilePane.appendChild(gHistogramView.getContainer());
+  currRow = finishedProfilePane.insertRow(1);
+  currRow.insertCell(0).appendChild(gHistogramView.getContainer());
 
   gDiagnosticBar = new DiagnosticBar();
-  finishedProfilePane.appendChild(gDiagnosticBar.getContainer());
+  currRow = finishedProfilePane.insertRow(2);
+  currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
 
   gTreeManager = new ProfileTreeManager();
-  finishedProfilePane.appendChild(gTreeManager.getContainer());
+  currRow = finishedProfilePane.insertRow(3);
+  currRow.style.height = "100%";
+  currRow.insertCell(0).appendChild(gTreeManager.getContainer());
 
   gPluginView = new PluginView();
-  finishedProfilePane.appendChild(gPluginView.getContainer());
+  currRow = finishedProfilePane.insertRow(4);
+  currRow.insertCell(0).appendChild(gPluginView.getContainer());
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
