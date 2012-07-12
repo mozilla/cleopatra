@@ -1171,6 +1171,7 @@ function enterFinishedProfileUI() {
 
   var finishedProfilePane = document.createElement("table");
   var currRow;
+  finishedProfilePane.style.width = "100%";
   finishedProfilePane.style.height = "100%";
   finishedProfilePane.border = "0";
   finishedProfilePane.cellPadding = "0";
