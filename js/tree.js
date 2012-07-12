@@ -1,6 +1,18 @@
 var kMaxChunkDuration = 4; // ms
 var kMaxRenderDepth = 200; // Effectively disable it
 
+var escape = document.createElement('textarea');
+
+function escapeHTML(html) {
+  escape.innerHTML = html;
+  return escape.innerHTML;
+}
+
+function unescapeHTML(html) {
+  escape.innerHTML = html;
+  return escape.value;
+}
+
 RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
@@ -269,8 +281,8 @@ TreeView.prototype = {
       '<span class="sampleCount">' + node.counter + '</span> ' +
       '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
-      '<span class="functionName">' + nodeName + '</span>' +
-      '<span class="libraryName">' + node.library + '</span>' +
+      '<span class="functionName">' + escapeHTML(nodeName) + '</span>' +
+      '<span class="libraryName">' + escapeHTML(node.library) + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
   _resolveChildren: function TreeView__resolveChildren(div, childrenCollapsedValue) {
