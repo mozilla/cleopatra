@@ -723,7 +723,7 @@ function downloadProfile() {
 function uploadProfile(selected) {
   Parser.getSerializedProfile(!selected, function (dataToUpload) {
     var oXHR = new XMLHttpRequest();
-    oXHR.open("POST", "http://profile-logs.appspot.com/store", true);
+    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.onload = function (oEvent) {
       if (oXHR.status == 200) {  
         document.getElementById("upload_status").innerHTML = "Success! Use this <a href='" + document.URL.split('?')[0] + "?report=" + oXHR.responseText + "'>link</a>";
