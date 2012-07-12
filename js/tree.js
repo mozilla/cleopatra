@@ -273,19 +273,21 @@ TreeView.prototype = {
   },
   _HTMLForFunction: function TreeView__HTMLForFunction(node) {
     var nodeName = escapeHTML(node.name);
+    var libName = node.library;
     if (this._filterByName) {
       if (!this._filterByNameReg) {
         this._filterByName = RegExp.escape(this._filterByName);
         this._filterByNameReg = new RegExp("(" + this._filterByName + ")","gi");
       }
       nodeName = nodeName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
+      libName = libName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
     }
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
       '<span class="sampleCount">' + node.counter + '</span> ' +
       '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
       '<span class="functionName">' + nodeName + '</span>' +
-      '<span class="libraryName">' + node.library + '</span>' +
+      '<span class="libraryName">' + libName + '</span>' +
       '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
   _resolveChildren: function TreeView__resolveChildren(div, childrenCollapsedValue) {
