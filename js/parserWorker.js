@@ -247,7 +247,7 @@ function parseRawProfile(requestID, rawProfile) {
           var iconHTML = "";
           if (addon.iconURL)
             iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
-          return iconHTML + addon.name;
+          return iconHTML + " Jetpack: " + addon.name;
         }
       }
       dump("Found jetpackID: " + jetpackID + "\n");
