@@ -803,6 +803,7 @@ function filterUpdate() {
 var tooltip = {
   "mergeFunctions" : "Ignore line information and merge samples based on function names.",
   "showJank" : "Show only samples with >50ms responsiveness.",
+  "showJS" : "Show only samples which involve running chrome or content Javascript code.",
   "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
@@ -857,6 +858,7 @@ InfoBar.prototype = {
     infoText += "</ul>\n";
     infoText += "<h2>Pre Filtering</h2>\n";
     infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
+    infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
 
     var filterNameInputOld = document.getElementById("filterName");
     infoText += "Filter:\n";
@@ -1061,6 +1063,12 @@ function toggleJank(/* optional */ threshold) {
   filtersChanged();
 }
 
+var gJavascriptOnly = false;
+function toggleJavascriptOnly() {
+  gJavascriptOnly = !gJavascriptOnly;
+  filtersChanged();
+}
+
 var gSampleFilters = [];
 function focusOnSymbol(focusSymbol, name) {
   var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", focusedSymbol: focusSymbol}]);
@@ -1227,7 +1235,8 @@ function filtersChanged() {
     mergeFunctions: gMergeFunctions,
     nameFilter: (filterNameInput && filterNameInput.value) || "",
     sampleFilters: gSampleFilters,
-    jankOnly: gJankOnly
+    jankOnly: gJankOnly,
+    javascriptOnly: gJavascriptOnly
   });
   var start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
