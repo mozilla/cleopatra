@@ -760,6 +760,13 @@ function updateFilters(requestID, profileID, filters) {
   if (filters.mergeFunctions) {
     samples = discardLineLevelInformation(samples, symbols, functions);
   }
+  if (filters.javascriptOnly) {
+    try {
+      samples = filterByName(samples, symbols, functions, "runScript", filters.mergeFunctions);
+    } catch (e) {
+      dump("Could not filer by javascript: " + e + "\n");
+    }
+  }
   if (filters.nameFilter) {
     try {
       samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
