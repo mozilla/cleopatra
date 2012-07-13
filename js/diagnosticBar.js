@@ -35,7 +35,7 @@ var diagnosticList = [
     title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
     check: function(frames, symbols) {
 
-      return stepContains('Readability.js', frames, symbols) || hasJSFrame(frames, symbols)
+      return stepContains('Readability.js', frames, symbols)
           ;
     },
   },
