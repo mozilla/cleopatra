@@ -273,6 +273,7 @@ function parseRawProfile(requestID, rawProfile) {
   }
 
   function getFunctionInfo(fullName) {
+    var isJSFrame = false;
     var match =
       /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
@@ -282,11 +283,13 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
     if (!match && jsMatch1) {
       match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
+      isJSFrame = true;
     }
     var jsMatch2 = match ||
       /^(.*):([0-9]+)$/.exec(fullName);
     if (!match && jsMatch2) {
       match = [0, "<Anoymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
+      isJSFrame = true;
     }
     if (!match) {
       match = [fullName, fullName];
@@ -294,18 +297,20 @@ function parseRawProfile(requestID, rawProfile) {
     return {
       functionName: cleanFunctionName(match[1]),
       libraryName: match[2] || "",
-      lineInformation: match[3] || ""
+      lineInformation: match[3] || "",
+      isJSFrame: isJSFrame
     };
   }
 
-  function indexForFunction(functionName, libraryName) {
+  function indexForFunction(functionName, libraryName, isJSFrame) {
     var resolve = functionName+"_LIBNAME_"+libraryName;
     if (resolve in functionIndices)
       return functionIndices[resolve];
     var newIndex = functions.length;
     functions[newIndex] = {
       functionName: functionName,
-      libraryName: libraryName
+      libraryName: libraryName,
+      isJSFrame: isJSFrame
     };
     functionIndices[resolve] = newIndex;
     return newIndex;
@@ -316,8 +321,9 @@ function parseRawProfile(requestID, rawProfile) {
     return {
       symbolName: symbol,
       functionName: info.functionName,
-      functionIndex: indexForFunction(info.functionName, info.libraryName),
-      lineInformation: info.lineInformation
+      functionIndex: indexForFunction(info.functionName, info.libraryName, info.isJSFrame),
+      lineInformation: info.lineInformation,
+      isJSFrame: info.isJSFrame
     };
   }
 

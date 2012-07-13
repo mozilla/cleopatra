@@ -18,10 +18,24 @@ var diagnosticList = [
 
   {
     image: "js.png",
+    title: "JS - Bug 767070 - Text selection performance is bad on android",
+    check: function(frames, symbols) {
+
+      if (!stepContains('FlushPendingNotifications', frames, symbols))
+        return false;
+
+      return stepContains('sh_', frames, symbols)
+          && stepContains('browser.js', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
     title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
     check: function(frames, symbols) {
 
-      return stepContains('Readability.js', frames, symbols) 
+      return stepContains('Readability.js', frames, symbols) || hasJSFrame(frames, symbols)
           ;
     },
   },
@@ -70,6 +84,14 @@ var diagnosticList = [
   },
 ];
 
+function hasJSFrame(frames, symbols) {
+  for (var i = 0; i < frames.length; i++) {
+    if (symbols[frames[i]].isJSFrame === true) {
+      return true;
+    }
+  }
+  return false;
+}
 function stepContains(substring, frames, symbols) {
   for (var i = 0; i < frames.length; i++) {
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
