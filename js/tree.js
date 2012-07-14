@@ -50,6 +50,7 @@ function TreeView() {
   this._busyCover = document.createElement("div");
   this._busyCover.className = "busyCover";
   this._verticalScrollbox.appendChild(this._busyCover);
+  this._abortToggleAll = false;
 
   var self = this;
   this._container.onkeypress = function (e) {
@@ -128,6 +129,8 @@ TreeView.prototype = {
   _processOneAction: function TreeView__processOneAction(action) {
     var li = this._createTree(action.parentElement, action.parentNode, action.data);
     if ("allChildrenCollapsedValue" in action) {
+      if (this._abortToggleAll)
+        return;
       this._toggleAll(li, action.allChildrenCollapsedValue, true);
     }
   },
@@ -312,6 +315,10 @@ TreeView.prototype = {
       this._scrollHeightChanged();
   },
   _toggleAll: function TreeView__toggleAll(subtreeRoot, /* optional */ newCollapsedValue, /* optional */ suppressScrollHeightNotification) {
+
+    // Reset abort
+    this._abortToggleAll = false;
+
     // Expands / collapses all child nodes, too.
 
     if (newCollapsedValue === undefined)
@@ -439,6 +446,8 @@ TreeView.prototype = {
   _onkeypress: function TreeView__onkeypress(event) {
     if (event.ctrlKey || event.altKey || event.metaKey)
       return;
+
+    this._abortToggleAll = true;
 
     var selected = this._selectedNode;
     if (event.keyCode < 37 || event.keyCode > 40) {
