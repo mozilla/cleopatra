@@ -106,6 +106,20 @@ TreeView.prototype = {
     this._toggle(this._horizontalScrollbox.firstChild);
     this._container.focus();
   },
+  // Provide a snapshot of the current selection to restore
+  getSelectionSnapshot: function TreeView__getSelectionSnapshot() {
+    var snapshot = [];
+
+    var parent = this._selectedNode.treeParent;
+
+    dump("snapshot parent: " + parent + "\n");
+
+    return snapshot;
+  },
+  // Take a selection snapshot and restore the selection
+  restoreSelectionSnapshot: function TreeView__restoreSelectionSnapshot(snapshot) {
+
+  },
   _processPendingActionsChunk: function TreeView__processPendingActionsChunk() {
     this._pendingActionsProcessingCallback = 0;
 

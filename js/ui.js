@@ -72,6 +72,12 @@ ProfileTreeManager.prototype = {
   dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();
   },
+  getSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot() {
+    return this.treeView.getSelectionSnapshot();
+  },
+  restoreSelectionSnapshot: function ProfileTreeManager_restoreSelectionSnapshot(snapshot) {
+    return this.treeView.restoreSelectionSnapshot(snapshot);
+  },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
     var callstack = [];
     var curr = frame;
@@ -503,7 +509,9 @@ RangeSelector.prototype = {
       var start = this._sampleIndexFromPoint(this._selectedRange.startX);
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
       var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
+      var selectSnapshot = gTreeManager.getSelectionSnapshot();
       self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
+        // BENWA
         title: "Sample Range [" + start + ", " + (end + 1) + "]",
         enterCallback: function () {
           gSampleFilters = newFilterChain;
