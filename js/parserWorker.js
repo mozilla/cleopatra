@@ -436,7 +436,7 @@ function parseRawProfile(requestID, rawProfile) {
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
-      for (var k = 0; k < sample.frames.length; k++) {
+      for (var k = 0; sample.frames && k < sample.frames.length; k++) {
         var frame = sample.frames[k];
         if (frame.location !== undefined) {
           indicedFrames.push(indexForSymbol(frame.location));

@@ -90,6 +90,7 @@ TreeView.prototype = {
     if (this._filterByName === "")
       this._filterByName = null;
     this._horizontalScrollbox.innerHTML = "";
+    this._horizontalScrollbox.data = data[0].getData();
     if (this._pendingActionsProcessingCallback) {
       window.mozCancelAnimationFrame(this._pendingActionsProcessingCallback);
       this._pendingActionsProcessingCallback = 0;
@@ -109,23 +110,54 @@ TreeView.prototype = {
   // Provide a snapshot of the current selection to restore
   getSelectionSnapshot: function TreeView__getSelectionSnapshot() {
     var snapshot = [];
+    var curr = this._selectedNode;
 
-    var parent = this._selectedNode.treeParent;
+    while(curr) {
+      snapshot.push(curr.data.name);
+      //dump(JSON.stringify(curr.data.name) + "\n");
+      curr = curr.treeParent;
+    }
 
-    dump("snapshot parent: " + parent + "\n");
-
-    return snapshot;
+    return snapshot.reverse();
   },
   // Take a selection snapshot and restore the selection
   restoreSelectionSnapshot: function TreeView__restoreSelectionSnapshot(snapshot) {
+    var currNode = this._horizontalScrollbox.firstChild;
+    if (currNode.data.name == snapshot[0]) {
+      snapshot.shift();
+    } else {
+      dump("root not matching\n");
+      return;
+    }
+    next_level: while (currNode && snapshot.length > 0) {
+      this._toggle(currNode, false, true);
+      this._syncProcessPendingActionProcessing();
+      for (var i = 0; i < currNode.treeChildren.length; i++) {
+        if (currNode.treeChildren[i].data.name == snapshot[0]) {
+          //dump("Found: " + currNode.treeChildren[i].data.name + "\n");
+          snapshot.shift();
+          this._toggle(currNode, false, true);
+          currNode = currNode.treeChildren[i];
+          continue next_level;
+        }
+      }
+      break; // Didn't find child node matching
+    }
 
+    if (currNode == this._horizontalScrollbox) {
+      dump("Failed to restore selection, could not find root.\n");
+      return;
+    }
+
+    this._toggle(currNode, true, true);
+    this._select(currNode);
   },
-  _processPendingActionsChunk: function TreeView__processPendingActionsChunk() {
+  _processPendingActionsChunk: function TreeView__processPendingActionsChunk(isSync) {
     this._pendingActionsProcessingCallback = 0;
 
     var startTime = Date.now();
     var endTime = startTime + kMaxChunkDuration;
-    while (Date.now() < endTime && this._pendingActions.length > 0) {
+    while ((isSync == true || Date.now() < endTime) && this._pendingActions.length > 0) {
       this._processOneAction(this._pendingActions.shift());
     }
     this._scrollHeightChanged();
@@ -139,6 +171,9 @@ TreeView.prototype = {
         self._processPendingActionsChunk();
       });
     }
+  },
+  _syncProcessPendingActionProcessing: function TreeView__syncProcessPendingActionProcessing() {
+    this._processPendingActionsChunk(true);
   },
   _processOneAction: function TreeView__processOneAction(action) {
     var li = this._createTree(action.parentElement, action.parentNode, action.data);

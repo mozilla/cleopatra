@@ -61,6 +61,9 @@ function ProfileTreeManager() {
   this._container = document.createElement("div");
   this._container.className = "tree";
   this._container.appendChild(this.treeView.getContainer());
+
+  // If this is set when the tree changes the snapshot is immediately restored.
+  this._savedSnapshot = null;
 }
 ProfileTreeManager.prototype = {
   getContainer: function ProfileTreeManager_getContainer() {
@@ -72,10 +75,10 @@ ProfileTreeManager.prototype = {
   dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();
   },
-  getSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot() {
-    return this.treeView.getSelectionSnapshot();
+  saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot() {
+    this._savedSnapshot = this.treeView.getSelectionSnapshot();
   },
-  restoreSelectionSnapshot: function ProfileTreeManager_restoreSelectionSnapshot(snapshot) {
+  _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot) {
     return this.treeView.restoreSelectionSnapshot(snapshot);
   },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
@@ -119,6 +122,10 @@ ProfileTreeManager.prototype = {
   },
   display: function ProfileTreeManager_display(tree, symbols, functions, useFunctions, filterByName) {
     this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), filterByName);
+    if (this._savedSnapshot) {
+      this._restoreSelectionSnapshot(this._savedSnapshot);
+      this._savedSnapshot = null;
+    }
   },
   convertToJSTreeData: function ProfileTreeManager__convertToJSTreeData(rootNode, symbols, functions, useFunctions) {
     var totalSamples = rootNode.counter;
@@ -509,7 +516,6 @@ RangeSelector.prototype = {
       var start = this._sampleIndexFromPoint(this._selectedRange.startX);
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
       var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
-      var selectSnapshot = gTreeManager.getSelectionSnapshot();
       self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
         // BENWA
         title: "Sample Range [" + start + ", " + (end + 1) + "]",
@@ -614,6 +620,7 @@ BreadcrumbTrail.prototype = {
   _enter: function BreadcrumbTrail__select(index) {
     if (index == this._selectedBreadcrumbIndex)
       return;
+    gTreeManager.saveSelectionSnapshot();
     var prevSelected = this._breadcrumbs[this._selectedBreadcrumbIndex];
     if (prevSelected)
       prevSelected.classList.remove("selected");
