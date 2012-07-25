@@ -1,4 +1,4 @@
-var kMaxChunkDuration = 4; // ms
+var kMaxChunkDuration = 30; // ms
 var kMaxRenderDepth = 200; // Effectively disable it
 
 var escape = document.createElement('textarea');
