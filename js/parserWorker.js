@@ -538,14 +538,27 @@ TreeNode.prototype.incrementCountersInParentChain = function TreeNode_incrementC
 };
 
 function convertToCallTree(samples, isReverse) {
+  function areSamplesMultiroot(samples) {
+    var previousRoot = samples[0].frames[0];
+    for (var i = 1; i < samples.length; ++i) {
+      if (previousRoot != samples[i].frames[0]) {
+        return true;
+      }
+    }
+    return false;
+  }
   samples = samples.filter(function noNullSamples(sample) {
     return sample != null;
   });
   if (samples.length == 0)
     return new TreeNode("(empty)", null, 0);
-  var treeRoot = new TreeNode(isReverse ? "(total)" : samples[0].frames[0], null, 0);
+  var multiRoot = areSamplesMultiroot(samples);
+  var treeRoot = new TreeNode((isReverse || multiRoot) ? "(total)" : samples[0].frames[0], null, 0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
+    if (!sample.frames) {
+      continue;
+    }
     var callstack = sample.frames.slice(0);
     callstack.shift();
     if (isReverse)
@@ -619,6 +632,38 @@ function filterByCallstackPostfix(samples, callstack) {
     sample.frames = sample.frames.slice(0, sample.frames.length - callstack.length + 1);
     return sample;
   });
+}
+
+function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
+  function isJSFrame(index, useFunction) {
+    if (useFunctions) {
+      if (!(index in functions))
+        return "";
+      return functions[index].isJSFrame;
+    }
+    if (!(index in symbols))
+      return "";
+    return symbols[index].isJSFrame;
+  }
+  samples = samples.slice(0);
+  for (var i = 0; i < samples.length; ++i) {
+    var sample = samples[i];
+    if (!sample)
+      continue;
+    var callstack = sample.frames;
+    var newFrames = [];
+    for (var j = 0; j < callstack.length; ++j) {
+      if (isJSFrame(callstack[j], useFunctions)) {
+        // Record Javascript frames
+        newFrames.push(callstack[j]);
+      }
+    }
+    if (!newFrames.length) {
+      newFrames = null;
+    }
+    samples[i].frames = newFrames;
+  }
+  return samples;
 }
 
 function filterByName(samples, symbols, functions, filterName, useFunctions) {
@@ -769,6 +814,7 @@ function updateFilters(requestID, profileID, filters) {
   if (filters.javascriptOnly) {
     try {
       samples = filterByName(samples, symbols, functions, "runScript", filters.mergeFunctions);
+      samples = chargeNonJSToCallers(samples, symbols, functions, filters.mergeFunctions);
     } catch (e) {
       dump("Could not filer by javascript: " + e + "\n");
     }
@@ -791,7 +837,7 @@ function updateFilters(requestID, profileID, filters) {
   gProfiles[profileID].filterSettings = filters;
   gProfiles[profileID].filteredSamples = samples;
   sendFinishedInChunks(requestID, samples, 40000,
-                       function (sample) { return sample ? sample.frames.length : 1; });
+                       function (sample) { return (sample && sample.frames) ? sample.frames.length : 1; });
 }
 
 function updateViewOptions(requestID, profileID, options) {
