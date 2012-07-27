@@ -37,7 +37,7 @@ function TreeView() {
   this._leftColumnBackground.className = "leftColumnBackground";
   this._verticalScrollbox.appendChild(this._leftColumnBackground);
 
-  this._horizontalScrollbox = document.createElement("ol");
+  this._horizontalScrollbox = document.createElement("div");
   this._horizontalScrollbox.className = "treeViewHorizontalScrollbox";
   this._verticalScrollbox.appendChild(this._horizontalScrollbox);
 
