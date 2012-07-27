@@ -638,21 +638,11 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
     if (!sample)
       continue;
     var callstack = sample.frames;
-    var seenJSFrame = false;
     var newFrames = [];
     for (var j = 0; j < callstack.length; ++j) {
       if (isJSFrame(callstack[j], useFunctions)) {
         // Record Javascript frames
-        seenJSFrame = true;
         newFrames.push(callstack[j]);
-      } else {
-        if (seenJSFrame) {
-          // Charge this to the caller
-          //newFrames.push(callstack[j]);
-        } else {
-          // Rip this out if we have seen no Javascript frame yet
-          //samples[i].frames[j] = null;
-        }
       }
     }
     samples[i].frames = newFrames;
