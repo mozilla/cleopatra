@@ -655,8 +655,6 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
         }
       }
     }
-    dump("old: " + samples[i].frames.toSource() + "\n");
-    dump("new: " + newFrames.toSource() + "\n");
     samples[i].frames = newFrames;
   }
   return samples;
