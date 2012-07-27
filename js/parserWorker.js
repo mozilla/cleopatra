@@ -622,15 +622,15 @@ function filterByCallstackPostfix(samples, callstack) {
 }
 
 function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
-  function getSymbolOrFunctionName(index, useFunctions) {
+  function isJSFrame(index, useFunction) {
     if (useFunctions) {
       if (!(index in functions))
         return "";
-      return functions[index].functionName;
+      return functions[index].isJSFrame;
     }
     if (!(index in symbols))
       return "";
-    return symbols[index].symbolName;
+    return symbols[index].isJSFrame;
   }
   samples = samples.slice(0);
   for (var i = 0; i < samples.length; ++i) {
@@ -641,8 +641,7 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
     var seenJSFrame = false;
     var newFrames = [];
     for (var j = 0; j < callstack.length; ++j) {
-      var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
-      if (symbolOrFunctionName.toLowerCase().indexOf(" @ ") != -1) {
+      if (isJSFrame(callstack[j], useFunctions)) {
         // Record Javascript frames
         seenJSFrame = true;
         newFrames.push(callstack[j]);
