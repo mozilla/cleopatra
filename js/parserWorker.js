@@ -638,22 +638,26 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
     if (!sample)
       continue;
     var callstack = sample.frames;
+    var seenJSFrame = false;
     var newFrames = [];
     for (var j = 0; j < callstack.length; ++j) {
       var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
       if (symbolOrFunctionName.toLowerCase().indexOf(" @ ") != -1) {
         // Record Javascript frames
+        seenJSFrame = true;
         newFrames.push(callstack[j]);
       } else {
-        continue;
-        if (newFrames.length) {
+        if (seenJSFrame) {
           // Charge this to the caller
         } else {
-          // If we have seen no Javascript frame yet, just consider this to be the root
+          // Rip this out if we have seen no Javascript frame yet
+          //samples[i].frames[j] = null;
           newFrames.push(callstack[j]);
         }
       }
     }
+    dump("old: " + samples[i].frames.toSource() + "\n");
+    dump("new: " + newFrames.toSource() + "\n");
     samples[i].frames = newFrames;
   }
   return samples;
