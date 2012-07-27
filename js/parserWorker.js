@@ -645,6 +645,9 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
         newFrames.push(callstack[j]);
       }
     }
+    if (!newFrames.length) {
+      newFrames = null;
+    }
     samples[i].frames = newFrames;
   }
   return samples;
