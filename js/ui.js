@@ -582,7 +582,7 @@ BreadcrumbTrail.prototype = {
     for (var i = this._breadcrumbs.length - 1; i > this._selectedBreadcrumbIndex; i--) {
       var rearLi = this._breadcrumbs[i];
       if (!rearLi.breadcrumbIsTransient)
-        throw "Can only add new breadcrumbs if after the current one there are only transient ones."
+        throw "Can only add new breadcrumbs if after the current one there are only transient ones.";
       rearLi.breadcrumbDiscarder.discard();
     }
     var li = document.createElement("li");
