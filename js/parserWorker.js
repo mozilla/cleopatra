@@ -621,6 +621,44 @@ function filterByCallstackPostfix(samples, callstack) {
   });
 }
 
+function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
+  function getSymbolOrFunctionName(index, useFunctions) {
+    if (useFunctions) {
+      if (!(index in functions))
+        return "";
+      return functions[index].functionName;
+    }
+    if (!(index in symbols))
+      return "";
+    return symbols[index].symbolName;
+  }
+  samples = samples.slice(0);
+  for (var i = 0; i < samples.length; ++i) {
+    var sample = samples[i];
+    if (!sample)
+      continue;
+    var callstack = sample.frames;
+    var newFrames = [];
+    for (var j = 0; j < callstack.length; ++j) {
+      var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
+      if (symbolOrFunctionName.toLowerCase().indexOf(" @ ") != -1) {
+        // Record Javascript frames
+        newFrames.push(callstack[j]);
+      } else {
+        continue;
+        if (newFrames.length) {
+          // Charge this to the caller
+        } else {
+          // If we have seen no Javascript frame yet, just consider this to be the root
+          newFrames.push(callstack[j]);
+        }
+      }
+    }
+    samples[i].frames = newFrames;
+  }
+  return samples;
+}
+
 function filterByName(samples, symbols, functions, filterName, useFunctions) {
   function getSymbolOrFunctionName(index, useFunctions) {
     if (useFunctions) {
@@ -769,6 +807,7 @@ function updateFilters(requestID, profileID, filters) {
   if (filters.javascriptOnly) {
     try {
       samples = filterByName(samples, symbols, functions, "runScript", filters.mergeFunctions);
+      samples = chargeNonJSToCallers(samples, symbols, functions, filters.mergeFunctions);
     } catch (e) {
       dump("Could not filer by javascript: " + e + "\n");
     }
