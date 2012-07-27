@@ -648,10 +648,10 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
       } else {
         if (seenJSFrame) {
           // Charge this to the caller
+          newFrames.push(callstack[j]);
         } else {
           // Rip this out if we have seen no Javascript frame yet
           //samples[i].frames[j] = null;
-          newFrames.push(callstack[j]);
         }
       }
     }
