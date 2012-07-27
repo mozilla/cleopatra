@@ -1,5 +1,4 @@
 var kMaxChunkDuration = 30; // ms
-var kMaxRenderDepth = 200; // Effectively disable it
 
 var escape = document.createElement('textarea');
 
@@ -252,7 +251,7 @@ TreeView.prototype = {
     div.appendChild(treeLine);
     div.treeChildren = [];
     div.treeParent = parentNode;
-    if (hasChildren && this._getDepth(parentElement) < kMaxRenderDepth) {
+    if (hasChildren) {
       for (var i = 0; i < data.children.length && i < 30; ++i) {
         div.pendingExpand.push({parentElement: div, parentNode: div, data: data.children[i].getData() });
       }
