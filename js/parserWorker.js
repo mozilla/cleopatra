@@ -556,6 +556,9 @@ function convertToCallTree(samples, isReverse) {
   var treeRoot = new TreeNode((isReverse || multiRoot) ? "(total)" : samples[0].frames[0], null, 0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
+    if (!sample.frames) {
+      continue;
+    }
     var callstack = sample.frames.slice(0);
     callstack.shift();
     if (isReverse)
@@ -834,7 +837,7 @@ function updateFilters(requestID, profileID, filters) {
   gProfiles[profileID].filterSettings = filters;
   gProfiles[profileID].filteredSamples = samples;
   sendFinishedInChunks(requestID, samples, 40000,
-                       function (sample) { return sample ? sample.frames.length : 1; });
+                       function (sample) { return (sample && sample.frames) ? sample.frames.length : 1; });
 }
 
 function updateViewOptions(requestID, profileID, options) {
