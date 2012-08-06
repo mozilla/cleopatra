@@ -436,6 +436,12 @@ function parseRawProfile(requestID, rawProfile) {
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
+      if (!sample) {
+        // This sample was filtered before saving
+        samples.push(null);
+        progressReporter.setProgress((j + 1) / profileSamples.length);
+        continue;
+      }
       for (var k = 0; sample.frames && k < sample.frames.length; k++) {
         var frame = sample.frames[k];
         if (frame.location !== undefined) {
