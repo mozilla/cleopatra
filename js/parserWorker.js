@@ -201,6 +201,7 @@ function parseRawProfile(requestID, rawProfile) {
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
     rawProfile = JSON.parse(rawProfile);
+    rawProfile.profileJSON.meta = rawProfile.meta;
   }
 
   if (typeof rawProfile == "object") {
