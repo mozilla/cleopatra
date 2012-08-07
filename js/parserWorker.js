@@ -289,7 +289,7 @@ function parseRawProfile(requestID, rawProfile) {
     var jsMatch2 = match ||
       /^(.*):([0-9]+)$/.exec(fullName);
     if (!match && jsMatch2) {
-      match = [0, "<Anoymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
+      match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
       isJSFrame = true;
     }
     if (!match) {
