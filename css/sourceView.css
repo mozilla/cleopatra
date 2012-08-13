@@ -8,6 +8,18 @@
   background-color: white;
 }
 
+.sourceViewTrail {
+  top: 0;
+  right: 0;
+  height: 29px;
+  left: 0;
+  background: -moz-linear-gradient(#FFF 50%, #F3F3F3 55%);
+  border-bottom: 1px solid #CCC;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .sourceViewTrailItem {
   background: -moz-linear-gradient(#FFF 50%, #F3F3F3 55%);
   display: block;
