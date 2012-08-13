@@ -201,6 +201,9 @@ function parseRawProfile(requestID, rawProfile) {
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
     rawProfile = JSON.parse(rawProfile);
+  }
+
+  if (!rawProfile.profileJSON.meta  && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
   }
 
@@ -466,7 +469,6 @@ function parseRawProfile(requestID, rawProfile) {
         }
       }
       if (indicedFrames.length >= 1) {
-        dump("Cond: " + rootSymbol + " " + indicedFrames[0]);
         if (rootSymbol && rootSymbol != indicedFrames[0]) {
           insertCommonRoot = true;
         }

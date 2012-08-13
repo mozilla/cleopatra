@@ -32,8 +32,6 @@
   padding: 0 10px;
   font-size: 12px;
   border-right: 1px solid #CCC;
-  max-width: 250px;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   position: relative;

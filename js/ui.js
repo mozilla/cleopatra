@@ -1139,6 +1139,8 @@ function focusOnPluginView(pluginName, param) {
 
 function viewJSSource(sample) {
   var sourceView = new SourceView();
+  sourceView.setScriptLocation(sample.scriptLocation);
+  sourceView.setSource(gMeta.js.source[sample.scriptLocation]);
   gMainArea.appendChild(sourceView.getContainer());
 
 }
