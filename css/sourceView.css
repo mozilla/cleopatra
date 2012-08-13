@@ -8,3 +8,22 @@
   background-color: white;
 }
 
+.sourceViewTrailItem {
+  background: -moz-linear-gradient(#FFF 50%, #F3F3F3 55%);
+  display: block;
+  margin: 0;
+  padding: 0;
+  float: left;
+  line-height: 29px;
+  -moz-user-select: none;
+  cursor: default;
+  padding: 0 10px;
+  font-size: 12px;
+  border-right: 1px solid #CCC;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: relative;
+}
+
