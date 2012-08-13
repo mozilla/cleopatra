@@ -105,6 +105,8 @@ ProfileTreeManager.prototype = {
       // Remove anything after ( since MXR doesn't handle search with the arguments.
       var symbol = node.name.split("(")[0];
       window.open("http://mxr.mozilla.org/mozilla-central/search?string=" + symbol, "View Source");
+    } else if (menuItem == "View JS Source") {
+      viewJSSource(node);
     } else if (menuItem == "Plugin View: Pie") {
       focusOnPluginView("protovis", {type:"pie"});
     } else if (menuItem == "Plugin View: Tree") {
@@ -1133,6 +1135,12 @@ function focusOnPluginView(pluginName, param) {
       filtersChanged();
     }
   })
+}
+
+function viewJSSource(sample) {
+  var sourceView = new SourceView();
+  gMainArea.appendChild(sourceView.getContainer());
+
 }
 
 function setHighlightedCallstack(samples) {
