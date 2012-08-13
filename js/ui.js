@@ -995,6 +995,8 @@ function loadProfileURL(url) {
 }
 
 function loadProfile(rawProfile) {
+  if (!rawProfile)
+    return;
   var reporter = enterProgressUI();
   loadRawProfile(reporter, rawProfile);
 }
