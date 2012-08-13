@@ -152,6 +152,10 @@ ProfileTreeManager.prototype = {
         };
         curObj.name = (info.functionName + " " + info.lineInformation).trim();
         curObj.library = info.libraryName;
+        if (functionObj.scriptLocation) {
+          dump("\n\n\n\n\nAdd " + JSON.stringify(functionObj.scriptLocation) + "\n");
+          curObj.scriptLocation = functionObj.scriptLocation;
+        }
       }
       if (node.children.length) {
         curObj.children = getChildrenObjects(node.children, curObj);

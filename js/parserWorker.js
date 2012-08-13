@@ -280,15 +280,24 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
       // Try to parse a JS frame
+    var scriptLocation = null;
     var jsMatch1 = match ||
       /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
     if (!match && jsMatch1) {
+      scriptLocation = {
+        scriptURI: jsMatch1[2],
+        lineInformation: -1
+      };
       match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
       isJSFrame = true;
     }
     var jsMatch2 = match ||
       /^(.*):([0-9]+)$/.exec(fullName);
     if (!match && jsMatch2) {
+      scriptLocation = {
+        scriptURI: jsMatch2[1],
+        lineInformation: -1
+      };
       match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
       isJSFrame = true;
     }
@@ -299,11 +308,12 @@ function parseRawProfile(requestID, rawProfile) {
       functionName: cleanFunctionName(match[1]),
       libraryName: match[2] || "",
       lineInformation: match[3] || "",
-      isJSFrame: isJSFrame
+      isJSFrame: isJSFrame,
+      scriptLocation: scriptLocation
     };
   }
 
-  function indexForFunction(functionName, libraryName, isJSFrame) {
+  function indexForFunction(functionName, libraryName, isJSFrame, scriptLocation) {
     var resolve = functionName+"_LIBNAME_"+libraryName;
     if (resolve in functionIndices)
       return functionIndices[resolve];
@@ -311,7 +321,8 @@ function parseRawProfile(requestID, rawProfile) {
     functions[newIndex] = {
       functionName: functionName,
       libraryName: libraryName,
-      isJSFrame: isJSFrame
+      isJSFrame: isJSFrame,
+      scriptLocation: scriptLocation
     };
     functionIndices[resolve] = newIndex;
     return newIndex;
@@ -322,9 +333,10 @@ function parseRawProfile(requestID, rawProfile) {
     return {
       symbolName: symbol,
       functionName: info.functionName,
-      functionIndex: indexForFunction(info.functionName, info.libraryName, info.isJSFrame),
+      functionIndex: indexForFunction(info.functionName, info.libraryName, info.isJSFrame, info.scriptLocation),
       lineInformation: info.lineInformation,
-      isJSFrame: info.isJSFrame
+      isJSFrame: info.isJSFrame,
+      scriptLocation: info.scriptLocation
     };
   }
 

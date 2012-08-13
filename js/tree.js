@@ -316,6 +316,7 @@ TreeView.prototype = {
       )) {
       menu.push("View Source");
     }
+    //dump("Context info: " + JSON.stringify(node) + "\n");
     menu.push("Focus Frame");
     menu.push("Focus Callstack");
     menu.push("Google Search");
