@@ -152,8 +152,8 @@ ProfileTreeManager.prototype = {
         };
         curObj.name = (info.functionName + " " + info.lineInformation).trim();
         curObj.library = info.libraryName;
+        curObj.isJSFrame = functionObj.isJSFrame;
         if (functionObj.scriptLocation) {
-          dump("\n\n\n\n\nAdd " + JSON.stringify(functionObj.scriptLocation) + "\n");
           curObj.scriptLocation = functionObj.scriptLocation;
         }
       }
