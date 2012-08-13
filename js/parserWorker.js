@@ -446,6 +446,8 @@ function parseRawProfile(requestID, rawProfile) {
     } else {
       profileSamples = profile;
     }
+    var rootSymbol = null;
+    var insertCommonRoot = true;
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
@@ -463,6 +465,13 @@ function parseRawProfile(requestID, rawProfile) {
           indicedFrames.push(indexForSymbol(frame));
         }
       }
+      if (indicedFrames.length >= 1) {
+        dump("Cond: " + rootSymbol + " " + indicedFrames[0]);
+        if (rootSymbol && rootSymbol != indicedFrames[0]) {
+          insertCommonRoot = true;
+        }
+        rootSymbol = rootSymbol || indicedFrames[0];
+      }
       if (sample.extraInfo == null) {
         sample.extraInfo = {};
       }
@@ -474,6 +483,15 @@ function parseRawProfile(requestID, rawProfile) {
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
       progressReporter.setProgress((j + 1) / profileSamples.length);
+    }
+    if (insertCommonRoot) {
+      var rootIndex = indexForSymbol("(root)");
+      for (var i = 0; i < samples.length; i++) {
+        var sample = samples[i];
+        // If length == 0 then the sample was filtered when saving the profile
+        if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
+          sample.frames.splice(0, 0, rootIndex)
+      }
     }
   }
 
