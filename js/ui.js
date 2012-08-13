@@ -1006,7 +1006,9 @@ function loadRawProfile(reporter, rawProfile) {
   reporter.begin("Parsing...");
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile);
-  parseRequest.addEventListener("progress", function (progress) {
+  parseRequest.addEventListener("progress", function (progress, action) {
+    if (action)
+      reporter.setAction(action);
     reporter.setProgress(progress);
   });
   parseRequest.addEventListener("finished", function (result) {
