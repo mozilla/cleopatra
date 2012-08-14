@@ -251,7 +251,7 @@ TreeView.prototype = {
     div.appendChild(treeLine);
     div.treeChildren = [];
     div.treeParent = parentNode;
-    if (hasChildren && this._getDepth(parentElement) < kMaxRenderDepth) {
+    if (hasChildren) {
       var ol = document.createElement("ol");
       ol.className = "treeViewNodeList";
       for (var i = 0; i < data.children.length; ++i) {
