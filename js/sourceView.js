@@ -31,7 +31,7 @@ function SourceView() {
   this._buttonBar.className = "sourceViewTrail";
 
   this._closeButton = document.createElement("div");
-  this._closeButton.className = "sourceViewTrailItem";
+  this._closeButton.className = "sourceViewTrailButton";
   this._closeButton.innerHTML = "[X] Close";
   this._buttonBar.appendChild(this._closeButton);
 
@@ -44,6 +44,7 @@ function SourceView() {
   this._sourceLines = null; // String array
   this._sourceLinesObj = null; // String array
   this._sourceDiv = document.createElement("div");
+  this._sourceDiv.className = "sourceContainer";
 
   var self = this;
   this._closeButton.onclick = function() {
@@ -65,16 +66,21 @@ SourceView.prototype = {
     this._sourceLinesObj = [];
     for (var i = 0; i < this._sourceLines.length; i++) {
       var lineCountDiv = document.createElement("span");
-      //lineCountDiv.innerHTML = "0 | ";
+      lineCountDiv.innerHTML = i;
+      lineCountDiv.className = "lineCountDiv";
       var lineTextDiv = document.createElement("span"); 
       lineTextDiv.innerHTML = formatStrSpacing(this._sourceLines[i]);
+      lineTextDiv.className = "lineSourceDiv";
       var lineBreak = document.createElement("br"); 
       this._sourceDiv.appendChild(lineCountDiv);
       this._sourceDiv.appendChild(lineTextDiv);
       this._sourceDiv.appendChild(lineBreak);
       this._sourceLinesObj.push( [lineCountDiv, lineTextDiv] );
       if (i == this._scriptLocation.lineInformation - 1) {
-        lineTextDiv.scrollIntoView();
+        var scrollIntoView = lineTextDiv;
+        setTimeout(function() {
+          scrollIntoView.scrollIntoView();
+        });
         lineTextDiv.style.backgroundColor = "rgba(200,0,0,0.5)";
       }
     }
