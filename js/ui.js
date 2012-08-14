@@ -105,6 +105,8 @@ ProfileTreeManager.prototype = {
       // Remove anything after ( since MXR doesn't handle search with the arguments.
       var symbol = node.name.split("(")[0];
       window.open("http://mxr.mozilla.org/mozilla-central/search?string=" + symbol, "View Source");
+    } else if (menuItem == "View JS Source") {
+      viewJSSource(node);
     } else if (menuItem == "Plugin View: Pie") {
       focusOnPluginView("protovis", {type:"pie"});
     } else if (menuItem == "Plugin View: Tree") {
@@ -152,6 +154,10 @@ ProfileTreeManager.prototype = {
         };
         curObj.name = (info.functionName + " " + info.lineInformation).trim();
         curObj.library = info.libraryName;
+        curObj.isJSFrame = functionObj.isJSFrame;
+        if (functionObj.scriptLocation) {
+          curObj.scriptLocation = functionObj.scriptLocation;
+        }
       }
       if (node.children.length) {
         curObj.children = getChildrenObjects(node.children, curObj);
@@ -991,6 +997,8 @@ function loadProfileURL(url) {
 }
 
 function loadProfile(rawProfile) {
+  if (!rawProfile)
+    return;
   var reporter = enterProgressUI();
   loadRawProfile(reporter, rawProfile);
 }
@@ -1000,7 +1008,9 @@ function loadRawProfile(reporter, rawProfile) {
   reporter.begin("Parsing...");
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile);
-  parseRequest.addEventListener("progress", function (progress) {
+  parseRequest.addEventListener("progress", function (progress, action) {
+    if (action)
+      reporter.setAction(action);
     reporter.setProgress(progress);
   });
   parseRequest.addEventListener("finished", function (result) {
@@ -1125,6 +1135,14 @@ function focusOnPluginView(pluginName, param) {
       filtersChanged();
     }
   })
+}
+
+function viewJSSource(sample) {
+  var sourceView = new SourceView();
+  sourceView.setScriptLocation(sample.scriptLocation);
+  sourceView.setSource(gMeta.js.source[sample.scriptLocation.scriptURI]);
+  gMainArea.appendChild(sourceView.getContainer());
+
 }
 
 function setHighlightedCallstack(samples) {

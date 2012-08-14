@@ -42,6 +42,14 @@ var diagnosticList = [
 
   // **************** General issues
   {
+    image: "js.png",
+    title: "JS is triggering a sync reflow",
+    check: function(frames, symbols) {
+      return symbolSequence(['js::RunScript','layout::DoReflow'], frames, symbols)
+          ;
+    },
+  },
+  {
     image: "gc.png",
     title: "Garbage Collection",
     check: function(frames, symbols) {
@@ -97,6 +105,20 @@ function stepContains(substring, frames, symbols) {
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     if (frameSym.indexOf(substring) != -1) {
       return true;
+    }
+  }
+  return false;
+}
+function symbolSequence(symbolsOrder, frames, symbols) {
+  var symbolIndex = 0;
+  for (var i = 0; i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    var substring = symbolsOrder[symbolIndex];
+    if (frameSym.indexOf(substring) != -1) {
+      symbolIndex++;
+      if (symbolIndex == symbolsOrder.length) {
+        return true;
+      }
     }
   }
   return false;

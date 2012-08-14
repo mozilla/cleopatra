@@ -32,7 +32,7 @@ function WorkerRequest(worker) {
   this._worker = worker;
   this._totalReporter = new ProgressReporter();
   this._totalReporter.addListener(function (reporter) {
-    self._fireEvent("progress", reporter.getProgress());
+    self._fireEvent("progress", reporter.getProgress(), reporter.getAction());
   })
   this._sendChunkReporter = this._totalReporter.addSubreporter(500);
   this._executeReporter = this._totalReporter.addSubreporter(3000);
@@ -52,6 +52,10 @@ function WorkerRequest(worker) {
     if (data.requestID == requestID) {
       switch(data.type) {
         case "error":
+          self._sendChunkReporter.setAction("Error in worker: " + data.error);
+          self._executeReporter.setAction("Error in worker: " + data.error);
+          self._receiveChunkReporter.setAction("Error in worker: " + data.error);
+          self._totalReporter.setAction("Error in worker: " + data.error);
           console.log("Error in worker: " + data.error);
           self._fireEvent("error", data.error);
           break;
@@ -194,11 +198,11 @@ WorkerRequest.prototype = {
       return;
     this._eventListeners[eventName].splice(index, 1);
   },
-  _fireEvent: function WorkerRequest__fireEvent(eventName, eventObject) {
+  _fireEvent: function WorkerRequest__fireEvent(eventName, eventObject, p1) {
     if (!(eventName in this._eventListeners))
       return;
     this._eventListeners[eventName].forEach(function (callbackFunction) {
-      callbackFunction(eventObject);
+      callbackFunction(eventObject, p1);
     });
   },
 }

@@ -203,6 +203,10 @@ function parseRawProfile(requestID, rawProfile) {
     rawProfile = JSON.parse(rawProfile);
   }
 
+  if (!rawProfile.profileJSON.meta  && rawProfile.meta) {
+    rawProfile.profileJSON.meta = rawProfile.meta;
+  }
+
   if (typeof rawProfile == "object") {
     switch (rawProfile.format) {
       case "profileStringWithSymbolicationTable,1":
@@ -272,6 +276,14 @@ function parseRawProfile(requestID, rawProfile) {
      return match[1] + ".js";
   }
 
+  function parseScriptURI(url) {
+    if (url) {
+      var urlTokens = url.split(" ");
+      url = urlTokens[urlTokens.length-1];
+    }
+    return url;
+  }
+
   function getFunctionInfo(fullName) {
     var isJSFrame = false;
     var match =
@@ -279,16 +291,25 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
       /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
       // Try to parse a JS frame
+    var scriptLocation = null;
     var jsMatch1 = match ||
       /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
     if (!match && jsMatch1) {
+      scriptLocation = {
+        scriptURI: parseScriptURI(jsMatch1[2]),
+        lineInformation: jsMatch1[3]
+      };
       match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
       isJSFrame = true;
     }
     var jsMatch2 = match ||
       /^(.*):([0-9]+)$/.exec(fullName);
     if (!match && jsMatch2) {
-      match = [0, "<Anoymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
+      scriptLocation = {
+        scriptURI: parseScriptURI(jsMatch2[1]),
+        lineInformation: jsMatch2[2]
+      };
+      match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
       isJSFrame = true;
     }
     if (!match) {
@@ -298,11 +319,12 @@ function parseRawProfile(requestID, rawProfile) {
       functionName: cleanFunctionName(match[1]),
       libraryName: match[2] || "",
       lineInformation: match[3] || "",
-      isJSFrame: isJSFrame
+      isJSFrame: isJSFrame,
+      scriptLocation: scriptLocation
     };
   }
 
-  function indexForFunction(functionName, libraryName, isJSFrame) {
+  function indexForFunction(functionName, libraryName, isJSFrame, scriptLocation) {
     var resolve = functionName+"_LIBNAME_"+libraryName;
     if (resolve in functionIndices)
       return functionIndices[resolve];
@@ -310,7 +332,8 @@ function parseRawProfile(requestID, rawProfile) {
     functions[newIndex] = {
       functionName: functionName,
       libraryName: libraryName,
-      isJSFrame: isJSFrame
+      isJSFrame: isJSFrame,
+      scriptLocation: scriptLocation
     };
     functionIndices[resolve] = newIndex;
     return newIndex;
@@ -321,9 +344,10 @@ function parseRawProfile(requestID, rawProfile) {
     return {
       symbolName: symbol,
       functionName: info.functionName,
-      functionIndex: indexForFunction(info.functionName, info.libraryName, info.isJSFrame),
+      functionIndex: indexForFunction(info.functionName, info.libraryName, info.isJSFrame, info.scriptLocation),
       lineInformation: info.lineInformation,
-      isJSFrame: info.isJSFrame
+      isJSFrame: info.isJSFrame,
+      scriptLocation: info.scriptLocation
     };
   }
 
@@ -433,9 +457,17 @@ function parseRawProfile(requestID, rawProfile) {
     } else {
       profileSamples = profile;
     }
+    var rootSymbol = null;
+    var insertCommonRoot = false;
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
+      if (!sample) {
+        // This sample was filtered before saving
+        samples.push(null);
+        progressReporter.setProgress((j + 1) / profileSamples.length);
+        continue;
+      }
       for (var k = 0; sample.frames && k < sample.frames.length; k++) {
         var frame = sample.frames[k];
         if (frame.location !== undefined) {
@@ -443,6 +475,12 @@ function parseRawProfile(requestID, rawProfile) {
         } else {
           indicedFrames.push(indexForSymbol(frame));
         }
+      }
+      if (indicedFrames.length >= 1) {
+        if (rootSymbol && rootSymbol != indicedFrames[0]) {
+          insertCommonRoot = true;
+        }
+        rootSymbol = rootSymbol || indicedFrames[0];
       }
       if (sample.extraInfo == null) {
         sample.extraInfo = {};
@@ -455,6 +493,16 @@ function parseRawProfile(requestID, rawProfile) {
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
       progressReporter.setProgress((j + 1) / profileSamples.length);
+    }
+    if (insertCommonRoot) {
+      var rootIndex = indexForSymbol("(root)");
+      for (var i = 0; i < samples.length; i++) {
+        var sample = samples[i];
+        if (!sample) continue;
+        // If length == 0 then the sample was filtered when saving the profile
+        if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
+          sample.frames.splice(0, 0, rootIndex)
+      }
     }
   }
 

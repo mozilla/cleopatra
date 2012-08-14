@@ -251,9 +251,11 @@ TreeView.prototype = {
     div.appendChild(treeLine);
     div.treeChildren = [];
     div.treeParent = parentNode;
-    if (hasChildren) {
-      for (var i = 0; i < data.children.length && i < 30; ++i) {
-        div.pendingExpand.push({parentElement: div, parentNode: div, data: data.children[i].getData() });
+    if (hasChildren && this._getDepth(parentElement) < kMaxRenderDepth) {
+      var ol = document.createElement("ol");
+      ol.className = "treeViewNodeList";
+      for (var i = 0; i < data.children.length; ++i) {
+        div.pendingExpand.push({parentElement: ol, parentNode: div, data: data.children[i].getData() });
       }
     }
     if (parentNode) {
@@ -311,6 +313,9 @@ TreeView.prototype = {
       node.library.toLowerCase() == "xul.dll"
       )) {
       menu.push("View Source");
+    }
+    if (node.isJSFrame && node.scriptLocation) {
+      menu.push("View JS Source");
     }
     menu.push("Focus Frame");
     menu.push("Focus Callstack");
