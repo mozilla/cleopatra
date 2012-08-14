@@ -73,6 +73,10 @@ SourceView.prototype = {
       this._sourceDiv.appendChild(lineTextDiv);
       this._sourceDiv.appendChild(lineBreak);
       this._sourceLinesObj.push( [lineCountDiv, lineTextDiv] );
+      if (i == this._scriptLocation.lineInformation - 1) {
+        lineTextDiv.scrollIntoView();
+        lineTextDiv.style.backgroundColor = "rgba(200,0,0,0.5)";
+      }
     }
   },
 

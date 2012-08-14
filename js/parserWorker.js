@@ -297,7 +297,7 @@ function parseRawProfile(requestID, rawProfile) {
     if (!match && jsMatch1) {
       scriptLocation = {
         scriptURI: parseScriptURI(jsMatch1[2]),
-        lineInformation: -1
+        lineInformation: jsMatch1[3]
       };
       match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
       isJSFrame = true;
@@ -307,7 +307,7 @@ function parseRawProfile(requestID, rawProfile) {
     if (!match && jsMatch2) {
       scriptLocation = {
         scriptURI: parseScriptURI(jsMatch2[1]),
-        lineInformation: -1
+        lineInformation: jsMatch2[2]
       };
       match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
       isJSFrame = true;
