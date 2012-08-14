@@ -276,6 +276,14 @@ function parseRawProfile(requestID, rawProfile) {
      return match[1] + ".js";
   }
 
+  function parseScriptURI(url) {
+    if (url) {
+      var urlTokens = url.split(" ");
+      url = urlTokens[urlTokens.length-1];
+    }
+    return url;
+  }
+
   function getFunctionInfo(fullName) {
     var isJSFrame = false;
     var match =
@@ -288,7 +296,7 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
     if (!match && jsMatch1) {
       scriptLocation = {
-        scriptURI: jsMatch1[2],
+        scriptURI: parseScriptURI(jsMatch1[2]),
         lineInformation: -1
       };
       match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
@@ -298,7 +306,7 @@ function parseRawProfile(requestID, rawProfile) {
       /^(.*):([0-9]+)$/.exec(fullName);
     if (!match && jsMatch2) {
       scriptLocation = {
-        scriptURI: jsMatch2[1],
+        scriptURI: parseScriptURI(jsMatch2[1]),
         lineInformation: -1
       };
       match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
@@ -450,7 +458,7 @@ function parseRawProfile(requestID, rawProfile) {
       profileSamples = profile;
     }
     var rootSymbol = null;
-    var insertCommonRoot = true;
+    var insertCommonRoot = false;
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
@@ -490,6 +498,7 @@ function parseRawProfile(requestID, rawProfile) {
       var rootIndex = indexForSymbol("(root)");
       for (var i = 0; i < samples.length; i++) {
         var sample = samples[i];
+        if (!sample) continue;
         // If length == 0 then the sample was filtered when saving the profile
         if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
           sample.frames.splice(0, 0, rootIndex)
