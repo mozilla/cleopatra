@@ -203,7 +203,7 @@ function parseRawProfile(requestID, rawProfile) {
     rawProfile = JSON.parse(rawProfile);
   }
 
-  if (!rawProfile.profileJSON.meta  && rawProfile.meta) {
+  if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
   }
 
