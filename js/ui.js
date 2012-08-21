@@ -1247,8 +1247,13 @@ function enterFinishedProfileUI() {
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
 
+  // For testing:
+  //gMeta.videoCapture = {
+  //  src: "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm",
+  //};
+
   if (gMeta.videoCapture) {
-    gVideoPane = new VideoPane();
+    gVideoPane = new VideoPane(gMeta.videoCapture);
     gVideoPane.onTimeChange(videoPaneTimeChange);
     currRow = finishedProfilePane.insertRow(rowIndex++);
     currRow.insertCell(0).appendChild(gVideoPane.getContainer());

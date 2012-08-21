@@ -1,4 +1,4 @@
-function VideoPane() {
+function VideoPane(videoCapture) {
   this._container = document.createElement("div");
   this._container.className = "videoPane";
   this._onTimeChange = null;
@@ -7,10 +7,8 @@ function VideoPane() {
   this._video.className = "video";
   this._video.width = 480;
   this._video.controls = "controls";
-  this._video.src = "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm";
+  this._video.src = videoCapture.src;
   this._container.appendChild(this._video);
-
-  //this._container.innerHTML = "<center><video width=300 height=300 controls=controls><source src='http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm' type='video/webm' /></video></center>";
 }
 
 VideoPane.prototype = {
