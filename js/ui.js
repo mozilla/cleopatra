@@ -1252,7 +1252,7 @@ function enterFinishedProfileUI() {
   //  src: "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm",
   //};
 
-  if (gMeta.videoCapture) {
+  if (gMeta && gMeta.videoCapture) {
     gVideoPane = new VideoPane(gMeta.videoCapture);
     gVideoPane.onTimeChange(videoPaneTimeChange);
     currRow = finishedProfilePane.insertRow(rowIndex++);
