@@ -257,6 +257,7 @@ TreeView.prototype = {
       for (var i = 0; i < data.children.length; ++i) {
         div.pendingExpand.push({parentElement: parent, parentNode: div, data: data.children[i].getData() });
       }
+      div.appendChild(parent);
     }
     if (parentNode) {
       parentNode.treeChildren.push(div);
