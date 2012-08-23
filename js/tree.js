@@ -264,14 +264,6 @@ TreeView.prototype = {
     parentElement.appendChild(div);
     return div;
   },
-  _getDepth: function TreeView__getDepth(element) {
-    var depth = 0;
-    while (element && element != this._horizontalScrollbox) {
-      depth++;
-      element = element.parentNode;
-    }
-    return depth;
-  },
   _populateContextMenu: function TreeView__populateContextMenu(event) {
     this._verticalScrollbox.setAttribute("contextmenu", "");
 
