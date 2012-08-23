@@ -252,10 +252,10 @@ TreeView.prototype = {
     div.treeChildren = [];
     div.treeParent = parentNode;
     if (hasChildren) {
-      var ol = document.createElement("ol");
-      ol.className = "treeViewNodeList";
+      var parent = document.createElement("div");
+      parent.className = "treeViewNodeList";
       for (var i = 0; i < data.children.length; ++i) {
-        div.pendingExpand.push({parentElement: ol, parentNode: div, data: data.children[i].getData() });
+        div.pendingExpand.push({parentElement: parent, parentNode: div, data: data.children[i].getData() });
       }
     }
     if (parentNode) {
