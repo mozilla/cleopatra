@@ -222,7 +222,7 @@ function parseRawProfile(requestID, rawProfile) {
         parseProfileJSON(rawProfile.profileJSON);
         break;
       default:
-        throw new Error("Unsupported profile JSON format");
+        parseProfileJSON(rawProfile);
     }
   } else {
     parseProfileString(rawProfile);
