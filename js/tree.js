@@ -328,9 +328,15 @@ TreeView.prototype = {
       nodeName = nodeName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
       libName = libName.replace(this._filterByNameReg, "<a style='color:red;'>$1</a>");
     }
+    var samplePercentage;
+    if (isNaN(node.ratio)) {
+      samplePercentage = "";
+    } else {
+      samplePercentage = (100 * node.ratio).toFixed(1) + "%";
+    }
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
       '<span class="sampleCount">' + node.counter + '</span> ' +
-      '<span class="samplePercentage">' + (100 * node.ratio).toFixed(1) + '%</span> ' +
+      '<span class="samplePercentage">' + samplePercentage + '</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
       '<span class="functionName">' + nodeName + '</span>' +
       '<span class="libraryName">' + libName + '</span>' +

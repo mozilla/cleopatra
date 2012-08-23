@@ -49,7 +49,7 @@ function WorkerRequest(worker) {
     var readTime = Date.now() - startTime;
     if (readTime > 10)
       console.log("reading data from worker message: " + readTime + "ms");
-    if (data.requestID == requestID) {
+    if (data.requestID == requestID || !data.requestID) {
       switch(data.type) {
         case "error":
           self._sendChunkReporter.setAction("Error in worker: " + data.error);

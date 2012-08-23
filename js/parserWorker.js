@@ -105,6 +105,10 @@ self.onmessage = function (msg) {
   }
 }
 
+function sendError(error) {
+  sendError(null, error);
+}
+
 function sendError(requestID, error) {
   self.postMessage({
     requestID: requestID,
@@ -588,8 +592,8 @@ TreeNode.prototype.incrementCountersInParentChain = function TreeNode_incrementC
 function convertToCallTree(samples, isReverse) {
   function areSamplesMultiroot(samples) {
     var previousRoot;
-    for (var i = 1; i < samples.length; ++i) {
-      if (!samples[0].frames) continue;
+    for (var i = 0; i < samples.length; ++i) {
+      if (!samples[i].frames) continue;
       if (!previousRoot) {
         previousRoot = samples[i].frames[0];
         continue;
@@ -605,13 +609,17 @@ function convertToCallTree(samples, isReverse) {
   });
   if (samples.length == 0)
     return new TreeNode("(empty)", null, 0);
-  var multiRoot = areSamplesMultiroot(samples);
-  var firstRoot;
-  for (var i = 1; i < samples.length; ++i) {
-    if (!samples[0].frames) continue;
+  var firstRoot = null;
+  for (var i = 0; i < samples.length; ++i) {
+    if (!samples[i].frames) continue;
+    sendError(null, "got root: " + samples[i].frames[0]);
     firstRoot = samples[i].frames[0];
     break;
   }
+  if (firstRoot == null) {
+    return new TreeNode("(all filtered)", null, 0);
+  }
+  var multiRoot = areSamplesMultiroot(samples);
   var treeRoot = new TreeNode((isReverse || multiRoot) ? "(total)" : firstRoot, null, 0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
