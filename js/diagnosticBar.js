@@ -101,7 +101,7 @@ function hasJSFrame(frames, symbols) {
   return false;
 }
 function stepContains(substring, frames, symbols) {
-  for (var i = 0; i < frames.length; i++) {
+  for (var i = 0; frames && i < frames.length; i++) {
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     if (frameSym.indexOf(substring) != -1) {
       return true;
@@ -111,7 +111,7 @@ function stepContains(substring, frames, symbols) {
 }
 function symbolSequence(symbolsOrder, frames, symbols) {
   var symbolIndex = 0;
-  for (var i = 0; i < frames.length; i++) {
+  for (var i = 0; frames && i < frames.length; i++) {
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     var substring = symbolsOrder[symbolIndex];
     if (frameSym.indexOf(substring) != -1) {
