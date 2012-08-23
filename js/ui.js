@@ -351,7 +351,7 @@ HistogramView.prototype = {
     var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
     for (var i = 0; i < data.length; i++) {
       var step = data[i];
-      if (!step) {
+      if (!step || !step.frames) {
         // Add a gap for the sample that was filtered out.
         nextX += 1 / samplesPerStep;
         continue;
