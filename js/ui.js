@@ -338,7 +338,7 @@ HistogramView.prototype = {
     for (var i = 0; i < data.length; ++i) {
       if (!data[i])
         continue;
-      var value = data[i].frames.length;
+      var value = data[i].frames ? data[i].frames.length : 0;
       if (maxHeight < value)
         maxHeight = value;
     }
@@ -351,7 +351,7 @@ HistogramView.prototype = {
     var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
     for (var i = 0; i < data.length; i++) {
       var step = data[i];
-      if (!step) {
+      if (!step || !step.frames) {
         // Add a gap for the sample that was filtered out.
         nextX += 1 / samplesPerStep;
         continue;
@@ -577,7 +577,7 @@ function BreadcrumbTrail() {
   this._breadcrumbs = [];
   this._selectedBreadcrumbIndex = -1;
 
-  this._containerElement = document.createElement("ol");
+  this._containerElement = document.createElement("div");
   this._containerElement.className = "breadcrumbTrail";
   var self = this;
   this._containerElement.addEventListener("click", function (e) {
@@ -601,32 +601,32 @@ BreadcrumbTrail.prototype = {
     for (var i = this._breadcrumbs.length - 1; i > this._selectedBreadcrumbIndex; i--) {
       var rearLi = this._breadcrumbs[i];
       if (!rearLi.breadcrumbIsTransient)
-        throw "Can only add new breadcrumbs if after the current one there are only transient ones."
+        throw "Can only add new breadcrumbs if after the current one there are only transient ones.";
       rearLi.breadcrumbDiscarder.discard();
     }
-    var li = document.createElement("li");
-    li.className = "breadcrumbTrailItem";
-    li.textContent = breadcrumb.title;
+    var div = document.createElement("div");
+    div.className = "breadcrumbTrailItem";
+    div.textContent = breadcrumb.title;
     var index = this._breadcrumbs.length;
-    li.breadcrumbIndex = index;
-    li.breadcrumbEnterCallback = breadcrumb.enterCallback;
-    li.breadcrumbIsTransient = true;
-    li.style.zIndex = 1000 - index;
-    this._containerElement.appendChild(li);
-    this._breadcrumbs.push(li);
+    div.breadcrumbIndex = index;
+    div.breadcrumbEnterCallback = breadcrumb.enterCallback;
+    div.breadcrumbIsTransient = true;
+    div.style.zIndex = 1000 - index;
+    this._containerElement.appendChild(div);
+    this._breadcrumbs.push(div);
     if (index == 0)
       this._enter(index);
     var self = this;
-    li.breadcrumbDiscarder = {
+    div.breadcrumbDiscarder = {
       discard: function () {
-        if (li.breadcrumbIsTransient) {
+        if (div.breadcrumbIsTransient) {
           self._deleteBeyond(index - 1);
-          delete li.breadcrumbIsTransient;
-          delete li.breadcrumbDiscarder;
+          delete div.breadcrumbIsTransient;
+          delete div.breadcrumbDiscarder;
         }
       }
     };
-    return li.breadcrumbDiscarder;
+    return div.breadcrumbDiscarder;
   },
   addAndEnter: function BreadcrumbTrail_addAndEnter(breadcrumb) {
     var removalHandle = this.add(breadcrumb);
