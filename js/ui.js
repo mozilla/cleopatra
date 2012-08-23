@@ -338,7 +338,7 @@ HistogramView.prototype = {
     for (var i = 0; i < data.length; ++i) {
       if (!data[i])
         continue;
-      var value = data[i].frames.length;
+      var value = data[i].frames ? data[i].frames.length : 0;
       if (maxHeight < value)
         maxHeight = value;
     }
