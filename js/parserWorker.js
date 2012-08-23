@@ -606,7 +606,13 @@ function convertToCallTree(samples, isReverse) {
   if (samples.length == 0)
     return new TreeNode("(empty)", null, 0);
   var multiRoot = areSamplesMultiroot(samples);
-  var treeRoot = new TreeNode((isReverse || multiRoot) ? "(total)" : samples[0].frames[0], null, 0);
+  var firstRoot;
+  for (var i = 1; i < samples.length; ++i) {
+    if (!samples[0].frames) continue;
+    firstRoot = samples[i].frames[0];
+    break;
+  }
+  var treeRoot = new TreeNode((isReverse || multiRoot) ? "(total)" : firstRoot, null, 0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
     if (!sample.frames) {
