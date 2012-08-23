@@ -131,11 +131,11 @@
   color: #999;
 }
 
-.treeViewNode > .treeViewNode {
+.treeViewNode > .treeViewNodeList {
   margin-left: 1em;
 }
 
-.treeViewNode.collapsed > .treeViewNode {
+.treeViewNode.collapsed > .treeViewNodeList {
   display: none;
 }
 
