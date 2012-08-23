@@ -587,8 +587,13 @@ TreeNode.prototype.incrementCountersInParentChain = function TreeNode_incrementC
 
 function convertToCallTree(samples, isReverse) {
   function areSamplesMultiroot(samples) {
-    var previousRoot = samples[0].frames[0];
+    var previousRoot;
     for (var i = 1; i < samples.length; ++i) {
+      if (!samples[0].frames) continue;
+      if (!previousRoot) {
+        previousRoot = samples[i].frames[0];
+        continue;
+      }
       if (previousRoot != samples[i].frames[0]) {
         return true;
       }
