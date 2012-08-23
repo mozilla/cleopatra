@@ -1,5 +1,4 @@
 var kMaxChunkDuration = 30; // ms
-var kMaxRenderDepth = 200; // Effectively disable it
 
 var escape = document.createElement('textarea');
 
@@ -38,7 +37,7 @@ function TreeView() {
   this._leftColumnBackground.className = "leftColumnBackground";
   this._verticalScrollbox.appendChild(this._leftColumnBackground);
 
-  this._horizontalScrollbox = document.createElement("ol");
+  this._horizontalScrollbox = document.createElement("div");
   this._horizontalScrollbox.className = "treeViewHorizontalScrollbox";
   this._verticalScrollbox.appendChild(this._horizontalScrollbox);
 
@@ -237,42 +236,34 @@ TreeView.prototype = {
     this._leftColumnBackground.style.height = this._horizontalScrollbox.getBoundingClientRect().height + 'px';
   },
   _createTree: function TreeView__createTree(parentElement, parentNode, data) {
-    var li = document.createElement("li");
-    li.className = "treeViewNode collapsed";
+    var div = document.createElement("div");
+    div.className = "treeViewNode collapsed";
     var hasChildren = ("children" in data) && (data.children.length > 0);
     if (!hasChildren)
-      li.classList.add("leaf");
+      div.classList.add("leaf");
     var treeLine = document.createElement("div");
     treeLine.className = "treeLine";
     treeLine.innerHTML = this._HTMLForFunction(data);
     // When this item is toggled we will expand its children
-    li.pendingExpand = [];
-    li.treeLine = treeLine;
-    li.data = data;
-    li.appendChild(treeLine);
-    li.treeChildren = [];
-    li.treeParent = parentNode;
-    if (hasChildren && this._getDepth(parentElement) < kMaxRenderDepth) {
-      var ol = document.createElement("ol");
-      ol.className = "treeViewNodeList";
+    div.pendingExpand = [];
+    div.treeLine = treeLine;
+    div.data = data;
+    div.appendChild(treeLine);
+    div.treeChildren = [];
+    div.treeParent = parentNode;
+    if (hasChildren) {
+      var parent = document.createElement("div");
+      parent.className = "treeViewNodeList";
       for (var i = 0; i < data.children.length; ++i) {
-        li.pendingExpand.push({parentElement: ol, parentNode: li, data: data.children[i].getData() });
+        div.pendingExpand.push({parentElement: parent, parentNode: div, data: data.children[i].getData() });
       }
-      li.appendChild(ol);
+      div.appendChild(parent);
     }
     if (parentNode) {
-      parentNode.treeChildren.push(li);
+      parentNode.treeChildren.push(div);
     }
-    parentElement.appendChild(li);
-    return li;
-  },
-  _getDepth: function TreeView__getDepth(element) {
-    var depth = 0;
-    while (element && element != this._horizontalScrollbox) {
-      depth++;
-      element = element.parentNode;
-    }
-    return depth;
+    parentElement.appendChild(div);
+    return div;
   },
   _populateContextMenu: function TreeView__populateContextMenu(event) {
     this._verticalScrollbox.setAttribute("contextmenu", "");

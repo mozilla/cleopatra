@@ -66,7 +66,6 @@
   overflow-x: hidden;
 }
 
-.treeViewNodeList,
 .treeViewNode,
 .treeViewHorizontalScrollbox {
   display: block;
@@ -74,9 +73,9 @@
   padding: 0;
 }
 
-.treeViewNodeList,
 .treeViewNode {
   min-width: -moz-min-content;
+  white-space: nowrap;
 }
 
 .treeViewHorizontalScrollbox {
@@ -132,18 +131,12 @@
   color: #999;
 }
 
-.treeViewNodeList {
+.treeViewNode > .treeViewNodeList {
   margin-left: 1em;
-  white-space: nowrap;
 }
 
 .treeViewNode.collapsed > .treeViewNodeList {
   display: none;
-}
-
-.treeLine {
-  margin-left: -10000px;
-  padding-left: 10000px;
 }
 
 .treeLine.selected {
