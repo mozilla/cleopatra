@@ -6,7 +6,27 @@
   right: 0;
   z-index: 2000;
   background-color: white;
-  overflow:scroll;
+}
+
+.sourceContainer {
+  overflow: scroll;
+  position: absolute;
+  top: 30px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+}
+
+.lineCountDiv {
+  min-width: 30px;
+  max-width: 30px;
+  overflow-x: hidden;
+  display: inline-block;
+  float: left;
+}
+
+.lineSourceDiv {
+  display: inline-block;
 }
 
 .sourceViewTrail {
@@ -21,12 +41,12 @@
   overflow: hidden;
 }
 
-.sourceViewTrailItem {
+.sourceViewTrailItem,
+.sourceViewTrailButton {
   background: -moz-linear-gradient(#FFF 50%, #F3F3F3 55%);
   display: block;
   margin: 0;
   padding: 0;
-  float: left;
   line-height: 29px;
   -moz-user-select: none;
   cursor: default;
@@ -35,6 +55,10 @@
   border-right: 1px solid #CCC;
   text-overflow: ellipsis;
   white-space: nowrap;
-  position: relative;
+  /*position: relative;*/
+}
+
+.sourceViewTrailButton {
+  float: left;
 }
 

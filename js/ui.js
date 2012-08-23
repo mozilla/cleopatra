@@ -246,6 +246,10 @@ HistogramView.prototype = {
   getContainer: function HistogramView_getContainer() {
     return this._container;
   },
+  showVideoPosition: function HistogramView_showVideoPosition(position) {
+    // position in 0..1
+    this._rangeSelector.showVideoPosition(position);
+  },
   _gatherMarkersList: function HistogramView__gatherMarkersList(histogramData) {
     var markers = [];
     for (var i = 0; i < histogramData.length; ++i) {
@@ -425,6 +429,10 @@ RangeSelector.prototype = {
     var mouseMarker = this._mouseMarker;
     mouseMarker.style.left = x + "px";
   },
+  showVideoPosition: function RangeSelector_showVideoPosition(position) {
+    this.drawMouseMarker(position * this._graph.parentNode.clientWidth);
+    dump("Show video position: " + position + "\n");
+  },
   drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
     var hilite = this._highlighter;
     hilite.style.left = x + "px";
@@ -547,6 +555,11 @@ RangeSelector.prototype = {
     return parseInt(parseFloat(x) * factor);
   },
 };
+
+function videoPaneTimeChange(video) {
+  gHistogramView.showVideoPosition(video.currentTime / video.duration); 
+}
+
 
 window.onpopstate = function(ev) {
   console.log("pop: " + JSON.stringify(ev.state));
@@ -932,6 +945,7 @@ var gTreeManager = null;
 var gBreadcrumbTrail = null;
 var gHistogramView = null;
 var gDiagnosticBar = null;
+var gVideoPane = null;
 var gPluginView = null;
 var gFileList = null;
 var gInfoBar = null;
@@ -1211,6 +1225,7 @@ function enterFinishedProfileUI() {
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
 
   var finishedProfilePane = document.createElement("table");
+  var rowIndex = 0;
   var currRow;
   finishedProfilePane.style.width = "100%";
   finishedProfilePane.style.height = "100%";
@@ -1221,23 +1236,35 @@ function enterFinishedProfileUI() {
   finishedProfilePane.className = "finishedProfilePane";
 
   gBreadcrumbTrail = new BreadcrumbTrail();
-  currRow = finishedProfilePane.insertRow(0);
+  currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
 
   gHistogramView = new HistogramView();
-  currRow = finishedProfilePane.insertRow(1);
+  currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gHistogramView.getContainer());
 
   gDiagnosticBar = new DiagnosticBar();
-  currRow = finishedProfilePane.insertRow(2);
+  currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
+
+  // For testing:
+  //gMeta.videoCapture = {
+  //  src: "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm",
+  //};
+
+  if (gMeta.videoCapture) {
+    gVideoPane = new VideoPane(gMeta.videoCapture);
+    gVideoPane.onTimeChange(videoPaneTimeChange);
+    currRow = finishedProfilePane.insertRow(rowIndex++);
+    currRow.insertCell(0).appendChild(gVideoPane.getContainer());
+  }
 
   var dummyDiv = document.createElement("div");
   dummyDiv.style.width = "100%";
   dummyDiv.style.height = "100%";
 
   gTreeManager = new ProfileTreeManager();
-  currRow = finishedProfilePane.insertRow(3);
+  currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.style.height = "100%";
   var cell = currRow.insertCell(0);
   cell.appendChild(dummyDiv);
