@@ -105,11 +105,13 @@ self.onmessage = function (msg) {
   }
 }
 
-function sendError(error) {
-  sendError(null, error);
-}
-
 function sendError(requestID, error) {
+  // support sendError(msg)
+  if (error == null) {
+    error = requestID;
+    requestID = null;
+  }
+
   self.postMessage({
     requestID: requestID,
     type: "error",
