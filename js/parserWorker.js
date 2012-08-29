@@ -330,12 +330,13 @@ function parseRawProfile(requestID, rawProfile) {
     };
   }
 
-  function indexForFunction(functionName, libraryName, isJSFrame, scriptLocation) {
+  function indexForFunction(symbol, functionName, libraryName, isJSFrame, scriptLocation) {
     var resolve = functionName+"_LIBNAME_"+libraryName;
     if (resolve in functionIndices)
       return functionIndices[resolve];
     var newIndex = functions.length;
     functions[newIndex] = {
+      symbol: symbol,
       functionName: functionName,
       libraryName: libraryName,
       isJSFrame: isJSFrame,
@@ -347,10 +348,13 @@ function parseRawProfile(requestID, rawProfile) {
 
   function parseSymbol(symbol) {
     var info = getFunctionInfo(symbol);
+    dump("Parse symbol: " + symbol + "\n");
+    if (info.isJSFrame)
+      dump("  isJS: " + symbol + "\n");
     return {
       symbolName: symbol,
       functionName: info.functionName,
-      functionIndex: indexForFunction(info.functionName, info.libraryName, info.isJSFrame, info.scriptLocation),
+      functionIndex: indexForFunction(symbol, info.functionName, info.libraryName, info.isJSFrame, info.scriptLocation),
       lineInformation: info.lineInformation,
       isJSFrame: info.isJSFrame,
       scriptLocation: info.scriptLocation
@@ -540,7 +544,7 @@ function getSerializedProfile(requestID, profileID, complete) {
   } else {
     for (var functionIndex in profile.functions) {
       var f = profile.functions[functionIndex];
-      symbolicationTable[functionIndex] = f.functionName + " (in " + f.libraryName + ")";
+      symbolicationTable[functionIndex] = f.symbol;
     }
   }
   var serializedProfile = JSON.stringify({
