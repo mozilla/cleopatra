@@ -531,6 +531,15 @@ TreeView.prototype = {
       var isCollapsed = this._isCollapsed(selected);
       if (isCollapsed) {
         this._toggle(selected);
+      } else {
+        // Do KEY_DOWN
+        var nextSib = this._getNextSib(selected);
+        var child = this._getFirstChild(selected); 
+        if (child != null) {
+          this._select(child);
+        } else if (nextSib) {
+          this._select(nextSib);
+        }
       }
     } else if (event.keyCode == 40) { // KEY_DOWN
       var nextSib = this._getNextSib(selected);
