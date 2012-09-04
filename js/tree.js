@@ -48,7 +48,7 @@ function TreeView() {
 
   this._busyCover = document.createElement("div");
   this._busyCover.className = "busyCover";
-  this._verticalScrollbox.appendChild(this._busyCover);
+  this._container.appendChild(this._busyCover);
   this._abortToggleAll = false;
 
   var self = this;
