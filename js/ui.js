@@ -78,8 +78,8 @@ ProfileTreeManager.prototype = {
   saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getSelectionSnapshot(isJavascriptOnly);
   },
-  saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot() {
-    this._savedSnapshot = this.treeView.getReverseSelectionSnapshot();
+  saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot(isJavascriptOnly) {
+    this._savedSnapshot = this.treeView.getReverseSelectionSnapshot(isJavascriptOnly);
   },
   _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot) {
     return this.treeView.restoreSelectionSnapshot(snapshot);
@@ -1081,7 +1081,7 @@ function importFromAddonFinish(rawProfile) {
 
 var gInvertCallstack = false;
 function toggleInvertCallStack() {
-  gTreeManager.saveReverseSelectionSnapshot();
+  gTreeManager.saveReverseSelectionSnapshot(gJavascriptOnly);
   gInvertCallstack = !gInvertCallstack;
   var startTime = Date.now();
   viewOptionsChanged();
