@@ -928,7 +928,9 @@ InfoBar.prototype = {
       filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
       //filterNameInputNew.value = filterNameInputOld.value;
     }
-    document.getElementById('upload').onclick = uploadProfile;
+    document.getElementById('upload').onclick = function() {
+      uploadProfile(false);
+    };
     document.getElementById('download').onclick = downloadProfile;
     document.getElementById('upload_select').onclick = function() {
       uploadProfile(true);
