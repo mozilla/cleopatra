@@ -71,7 +71,7 @@ var diagnosticList = [
         return "" +
           "Reason: " + slice.reason + "\n" +
           "Slice: " + slice.slice + "\n" +
-          "Pause: " + slice.pause;
+          "Pause: " + slice.pause + " ms";
       }
       return null;
     },
@@ -79,6 +79,36 @@ var diagnosticList = [
       var gcEvent = findGCEvent(frames, symbols, meta, step);
       if (gcEvent) {
         return JSON.stringify(gcEvent);
+      } else {
+        return null;
+      }
+    },
+  },
+  {
+    image: "cc.png",
+    title: "Cycle Collect",
+    check: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+
+      if (ccEvent) {
+        dump("Found\n");
+        return true;
+      }
+      return false;
+    },
+    details: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+      if (ccEvent) {
+        return "" +
+          "Duration: " + ccEvent.duration + " ms\n" +
+          "Suspected: " + ccEvent.suspected;
+      }
+      return null;
+    },
+    onclickDetails: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+      if (ccEvent) {
+        return JSON.stringify(ccEvent);
       } else {
         return null;
       }
@@ -135,6 +165,22 @@ function hasJSFrame(frames, symbols) {
     }
   }
   return false;
+}
+function findCCEvent(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.ccEvents.length; i++) {
+    var ccEvent = meta.gcStats.ccEvents[i];
+    if (ccEvent.start_timestamp <= time && ccEvent.end_timestamp >= time) {
+      //dump("JSON: " + js_beautify(JSON.stringify(ccEvent)) + "\n");
+      return ccEvent;
+    }
+  }
+
+  return null;
 }
 function findGCEvent(frames, symbols, meta, step) {
   if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
