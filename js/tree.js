@@ -106,6 +106,25 @@ TreeView.prototype = {
     this._toggle(this._horizontalScrollbox.firstChild);
     this._container.focus();
   },
+  // Provide a snapshot of the reverse selection to restore with 'invert callback'
+  getReverseSelectionSnapshot: function TreeView__getReverseSelectionSnapshot() {
+    if (!this._selectedNode)
+      return;
+    var snapshot = [];
+    var curr = this._selectedNode.data;
+
+    while(curr) {
+      snapshot.push(curr.name);
+      //dump(JSON.stringify(curr.name) + "\n");
+      if (curr.children && curr.children.length >= 1) {
+        curr = curr.children[0].getData();
+      } else {
+        break;
+      }
+    }
+
+    return snapshot.reverse();
+  },
   // Provide a snapshot of the current selection to restore
   getSelectionSnapshot: function TreeView__getSelectionSnapshot() {
     var snapshot = [];
@@ -126,7 +145,7 @@ TreeView.prototype = {
       snapshot.shift();
     } else {
       dump("root not matching\n");
-      return;
+      //return;
     }
     next_level: while (currNode && snapshot.length > 0) {
       this._toggle(currNode, false, true);

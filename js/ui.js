@@ -78,6 +78,9 @@ ProfileTreeManager.prototype = {
   saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot() {
     this._savedSnapshot = this.treeView.getSelectionSnapshot();
   },
+  saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot() {
+    this._savedSnapshot = this.treeView.getReverseSelectionSnapshot();
+  },
   _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot) {
     return this.treeView.restoreSelectionSnapshot(snapshot);
   },
@@ -1078,6 +1081,7 @@ function importFromAddonFinish(rawProfile) {
 
 var gInvertCallstack = false;
 function toggleInvertCallStack() {
+  gTreeManager.saveReverseSelectionSnapshot();
   gInvertCallstack = !gInvertCallstack;
   var startTime = Date.now();
   viewOptionsChanged();
