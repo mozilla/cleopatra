@@ -114,9 +114,10 @@ TreeView.prototype = {
     var curr = this._selectedNode.data;
 
     while(curr) {
-      if (isJavascriptOnly && curr.isJSFrame)
-      snapshot.push(curr.name);
-      //dump(JSON.stringify(curr.name) + "\n");
+      if (isJavascriptOnly && curr.isJSFrame || !isJavascriptOnly) {
+        snapshot.push(curr.name);
+        //dump(JSON.stringify(curr.name) + "\n");
+      }
       if (curr.children && curr.children.length >= 1) {
         curr = curr.children[0].getData();
       } else {
@@ -132,9 +133,9 @@ TreeView.prototype = {
     var curr = this._selectedNode;
 
     while(curr) {
-      if (isJavascriptOnly && curr.data.isJSFrame) {
+      if (isJavascriptOnly && curr.data.isJSFrame || !isJavascriptOnly) {
         snapshot.push(curr.data.name);
-        dump(JSON.stringify(curr.data.name) + "\n");
+        //dump(JSON.stringify(curr.data.name) + "\n");
       }
       curr = curr.treeParent;
     }
@@ -142,14 +143,15 @@ TreeView.prototype = {
     return snapshot.reverse();
   },
   // Take a selection snapshot and restore the selection
-  restoreSelectionSnapshot: function TreeView__restoreSelectionSnapshot(snapshot) {
+  restoreSelectionSnapshot: function TreeView__restoreSelectionSnapshot(snapshot, allowNonContigious) {
     var currNode = this._horizontalScrollbox.firstChild;
-    if (currNode.data.name == snapshot[0]) {
+    if (currNode.data.name == snapshot[0] || snapshot[0] == "(total)") {
       snapshot.shift();
     } else {
-      dump("root not matching\n");
+      //dump("root not matching\n");
       //return;
     }
+    //dump("len: " + snapshot.length + "\n");
     next_level: while (currNode && snapshot.length > 0) {
       this._toggle(currNode, false, true);
       this._syncProcessPendingActionProcessing();
@@ -160,6 +162,42 @@ TreeView.prototype = {
           this._toggle(currNode, false, true);
           currNode = currNode.treeChildren[i];
           continue next_level;
+        }
+      }
+      if (allowNonContigious === true) {
+        // We need to do a Breadth-first search to find a match
+        var pendingSearch = [currNode.data];
+        while (pendingSearch.length > 0) {
+          var node = pendingSearch.shift();
+          //dump("searching: " + node.name + " for: " + snapshot[0] + "\n");
+          if (!node.children)
+            continue;
+          for (var i = 0; i < node.children.length; i++) {
+            var childNode = node.children[i].getData();
+            if (childNode.name == snapshot[0]) {
+              //dump("found: " + childNode.name + "\n");
+              snapshot.shift();
+              var nodesToToggle = [childNode];
+              while (nodesToToggle[0].name != currNode.data.name) {
+                nodesToToggle.splice(0, 0, nodesToToggle[0].parent);
+              }
+              var lastToggle = currNode;
+              for (var j = 0; j < nodesToToggle.length; j++) {
+                for (var k = 0; k < lastToggle.treeChildren.length; k++) {
+                  if (lastToggle.treeChildren[k].data.name == nodesToToggle[j].name) {
+                    //dump("Expend: " + nodesToToggle[j].name + "\n");
+                    this._toggle(lastToggle.treeChildren[k], false, true);
+                    lastToggle = lastToggle.treeChildren[k];
+                    this._syncProcessPendingActionProcessing();
+                  }
+                }
+              }
+              currNode = lastToggle;
+              continue next_level;
+            }
+            //dump("pending: " + childNode.name + "\n");
+            pendingSearch.push(childNode);
+          }
         }
       }
       break; // Didn't find child node matching

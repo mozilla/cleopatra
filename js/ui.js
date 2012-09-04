@@ -81,8 +81,8 @@ ProfileTreeManager.prototype = {
   saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getReverseSelectionSnapshot(isJavascriptOnly);
   },
-  _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot) {
-    return this.treeView.restoreSelectionSnapshot(snapshot);
+  _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot, allowNonContigous) {
+    return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
   },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
     var callstack = [];
@@ -125,11 +125,15 @@ ProfileTreeManager.prototype = {
       focusOnCallstack(focusedCallstack, node.name);
     }
   },
+  setAllowNonContigous: function ProfileTreeManager_setAllowNonContigous() {
+    this._allowNonContigous = true;
+  },
   display: function ProfileTreeManager_display(tree, symbols, functions, useFunctions, filterByName) {
     this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), filterByName);
     if (this._savedSnapshot) {
-      this._restoreSelectionSnapshot(this._savedSnapshot);
+      this._restoreSelectionSnapshot(this._savedSnapshot, this._allowNonContigous);
       this._savedSnapshot = null;
+      this._allowNonContigous = false;
     }
   },
   convertToJSTreeData: function ProfileTreeManager__convertToJSTreeData(rootNode, symbols, functions, useFunctions) {
@@ -898,7 +902,8 @@ InfoBar.prototype = {
     infoText += "  <li>Real Interval: " + effectiveInterval() + "</li>";
     infoText += "</ul>\n";
     infoText += "<h2>Pre Filtering</h2>\n";
-    infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
+    // Disable for now since it's buggy and not useful
+    //infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
     infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
 
     var filterNameInputOld = document.getElementById("filterName");
@@ -1114,6 +1119,12 @@ function toggleJank(/* optional */ threshold) {
 
 var gJavascriptOnly = false;
 function toggleJavascriptOnly() {
+  if (gJavascriptOnly) {
+    // When going from JS only to non js there's going to be new C++
+    // frames in the selection so we need to restore the selection
+    // while allowing non contigous symbols to be in the stack (the c++ ones)
+    gTreeManager.setAllowNonContigous();
+  }
   gJavascriptOnly = !gJavascriptOnly;
   gTreeManager.saveSelectionSnapshot(gJavascriptOnly);
   filtersChanged();

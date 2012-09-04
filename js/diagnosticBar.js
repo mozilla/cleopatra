@@ -59,8 +59,8 @@ var diagnosticList = [
 
       if (slice) {
         var gcEvent = findGCEvent(frames, symbols, meta, step);
-        dump("found event matching diagnostic\n");
-        dump(JSON.stringify(gcEvent) + "\n");
+        //dump("found event matching diagnostic\n");
+        //dump(JSON.stringify(gcEvent) + "\n");
         return true;
       }
       return false;
