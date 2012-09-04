@@ -1248,6 +1248,11 @@ function enterFinishedProfileUI() {
   currRow.insertCell(0).appendChild(gHistogramView.getContainer());
 
   gDiagnosticBar = new DiagnosticBar();
+  gDiagnosticBar.setDetailsListener(function(details) {
+    var sourceView = new SourceView();
+    sourceView.setText("Diagnostic", js_beautify(details));
+    gMainArea.appendChild(sourceView.getContainer());
+  });
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
 
@@ -1312,7 +1317,7 @@ function filtersChanged() {
     gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
 
-    gDiagnosticBar.display(gCurrentlyShownSampleData, gHighlightedCallstack,
+    gDiagnosticBar.display(gMeta, gCurrentlyShownSampleData, gHighlightedCallstack,
                            gHistogramView.getHistogramData(), gFunctions);
 
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {

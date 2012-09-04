@@ -250,17 +250,17 @@ function parseRawProfile(requestID, rawProfile) {
 
       for (var i in meta.addons) {
         var addon = meta.addons[i];
-        dump("match " + addon.id + " vs. " + jetpackID + "\n");
+        //dump("match " + addon.id + " vs. " + jetpackID + "\n");
         // TODO handle lowercase name collision
         if (addon.id.toLowerCase() == jetpackID.toLowerCase()) {
-          dump("Found addon: " + addon.name + "\n");
+          //dump("Found addon: " + addon.name + "\n");
           var iconHTML = "";
           if (addon.iconURL)
             iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
           return iconHTML + " Jetpack: " + addon.name;
         }
       }
-      dump("Found jetpackID: " + jetpackID + "\n");
+      //dump("Found jetpackID: " + jetpackID + "\n");
     }
 
     var iconHTML = "";
@@ -348,9 +348,7 @@ function parseRawProfile(requestID, rawProfile) {
 
   function parseSymbol(symbol) {
     var info = getFunctionInfo(symbol);
-    dump("Parse symbol: " + symbol + "\n");
-    if (info.isJSFrame)
-      dump("  isJS: " + symbol + "\n");
+    //dump("Parse symbol: " + symbol + "\n");
     return {
       symbolName: symbol,
       functionName: info.functionName,

@@ -60,6 +60,34 @@ SourceView.prototype = {
     return this._container;
   },
 
+  setText: function SourceView_setText(title, text) {
+    this._source = text;
+    this._sourceLines = text.split('\n');
+    this._sourceLinesObj = [];
+    this._documentTitle.textContent = title;
+    for (var i = 0; i < this._sourceLines.length; i++) {
+      var lineCountDiv = document.createElement("span");
+      lineCountDiv.innerHTML = "";
+      lineCountDiv.className = "lineCountDiv";
+      var lineTextDiv = document.createElement("span"); 
+      lineTextDiv.innerHTML = formatStrSpacing(this._sourceLines[i]);
+      lineTextDiv.className = "lineSourceDiv";
+      var lineBreak = document.createElement("br"); 
+      this._sourceDiv.appendChild(lineCountDiv);
+      this._sourceDiv.appendChild(lineTextDiv);
+      this._sourceDiv.appendChild(lineBreak);
+      this._sourceLinesObj.push( [lineCountDiv, lineTextDiv] );
+      if (false) {
+        var scrollIntoView = lineTextDiv;
+        setTimeout(function() {
+          scrollIntoView.scrollIntoView();
+        });
+        lineTextDiv.style.backgroundColor = "rgba(200,0,0,0.5)";
+      }
+    }
+
+  },
+
   setSource: function SourceView_setSource(source) {
     this._source = source;
     this._sourceLines = source.split('\n');
