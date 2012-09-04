@@ -248,9 +248,7 @@ DiagnosticBar.prototype = {
     diagnostic.style.left = x + "%";
 
     if (onclickDetails) {
-      dump("onclick list\n\n\n\n\n\n\n\n\n\n");
       diagnostic.onclick = function() {
-        dump("onclick\n");
         if (self._detailsListener) {
           self._detailsListener(onclickDetails);
         }
@@ -313,6 +311,7 @@ DiagnosticBar.prototype = {
             if (step.extraInfo && step.extraInfo.time) {
               pendingDiagnosticInfo.start = step.extraInfo.time;
             }
+            pendingDiagnosticInfo = {};
             pendingDiagnosticInfo.details = details;
             if (currDiagnostic.onclickDetails)
               pendingDiagnosticInfo.onclickDetails = currDiagnostic.onclickDetails(frames, symbols, meta, step);
