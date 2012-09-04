@@ -107,13 +107,14 @@ TreeView.prototype = {
     this._container.focus();
   },
   // Provide a snapshot of the reverse selection to restore with 'invert callback'
-  getReverseSelectionSnapshot: function TreeView__getReverseSelectionSnapshot() {
+  getReverseSelectionSnapshot: function TreeView__getReverseSelectionSnapshot(isJavascriptOnly) {
     if (!this._selectedNode)
       return;
     var snapshot = [];
     var curr = this._selectedNode.data;
 
     while(curr) {
+      if (isJavascriptOnly && curr.isJSFrame)
       snapshot.push(curr.name);
       //dump(JSON.stringify(curr.name) + "\n");
       if (curr.children && curr.children.length >= 1) {
@@ -126,13 +127,15 @@ TreeView.prototype = {
     return snapshot.reverse();
   },
   // Provide a snapshot of the current selection to restore
-  getSelectionSnapshot: function TreeView__getSelectionSnapshot() {
+  getSelectionSnapshot: function TreeView__getSelectionSnapshot(isJavascriptOnly) {
     var snapshot = [];
     var curr = this._selectedNode;
 
     while(curr) {
-      snapshot.push(curr.data.name);
-      //dump(JSON.stringify(curr.data.name) + "\n");
+      if (isJavascriptOnly && curr.data.isJSFrame) {
+        snapshot.push(curr.data.name);
+        dump(JSON.stringify(curr.data.name) + "\n");
+      }
       curr = curr.treeParent;
     }
 

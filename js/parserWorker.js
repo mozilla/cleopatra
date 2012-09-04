@@ -731,6 +731,8 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
     }
     if (!newFrames.length) {
       newFrames = null;
+    } else {
+      newFrames.splice(0, 0, "(total)");
     }
     samples[i].frames = newFrames;
   }
@@ -884,7 +886,7 @@ function updateFilters(requestID, profileID, filters) {
   }
   if (filters.javascriptOnly) {
     try {
-      samples = filterByName(samples, symbols, functions, "runScript", filters.mergeFunctions);
+      //samples = filterByName(samples, symbols, functions, "runScript", filters.mergeFunctions);
       samples = chargeNonJSToCallers(samples, symbols, functions, filters.mergeFunctions);
     } catch (e) {
       dump("Could not filer by javascript: " + e + "\n");

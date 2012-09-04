@@ -75,8 +75,8 @@ ProfileTreeManager.prototype = {
   dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();
   },
-  saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot() {
-    this._savedSnapshot = this.treeView.getSelectionSnapshot();
+  saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot(isJavascriptOnly) {
+    this._savedSnapshot = this.treeView.getSelectionSnapshot(isJavascriptOnly);
   },
   saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot() {
     this._savedSnapshot = this.treeView.getReverseSelectionSnapshot();
@@ -1115,6 +1115,7 @@ function toggleJank(/* optional */ threshold) {
 var gJavascriptOnly = false;
 function toggleJavascriptOnly() {
   gJavascriptOnly = !gJavascriptOnly;
+  gTreeManager.saveSelectionSnapshot(gJavascriptOnly);
   filtersChanged();
 }
 
