@@ -478,11 +478,18 @@ function parseRawProfile(requestID, rawProfile) {
       }
       for (var k = 0; sample.frames && k < sample.frames.length; k++) {
         var frame = sample.frames[k];
+        var pcIndex;
         if (frame.location !== undefined) {
-          indicedFrames.push(indexForSymbol(frame.location));
+          pcIndex = indexForSymbol(frame.location);
         } else {
-          indicedFrames.push(indexForSymbol(frame));
+          pcIndex = indexForSymbol(frame);
         }
+
+        if (frame.lr !== undefined && shouldIncludeARMLRForPC(pcIndex)) {
+          indicedFrames.push(indexForSymbol(frame.lr));
+        }
+
+        indicedFrames.push(pcIndex);
       }
       if (indicedFrames.length >= 1) {
         if (rootSymbol && rootSymbol != indicedFrames[0]) {
