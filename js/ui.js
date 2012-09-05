@@ -1,3 +1,5 @@
+var EIDETICKER_BASE_URL = "http://wrla.ch/eideticker/dashboard/";
+
 function removeAllChildren(element) {
   while (element.firstChild) {
     element.removeChild(element.firstChild);
@@ -996,6 +998,48 @@ function loadProfileFile(fileList) {
   };
   reader.readAsText(file, "utf-8");
   subreporters.fileLoading.begin("Reading local file...");
+}
+
+function loadZippedProfileURL(url) {
+  var reporter = enterProgressUI();
+  var subreporters = reporter.addSubreporters({
+    fileLoading: 1000,
+    parsing: 1000
+  });
+
+  // Crude way to detect if we're using a relative URL or not :(
+  if (url.indexOf("://") == -1) {
+    url = EIDETICKER_BASE_URL + url;
+  }
+  reporter.begin("Fetching " + url);
+  dump("Fetch url: " + url + "\n");
+
+  function onerror(e) {
+    dump("zip.js error\n");
+    dump(JSON.stringify(e) + "\n");
+  }
+
+  zip.workerScriptsPath = "js/zip.js/";
+  zip.createReader(new zip.HttpReader(url), function(zipReader) {
+    subreporters.fileLoading.setProgress(0.4);
+    zipReader.getEntries(function(entries) {
+      for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        //dump("Zip file: " + entry.filename + "\n");
+        if (entry.filename === "symbolicated_profile.txt") {
+          reporter.begin("Decompressing " + url);
+          subreporters.fileLoading.setProgress(0.8);
+          entry.getData(new zip.TextWriter(), function(profileText) {
+            subreporters.fileLoading.finish();
+            loadRawProfile(subreporters.parsing, profileText);
+          });
+          dump("getdata\n");
+          return;
+        }
+        onerror("symbolicated_profile.txt not found in zip file.");
+      }
+    });
+  }, onerror);
 }
 
 function loadProfileURL(url) {

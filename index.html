@@ -12,6 +12,13 @@
     <script src="js/ProgressReporter.js"></script>
     <script src="js/videoPane.js"></script>
     <script src="js/beautify.js"></script>
+
+    <!-- Use Zip.js to handle zipped input files from eideticker-->
+    <script src="js/zip.js/zip.js"></script>
+    <script src="js/zip.js/deflate.js"></script>
+    <script src="js/zip.js/inflate.js"></script>
+    <script src="js/zip.js/dataview.js"></script>
+
     <link rel="stylesheet" type="text/css" href="css/ui.css">
     <link rel="stylesheet" type="text/css" href="css/tree.css">
     <link rel="stylesheet" type="text/css" href="css/diagnosticBar.css">
@@ -33,6 +40,9 @@
       } else if (queryData.usesample !== undefined) {
         var filename = (queryData.usesample == "pseudo") ? 'sample.profile' : 'sample.log';
         loadProfileURL(filename);
+      } else if (queryData.zippedProfile) {
+        // Fetch a compressed eideticker profile
+        loadZippedProfileURL(queryData.zippedProfile);
       }
     </script>
   </body>
