@@ -18,6 +18,25 @@ var diagnosticList = [
 
   {
     image: "js.png",
+    title: "Bug 789193 - AMI_startup() takes 200ms on startup",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('AMI_startup()', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('LoginManagerStorage_mozStorage.init()', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
     title: "JS - Bug 767070 - Text selection performance is bad on android",
     check: function(frames, symbols, meta) {
 
