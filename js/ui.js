@@ -488,6 +488,7 @@ RangeSelector.prototype = {
     graph.addEventListener("mousedown", function(e) {
       if (e.button != 0)
         return;
+      graph.style.cursor = "col-resize";
       isDrawingRectangle = true;
       self.beginHistogramSelection();
       origX = e.pageX;
@@ -499,6 +500,7 @@ RangeSelector.prototype = {
       e.preventDefault();
     }, false);
     graph.addEventListener("mouseup", function(e) {
+      graph.style.cursor = "default";
       if (isDrawingRectangle) {
         updateHiliteRectangle(e.pageX, e.pageY);
         isDrawingRectangle = false;
