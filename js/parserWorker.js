@@ -83,7 +83,7 @@ self.onmessage = function (msg) {
       case "chunkedEnd":
         break;
       case "parseRawProfile":
-        parseRawProfile(requestID, taskData);
+        parseRawProfile(requestID, msg.data.params, taskData);
         break;
       case "updateFilters":
         updateFilters(requestID, taskData.profileID, taskData.filters);
@@ -188,7 +188,7 @@ function makeSample(frames, extraInfo) {
 function cloneSample(sample) {
   return makeSample(sample.frames.slice(0), sample.extraInfo);
 }
-function parseRawProfile(requestID, rawProfile) {
+function parseRawProfile(requestID, params, rawProfile) {
   var progressReporter = new ProgressReporter();
   progressReporter.addListener(function (r) {
     sendProgress(requestID, r.getProgress());
@@ -212,6 +212,8 @@ function parseRawProfile(requestID, rawProfile) {
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
   }
+
+
 
   if (typeof rawProfile == "object") {
     switch (rawProfile.format) {
@@ -459,6 +461,11 @@ function parseRawProfile(requestID, rawProfile) {
     // TODO support all the thread in the profile
     var profileSamples = null;
     meta = profile.meta;
+    if (params.appendVideoCapture) {
+      meta.videoCapture = {
+        src: params.appendVideoCapture,
+      };
+    }
     // Support older format that aren't thread aware
     if (profile.threads != null) {
       profileSamples = profile.threads[0].samples;

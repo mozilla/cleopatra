@@ -31,6 +31,11 @@
     <script>
       enterMainUI();
       var queryData = new QueryData();
+
+      if (queryData.videoCapture) {
+        appendVideoCapture(queryData.videoCapture);
+      }
+
       if (queryData.report) {
         if (queryData.report.length == 40) {
           loadProfileURL('http://profile-store.commondatastorage.googleapis.com/' + queryData.report);

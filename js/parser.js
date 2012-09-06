@@ -126,7 +126,7 @@ WorkerRequest.prototype = {
     this._sendChunkReporter.finish();
     this._executeReporter.begin("Processing worker request...");
   },
-  sendInChunks: function WorkerRequest_sendInChunks(task, taskData, maxChunkSize) {
+  sendInChunks: function WorkerRequest_sendInChunks(task, taskData, params, maxChunkSize) {
     this._sendChunkReporter.begin("Sending data to worker...");
     var self = this;
     var chunks = bucketsBySplittingArray(taskData, maxChunkSize);
@@ -149,6 +149,7 @@ WorkerRequest.prototype = {
       },
       {
         requestID: this._requestID,
+        params: params,
         task: task
       },
     ]);
@@ -208,10 +209,10 @@ WorkerRequest.prototype = {
 }
 
 var Parser = {
-  parse: function Parser_parse(data) {
+  parse: function Parser_parse(data, params) {
     console.log("profile num chars: " + data.length);
     var request = new WorkerRequest(gParserWorker);
-    request.sendInChunks("parseRawProfile", data, 3000000);
+    request.sendInChunks("parseRawProfile", data, params, 3000000);
     return request;
   },
 

@@ -968,6 +968,7 @@ var gInfoBar = null;
 var gMainArea = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
+var gAppendVideoCapture = null;
 
 function getTextData() {
   var data = [];
@@ -998,6 +999,13 @@ function loadProfileFile(fileList) {
   };
   reader.readAsText(file, "utf-8");
   subreporters.fileLoading.begin("Reading local file...");
+}
+
+function appendVideoCapture(videoCapture) {
+  if (videoCapture.indexOf("://") == -1) {
+    videoCapture = EIDETICKER_BASE_URL + videoCapture;
+  }
+  gAppendVideoCapture = videoCapture;
 }
 
 function loadZippedProfileURL(url) {
@@ -1033,7 +1041,6 @@ function loadZippedProfileURL(url) {
             subreporters.fileLoading.finish();
             loadRawProfile(subreporters.parsing, profileText);
           });
-          dump("getdata\n");
           return;
         }
         onerror("symbolicated_profile.txt not found in zip file.");
@@ -1079,7 +1086,10 @@ function loadRawProfile(reporter, rawProfile) {
   dump("Parse raw profile: ~" + rawProfile.length + " bytes\n");
   reporter.begin("Parsing...");
   var startTime = Date.now();
-  var parseRequest = Parser.parse(rawProfile);
+  var parseRequest = Parser.parse(rawProfile, {
+    appendVideoCapture : gAppendVideoCapture,  
+  });
+  gVideoCapture = null;
   parseRequest.addEventListener("progress", function (progress, action) {
     if (action)
       reporter.setAction(action);
