@@ -18,6 +18,16 @@ var diagnosticList = [
 
   {
     image: "js.png",
+    title: "Bug 772916 - Gradients are slow on mobile",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('PaintGradient', frames, symbols)
+          && stepContains('BasicTiledLayerBuffer::PaintThebesSingleBufferDraw', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
     title: "Bug 789193 - AMI_startup() takes 200ms on startup",
     check: function(frames, symbols, meta) {
 
