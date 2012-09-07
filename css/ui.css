@@ -20,6 +20,9 @@ body {
   bottom: 0;
   right: 0;
 }
+.profileEntryPane {
+  overflow: auto;
+}
 .profileEntryPane,
 .profileProgressPane {
   padding: 20px;
