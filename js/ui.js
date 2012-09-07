@@ -470,6 +470,7 @@ RangeSelector.prototype = {
     var origX, origY;
     var self = this;
     function updateHiliteRectangle(newX, newY) {
+      newX = Math.min(newX, graph.parentNode.getBoundingClientRect().right);
       var startX = Math.min(newX, origX) - graph.parentNode.getBoundingClientRect().left;
       var startY = 0;
       var width = Math.abs(newX - origX);

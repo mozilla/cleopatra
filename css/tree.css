@@ -139,6 +139,12 @@
   display: none;
 }
 
+.treeLine {
+  /* extend the selection background almost infinitely to the left */
+  margin-left: -10000px;
+  padding-left: 10000px;
+}
+
 .treeLine.selected {
   color: black;
   background-color: -moz-dialog;
@@ -172,6 +178,7 @@
   overflow: hidden;
   vertical-align: top;
   color: transparent;
+  font-size: 0;
 }
 
 .expandCollapseButton {
