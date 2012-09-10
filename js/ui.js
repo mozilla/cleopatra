@@ -185,6 +185,21 @@ ProfileTreeManager.prototype = {
   },
 };
 
+function SampleBar() {
+  this._container = document.createElement("div");
+  this._container.className = "sampleBar";
+}
+
+SampleBar.prototype = {
+  getContainer: function SampleBar_getContainer() {
+    return this._container;
+  },
+  setSample: function SampleBar_setSample(sample) {
+    dump("set sample\n"); 
+  },
+}
+
+
 function PluginView() {
   this._container = document.createElement("div");
   this._container.className = "pluginview";
@@ -620,7 +635,7 @@ function maxResponsiveness() {
   var data = gCurrentlyShownSampleData;
   var maxRes = 0.0;
   for (var i = 0; i < data.length; ++i) {
-    if (!data[i] || !data[i].extraInfo["responsiveness"])
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["responsiveness"])
       continue;
     if (maxRes < data[i].extraInfo["responsiveness"])
       maxRes = data[i].extraInfo["responsiveness"];
@@ -635,7 +650,7 @@ function effectiveInterval() {
   var timeCount = 0;
   var lastTime = null;
   for (var i = 0; i < data.length; ++i) {
-    if (!data[i] || !data[i].extraInfo["time"]) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["time"]) {
       lastTime = null;
       continue;
     }
@@ -650,7 +665,7 @@ function effectiveInterval() {
   var biggestDiff = 0;
   lastTime = null;
   for (var i = 0; i < data.length; ++i) {
-    if (!data[i] || !data[i].extraInfo["time"]) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["time"]) {
       lastTime = null;
       continue;
     }
@@ -681,7 +696,7 @@ function avgResponsiveness() {
   var data = gCurrentlyShownSampleData;
   var totalRes = 0.0;
   for (var i = 0; i < data.length; ++i) {
-    if (!data[i] || !data[i].extraInfo["responsiveness"])
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["responsiveness"])
       continue;
     totalRes += data[i].extraInfo["responsiveness"];
   }
@@ -888,6 +903,7 @@ var gSymbols = {};
 var gFunctions = {};
 var gHighlightedCallstack = [];
 var gTreeManager = null;
+var gSampleBar = null;
 var gBreadcrumbTrail = null;
 var gHistogramView = null;
 var gDiagnosticBar = null;
@@ -1280,6 +1296,11 @@ function enterFinishedProfileUI() {
   var cell = currRow.insertCell(0);
   cell.appendChild(dummyDiv);
   dummyDiv.appendChild(gTreeManager.getContainer());
+
+  gSampleBar = new SampleBar();
+  dummyDiv.appendChild(gSampleBar.getContainer());
+
+  // sampleBar
 
   gPluginView = new PluginView();
   //currRow = finishedProfilePane.insertRow(4);

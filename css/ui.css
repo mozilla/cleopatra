@@ -137,7 +137,13 @@ body {
   margin-left: -270px;
 }
 .tree {
+  left: 0px;
+  right: 200px;
   height: 100%;
+}
+.sampleBar {
+  right: 0;
+  width: 200px;
 }
 #fileList {
   position: absolute;

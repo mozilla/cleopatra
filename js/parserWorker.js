@@ -981,7 +981,7 @@ var kDelayUntilWorstResponsiveness = 1000;
 function calculateHistogramData(requestID, profileID) {
 
   function getStepColor(step) {
-    if ("responsiveness" in step.extraInfo) {
+    if (step.extraInfo && "responsiveness" in step.extraInfo) {
       var res = step.extraInfo.responsiveness;
       var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
       return "rgb(" + redComponent + ",0,0)";
@@ -1019,7 +1019,7 @@ function calculateHistogramData(requestID, profileID) {
     var value = step.frames.length / maxHeight;
     var frames = step.frames;
     var currHistogramData = histogramData[histogramData.length-1];
-    if ("marker" in step.extraInfo) {
+    if (step.extraInfo && "marker" in step.extraInfo) {
       // A new marker boundary has been discovered.
       histogramData.push({
         frames: "marker",
