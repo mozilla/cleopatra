@@ -283,6 +283,13 @@ function symbolSequence(symbolsOrder, frames, symbols) {
   }
   return false;
 }
+function firstMatch(array, matchFunction) {
+  for (var i = 0; i < array.length; i++) {
+    if (matchFunction(array[i]))
+      return array[i];
+  }
+  return undefined;
+}
 
 function DiagnosticBar() {
   this._container = document.createElement("div");
@@ -301,7 +308,8 @@ DiagnosticBar.prototype = {
     var self = this;
     x = x * 100;
     width = width * 100;
-    if (width < 1) return 0;
+    if (width < 1)
+      return false;
     var diagnostic = document.createElement("a");
 
     var backgroundImageStr = "url('images/diagnostic/"+imageFile+"')";
@@ -333,82 +341,91 @@ DiagnosticBar.prototype = {
 
     this._colorCode++;
 
-    return 1;
+    return true;
   },
-  display: function DiagnosticBar_display(meta, data, filterByName, histogramData, symbols) {
-    this._container.innerHTML = "";
-    if (!histogramData || histogramData.length < 1) return;
+  _calculateDiagnosticItems: function DiagnosticBar__calculateDiagnosticItems(meta, data, filterByName, histogramData, symbols) {
+    if (!histogramData || histogramData.length < 1)
+      return [];
 
     var lastStep = data[data.length-1];
     var widthSum = data.length;
-    var self = this;
-    var count = 0;
-    var pendingDiagnosticX = null;
-    var pendingDiagnosticW = null;
-    var pendingDiagnostic = null;
-    var pendingDiagnosticInfo = {};
+    var pendingDiagnosticInfo = null;
 
-    var x = 0;
+    var diagnosticItems = [];
 
-    //dump("meta: " + meta.gcStats + "\n");
-    if (meta && meta.gcStats) {
-      //dump("GC Stats: " + JSON.stringify(meta.gcStats) + "\n");
+    function finishPendingDiagnostic(endX) {
+      if (!pendingDiagnosticInfo)
+        return;
+
+      diagnosticItems.push({
+        x: pendingDiagnosticInfo.x / widthSum,
+        width: (endX - pendingDiagnosticInfo.x) / widthSum,
+        imageFile: pendingDiagnosticInfo.diagnostic.image,
+        title: pendingDiagnosticInfo.diagnostic.title,
+        details: pendingDiagnosticInfo.details,
+        onclickDetails: pendingDiagnosticInfo.onclickDetails
+      });
+      pendingDiagnosticInfo = null;
     }
-    data.forEach(function plotStep(step) {
-      if (!step) {
-        // Add a gap for the sample that was filtered out.
-        x++;
+
+/*
+    dump("meta: " + meta.gcStats + "\n");
+    if (meta && meta.gcStats) {
+      dump("GC Stats: " + JSON.stringify(meta.gcStats) + "\n");
+    }
+*/
+
+    data.forEach(function diagnoseStep(step, x) {
+      if (!step)
+        return;
+
+      var frames = step.frames;
+
+      var diagnostic = firstMatch(diagnosticList, function (diagnostic) {
+        return diagnostic.check(frames, symbols, meta, step);
+      });
+
+      if (!diagnostic) {
+        finishPendingDiagnostic(x);
         return;
       }
 
-      var frames = step.frames;
-      var needFlush = true;
-      for (var i = 0; i < diagnosticList.length; i++) {
-        var currDiagnostic = diagnosticList[i];
-        if (currDiagnostic.check(frames, symbols, meta, step)) {
-          var details = null;
-          if (currDiagnostic.details) {
-            details = currDiagnostic.details(frames, symbols, meta, step);
-          }
-          if (pendingDiagnostic && (pendingDiagnostic != currDiagnostic || pendingDiagnosticInfo.details != details)) {
-            var imgFile = pendingDiagnostic.image;
-            var title = pendingDiagnostic.title;
-            var pendingDetails = pendingDiagnosticInfo.details;
-            var onclickDetails = pendingDiagnosticInfo.onclickDetails;
-            count += self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum,
-                                             imgFile, title, pendingDetails, onclickDetails);
-            pendingDiagnostic = null;
-          }
-          if (!pendingDiagnostic) {
-            pendingDiagnostic = currDiagnostic;
-            pendingDiagnosticX = x;
-            pendingDiagnosticW = 1;
-            if (step.extraInfo && step.extraInfo.time) {
-              pendingDiagnosticInfo.start = step.extraInfo.time;
-            }
-            pendingDiagnosticInfo = {};
-            pendingDiagnosticInfo.details = details;
-            if (currDiagnostic.onclickDetails)
-              pendingDiagnosticInfo.onclickDetails = currDiagnostic.onclickDetails(frames, symbols, meta, step);
-          } else if (pendingDiagnostic && pendingDiagnostic == currDiagnostic) {
-            pendingDiagnosticW++;
-          }
-          needFlush = false;
-          break;
+      var details = diagnostic.details ? diagnostic.details(frames, symbols, meta, step) : null;
+
+      if (pendingDiagnosticInfo) {
+        // We're already inside a diagnostic range.
+        if (diagnostic == pendingDiagnosticInfo.diagnostic && pendingDiagnosticInfo.details == details) {
+          // We're still inside the same diagnostic.
+          return;
         }
+
+        // We have left the old diagnostic and found a new one. Finish the old one.
+        finishPendingDiagnostic(x);
       }
-      x++;
+
+      pendingDiagnosticInfo = {
+        diagnostic: diagnostic,
+        x: x,
+        details: details,
+        onclickDetails: diagnostic.onclickDetails ? diagnostic.onclickDetails(frames, symbols, meta, step) : null
+      };
     });
-    if (pendingDiagnostic) {
-      var imgFile = pendingDiagnostic.image;
-      var title = pendingDiagnostic.title;
-      var pendingDetails = pendingDiagnosticInfo.details;
-      var onclickDetails = pendingDiagnosticInfo.onclickDetails;
-      count += self._addDiagnosticItem(pendingDiagnosticX/widthSum, pendingDiagnosticW/widthSum,
-                                       imgFile, title, pendingDetails, onclickDetails);
-      pendingDiagnostic = null;
-    }
-    if (count == 0) {
+    if (pendingDiagnosticInfo)
+      finishPendingDiagnostic(data.length);
+
+    return diagnosticItems;
+  },
+  display: function DiagnosticBar_display(meta, data, filterByName, histogramData, symbols) {
+    var self = this;
+    this._container.innerHTML = "";
+
+    var diagnosticItems = this._calculateDiagnosticItems(meta, data, filterByName, histogramData, symbols);
+    console.log(diagnosticItems);
+    var addedAnyDiagnosticItem = diagnosticItems.map(function addOneItem(item) {
+      return self._addDiagnosticItem(item.x, item.width, item.imageFile, item.title, item.details, item.onclickDetails);
+    }).some(function (didAdd) { return didAdd; });
+
+    if (!addedAnyDiagnosticItem) {
       this._container.style.display = "none";
     } else {
       this._container.style.display = "";
