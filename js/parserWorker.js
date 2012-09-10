@@ -94,6 +94,12 @@ self.onmessage = function (msg) {
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
+      case "calculateHistogramData":
+        calculateHistogramData(requestID, taskData.profileID);
+        break;
+      case "calculateDiagnosticItems":
+        calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta);
+        break;
       default:
         sendError(requestID, "Unknown task " + task);
         break;
@@ -239,39 +245,68 @@ function parseRawProfile(requestID, params, rawProfile) {
     return functionName;
   }
 
+  function resourceNameForAddon(addonID) {
+    for (var i in meta.addons) {
+      var addon = meta.addons[i];
+      if (addon.id.toLowerCase() == addonID.toLowerCase()) {
+        var iconHTML = "";
+        if (addon.iconURL)
+          iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
+        return iconHTML + " " + (/@jetpack$/.exec(addonID) ? "Jetpack: " : "") + addon.name;
+      }
+    }
+    return "";
+  }
+
   function parseResourceName(url) {
+
+    if (url.startsWith("resource:///")) {
+      // Take the last URL from a chained list of URLs.
+      var urls = url.split(" -> ");
+      url = urls[urls.length - 1];
+    }
+
     // TODO Fix me, this certainly doesn't handle all URLs formats
     var match = /^.*:\/\/(.*?)\/.*$/.exec(url);
 
     if (!match)
       return url;
 
-    if (meta && meta.addons && url.indexOf("resource:") == 0 && endsWith(match[1], "-at-jetpack")) {
-      // Assume this is a jetpack url
-      var jetpackID = match[1].substring(0, match[1].length - 11) + "@jetpack";
+    var host = match[1];
 
-      for (var i in meta.addons) {
-        var addon = meta.addons[i];
-        //dump("match " + addon.id + " vs. " + jetpackID + "\n");
-        // TODO handle lowercase name collision
-        if (addon.id.toLowerCase() == jetpackID.toLowerCase()) {
-          //dump("Found addon: " + addon.name + "\n");
-          var iconHTML = "";
-          if (addon.iconURL)
-            iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
-          return iconHTML + " Jetpack: " + addon.name;
+    if (meta && meta.addons) {
+      if (url.startsWith("resource:") && endsWith(host, "-at-jetpack")) {
+        // Assume this is a jetpack url
+        var jetpackID = host.substring(0, host.length - 11) + "@jetpack";
+        var resName = resourceNameForAddon(jetpackID);
+        if (resName)
+          return resName;
+      }
+      if (url.startsWith("file:///") && url.indexOf("/extensions/") != -1) {
+        var unpackedAddonNameMatch = /\/extensions\/(.*?)\//.exec(url);
+        if (unpackedAddonNameMatch) {
+          var resName = resourceNameForAddon(decodeURIComponent(unpackedAddonNameMatch[1]));
+          if (resName)
+            return resName;
         }
       }
-      //dump("Found jetpackID: " + jetpackID + "\n");
+      if (url.startsWith("jar:file:///") && url.indexOf("/extensions/") != -1) {
+        var packedAddonNameMatch = /\/extensions\/(.*?).xpi/.exec(url);
+        if (packedAddonNameMatch) {
+          var resName = resourceNameForAddon(decodeURIComponent(packedAddonNameMatch[1]));
+          if (resName)
+            return resName;
+        }
+      }
     }
 
     var iconHTML = "";
     if (url.indexOf("http://") == 0) {
-      iconHTML = "<img src=\"http://" + match[1] + "/favicon.ico\" style='width:12px; height:12px;'> ";
+      iconHTML = "<img src=\"http://" + host + "/favicon.ico\" style='width:12px; height:12px;'> ";
     } else if (url.indexOf("https://") == 0) {
-      iconHTML = "<img src=\"https://" + match[1] + "/favicon.ico\" style='width:12px; height:12px;'> ";
+      iconHTML = "<img src=\"https://" + host + "/favicon.ico\" style='width:12px; height:12px;'> ";
     }
-    return iconHTML + match[1];
+    return iconHTML + host;
   }
 
   function parseScriptFile(url) {
@@ -937,4 +972,465 @@ function updateViewOptions(requestID, profileID, options) {
   if (options.mergeUnbranched)
     mergeUnbranchedCallPaths(treeData);
   sendFinished(requestID, treeData);
+}
+
+// The responsiveness threshold (in ms) after which the sample shuold become
+// completely red in the histogram.
+var kDelayUntilWorstResponsiveness = 1000;
+
+function calculateHistogramData(requestID, profileID) {
+
+  function getStepColor(step) {
+    if ("responsiveness" in step.extraInfo) {
+      var res = step.extraInfo.responsiveness;
+      var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+      return "rgb(" + redComponent + ",0,0)";
+    }
+
+    return "rgb(0,0,0)";
+  }
+
+  var profile = gProfiles[profileID];
+  var data = profile.filteredSamples;
+  var histogramData = [];
+  var maxHeight = 0;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i])
+      continue;
+    var value = data[i].frames ? data[i].frames.length : 0;
+    if (maxHeight < value)
+      maxHeight = value;
+  }
+  maxHeight += 1;
+  var nextX = 0;
+  // The number of data items per histogramData rects.
+  // Except when seperated by a marker.
+  // This is used to cut down the number of rects, since
+  // there's no point in having more rects then pixels
+  var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
+  for (var i = 0; i < data.length; i++) {
+    var step = data[i];
+    if (!step || !step.frames) {
+      // Add a gap for the sample that was filtered out.
+      nextX += 1 / samplesPerStep;
+      continue;
+    }
+    nextX = Math.ceil(nextX);
+    var value = step.frames.length / maxHeight;
+    var frames = step.frames;
+    var currHistogramData = histogramData[histogramData.length-1];
+    if ("marker" in step.extraInfo) {
+      // A new marker boundary has been discovered.
+      histogramData.push({
+        frames: "marker",
+        x: nextX,
+        width: 2,
+        value: 1,
+        marker: step.extraInfo.marker,
+        color: "fuchsia"
+      });
+      nextX += 2;
+      histogramData.push({
+        frames: [step.frames],
+        x: nextX,
+        width: 1,
+        value: value,
+        color: getStepColor(step),
+      });
+      nextX += 1;
+    } else if (currHistogramData != null &&
+      currHistogramData.frames.length < samplesPerStep) {
+      currHistogramData.frames.push(step.frames);
+      // When merging data items take the average:
+      currHistogramData.value =
+        (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
+        currHistogramData.frames.length;
+      // Merge the colors? For now we keep the first color set.
+    } else {
+      // A new name boundary has been discovered.
+      histogramData.push({
+        frames: [step.frames],
+        x: nextX,
+        width: 1,
+        value: value,
+        color: getStepColor(step),
+      });
+      nextX += 1;
+    }
+  }
+  sendFinished(requestID, { histogramData: histogramData, widthSum: Math.ceil(nextX) });
+}
+
+var diagnosticList = [
+  // *************** Known bugs first (highest priority)
+  {
+    image: "io.png",
+    title: "Main Thread IO - Bug 765135 - TISCreateInputSourceList",
+    check: function(frames, symbols, meta) {
+
+      if (!stepContains('TISCreateInputSourceList', frames, symbols))
+        return false;
+
+      return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__read', frames, symbols) 
+          || stepContains('__open', frames, symbols) 
+          || stepContains('stat$INODE64', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
+    title: "Bug 772916 - Gradients are slow on mobile",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('PaintGradient', frames, symbols)
+          && stepContains('BasicTiledLayerBuffer::PaintThebesSingleBufferDraw', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Bug 789193 - AMI_startup() takes 200ms on startup",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('AMI_startup()', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('LoginManagerStorage_mozStorage.init()', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
+    title: "JS - Bug 767070 - Text selection performance is bad on android",
+    check: function(frames, symbols, meta) {
+
+      if (!stepContains('FlushPendingNotifications', frames, symbols))
+        return false;
+
+      return stepContains('sh_', frames, symbols)
+          && stepContains('browser.js', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
+    title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('Readability.js', frames, symbols)
+          ;
+    },
+  },
+
+  // **************** General issues
+  {
+    image: "js.png",
+    title: "JS is triggering a sync reflow",
+    check: function(frames, symbols, meta) {
+      return symbolSequence(['js::RunScript','layout::DoReflow'], frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "gc.png",
+    title: "Garbage Collection Slice",
+    canMergeWithGC: false,
+    check: function(frames, symbols, meta, step) {
+      var slice = findGCSlice(frames, symbols, meta, step);
+
+      if (slice) {
+        var gcEvent = findGCEvent(frames, symbols, meta, step);
+        //dump("found event matching diagnostic\n");
+        //dump(JSON.stringify(gcEvent) + "\n");
+        return true;
+      }
+      return false;
+    },
+    details: function(frames, symbols, meta, step) {
+      var slice = findGCSlice(frames, symbols, meta, step);
+      if (slice) {
+        return "" +
+          "Reason: " + slice.reason + "\n" +
+          "Slice: " + slice.slice + "\n" +
+          "Pause: " + slice.pause + " ms";
+      }
+      return null;
+    },
+    onclickDetails: function(frames, symbols, meta, step) {
+      var gcEvent = findGCEvent(frames, symbols, meta, step);
+      if (gcEvent) {
+        return JSON.stringify(gcEvent);
+      } else {
+        return null;
+      }
+    },
+  },
+  {
+    image: "cc.png",
+    title: "Cycle Collect",
+    check: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+
+      if (ccEvent) {
+        dump("Found\n");
+        return true;
+      }
+      return false;
+    },
+    details: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+      if (ccEvent) {
+        return "" +
+          "Duration: " + ccEvent.duration + " ms\n" +
+          "Suspected: " + ccEvent.suspected;
+      }
+      return null;
+    },
+    onclickDetails: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+      if (ccEvent) {
+        return JSON.stringify(ccEvent);
+      } else {
+        return null;
+      }
+    },
+  },
+  {
+    image: "gc.png",
+    title: "Garbage Collection",
+    canMergeWithGC: false,
+    check: function(frames, symbols, meta) {
+      return stepContainsRegEx(/.*Collect.*Runtime.*Invocation.*/, frames, symbols)
+          || stepContains('GarbageCollectNow', frames, symbols) // Label
+          || stepContains('CycleCollect__', frames, symbols) // Label
+          ;
+    },
+  },
+  {
+    image: "plugin.png",
+    title: "Sync Plugin Constructor",
+    check: function(frames, symbols, meta) {
+      return stepContains('CallPPluginInstanceConstructor', frames, symbols) 
+          || stepContains('CallPCrashReporterConstructor', frames, symbols) 
+          || stepContains('PPluginModuleParent::CallNP_Initialize', frames, symbols)
+          || stepContains('GeckoChildProcessHost::SyncLaunch', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "text.png",
+    title: "Font Loading",
+    check: function(frames, symbols, meta) {
+      return stepContains('gfxFontGroup::BuildFontList', frames, symbols);
+    },
+  },
+  {
+    image: "io.png",
+    title: "Main Thread IO!",
+    check: function(frames, symbols, meta) {
+      return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__open', frames, symbols) 
+          || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
+          || stepContains('__unlink', frames, symbols) 
+          || stepContains('fsync', frames, symbols) 
+          || stepContains('stat$INODE64', frames, symbols)
+          ;
+    },
+  },
+];
+
+function hasJSFrame(frames, symbols) {
+  for (var i = 0; i < frames.length; i++) {
+    if (symbols[frames[i]].isJSFrame === true) {
+      return true;
+    }
+  }
+  return false;
+}
+function findCCEvent(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.ccEvents.length; i++) {
+    var ccEvent = meta.gcStats.ccEvents[i];
+    if (ccEvent.start_timestamp <= time && ccEvent.end_timestamp >= time) {
+      //dump("JSON: " + js_beautify(JSON.stringify(ccEvent)) + "\n");
+      return ccEvent;
+    }
+  }
+
+  return null;
+}
+function findGCEvent(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.gcEvents.length; i++) {
+    var gcEvent = meta.gcStats.gcEvents[i];
+    if (!gcEvent.slices)
+      continue;
+    for (var j = 0; j < gcEvent.slices.length; j++) {
+      var slice = gcEvent.slices[j];
+      if (slice.start_timestamp <= time && slice.end_timestamp >= time) {
+        return gcEvent;
+      }
+    }
+  }
+
+  return null;
+}
+function findGCSlice(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.gcEvents.length; i++) {
+    var gcEvent = meta.gcStats.gcEvents[i];
+    if (!gcEvent.slices)
+      continue;
+    for (var j = 0; j < gcEvent.slices.length; j++) {
+      var slice = gcEvent.slices[j];
+      if (slice.start_timestamp <= time && slice.end_timestamp >= time) {
+        return slice;
+      }
+    }
+  }
+
+  return null;
+}
+function stepContains(substring, frames, symbols) {
+  for (var i = 0; frames && i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (frameSym.indexOf(substring) != -1) {
+      return true;
+    }
+  }
+  return false;
+}
+function stepContainsRegEx(regex, frames, symbols) {
+  for (var i = 0; frames && i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (regex.exec(frameSym)) {
+      return true;
+    }
+  }
+  return false;
+}
+function symbolSequence(symbolsOrder, frames, symbols) {
+  var symbolIndex = 0;
+  for (var i = 0; frames && i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    var substring = symbolsOrder[symbolIndex];
+    if (frameSym.indexOf(substring) != -1) {
+      symbolIndex++;
+      if (symbolIndex == symbolsOrder.length) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function firstMatch(array, matchFunction) {
+  for (var i = 0; i < array.length; i++) {
+    if (matchFunction(array[i]))
+      return array[i];
+  }
+  return undefined;
+}
+
+function calculateDiagnosticItems(requestID, profileID, meta) {
+  /*
+  if (!histogramData || histogramData.length < 1) {
+    sendFinished(requestID, []);
+    return;
+  }*/
+
+  var profile = gProfiles[profileID];
+  //var symbols = profile.symbols;
+  var symbols = profile.functions;
+  var data = profile.filteredSamples;
+
+  var lastStep = data[data.length-1];
+  var widthSum = data.length;
+  var pendingDiagnosticInfo = null;
+
+  var diagnosticItems = [];
+
+  function finishPendingDiagnostic(endX) {
+    if (!pendingDiagnosticInfo)
+      return;
+
+    diagnosticItems.push({
+      x: pendingDiagnosticInfo.x / widthSum,
+      width: (endX - pendingDiagnosticInfo.x) / widthSum,
+      imageFile: pendingDiagnosticInfo.diagnostic.image,
+      title: pendingDiagnosticInfo.diagnostic.title,
+      details: pendingDiagnosticInfo.details,
+      onclickDetails: pendingDiagnosticInfo.onclickDetails
+    });
+    pendingDiagnosticInfo = null;
+  }
+
+/*
+  dump("meta: " + meta.gcStats + "\n");
+  if (meta && meta.gcStats) {
+    dump("GC Stats: " + JSON.stringify(meta.gcStats) + "\n");
+  }
+*/
+
+  data.forEach(function diagnoseStep(step, x) {
+    if (!step)
+      return;
+
+    var frames = step.frames;
+
+    var diagnostic = firstMatch(diagnosticList, function (diagnostic) {
+      return diagnostic.check(frames, symbols, meta, step);
+    });
+
+    if (!diagnostic) {
+      finishPendingDiagnostic(x);
+      return;
+    }
+
+    var details = diagnostic.details ? diagnostic.details(frames, symbols, meta, step) : null;
+
+    if (pendingDiagnosticInfo) {
+      // We're already inside a diagnostic range.
+      if (diagnostic == pendingDiagnosticInfo.diagnostic && pendingDiagnosticInfo.details == details) {
+        // We're still inside the same diagnostic.
+        return;
+      }
+
+      // We have left the old diagnostic and found a new one. Finish the old one.
+      finishPendingDiagnostic(x);
+    }
+
+    pendingDiagnosticInfo = {
+      diagnostic: diagnostic,
+      x: x,
+      details: details,
+      onclickDetails: diagnostic.onclickDetails ? diagnostic.onclickDetails(frames, symbols, meta, step) : null
+    };
+  });
+  if (pendingDiagnosticInfo)
+    finishPendingDiagnostic(data.length);
+
+  sendFinished(requestID, diagnosticItems);
 }
