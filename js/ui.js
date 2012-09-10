@@ -1330,11 +1330,13 @@ function filtersChanged() {
     start = Date.now();
     gHistogramView.display(data.histogramData, data.widthSum, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+  });
 
-    gDiagnosticBar.display(gMeta, gCurrentlyShownSampleData, gHighlightedCallstack,
-                           gHistogramView.getHistogramData(), gFunctions);
-
-
+  var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
+  diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
+    start = Date.now();
+    gDiagnosticBar.display(diagnosticItems);
+    console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
   });
 
   viewOptionsChanged();

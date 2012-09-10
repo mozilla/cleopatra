@@ -97,6 +97,9 @@ self.onmessage = function (msg) {
       case "calculateHistogramData":
         calculateHistogramData(requestID, taskData.profileID);
         break;
+      case "calculateDiagnosticItems":
+        calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta);
+        break;
       default:
         sendError(requestID, "Unknown task " + task);
         break;
@@ -1027,4 +1030,378 @@ function calculateHistogramData(requestID, profileID) {
     }
   }
   sendFinished(requestID, { histogramData: histogramData, widthSum: Math.ceil(nextX) });
+}
+
+var diagnosticList = [
+  // *************** Known bugs first (highest priority)
+  {
+    image: "io.png",
+    title: "Main Thread IO - Bug 765135 - TISCreateInputSourceList",
+    check: function(frames, symbols, meta) {
+
+      if (!stepContains('TISCreateInputSourceList', frames, symbols))
+        return false;
+
+      return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__read', frames, symbols) 
+          || stepContains('__open', frames, symbols) 
+          || stepContains('stat$INODE64', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
+    title: "Bug 772916 - Gradients are slow on mobile",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('PaintGradient', frames, symbols)
+          && stepContains('BasicTiledLayerBuffer::PaintThebesSingleBufferDraw', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Bug 789193 - AMI_startup() takes 200ms on startup",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('AMI_startup()', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('LoginManagerStorage_mozStorage.init()', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
+    title: "JS - Bug 767070 - Text selection performance is bad on android",
+    check: function(frames, symbols, meta) {
+
+      if (!stepContains('FlushPendingNotifications', frames, symbols))
+        return false;
+
+      return stepContains('sh_', frames, symbols)
+          && stepContains('browser.js', frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "js.png",
+    title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('Readability.js', frames, symbols)
+          ;
+    },
+  },
+
+  // **************** General issues
+  {
+    image: "js.png",
+    title: "JS is triggering a sync reflow",
+    check: function(frames, symbols, meta) {
+      return symbolSequence(['js::RunScript','layout::DoReflow'], frames, symbols)
+          ;
+    },
+  },
+
+  {
+    image: "gc.png",
+    title: "Garbage Collection Slice",
+    canMergeWithGC: false,
+    check: function(frames, symbols, meta, step) {
+      var slice = findGCSlice(frames, symbols, meta, step);
+
+      if (slice) {
+        var gcEvent = findGCEvent(frames, symbols, meta, step);
+        //dump("found event matching diagnostic\n");
+        //dump(JSON.stringify(gcEvent) + "\n");
+        return true;
+      }
+      return false;
+    },
+    details: function(frames, symbols, meta, step) {
+      var slice = findGCSlice(frames, symbols, meta, step);
+      if (slice) {
+        return "" +
+          "Reason: " + slice.reason + "\n" +
+          "Slice: " + slice.slice + "\n" +
+          "Pause: " + slice.pause + " ms";
+      }
+      return null;
+    },
+    onclickDetails: function(frames, symbols, meta, step) {
+      var gcEvent = findGCEvent(frames, symbols, meta, step);
+      if (gcEvent) {
+        return JSON.stringify(gcEvent);
+      } else {
+        return null;
+      }
+    },
+  },
+  {
+    image: "cc.png",
+    title: "Cycle Collect",
+    check: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+
+      if (ccEvent) {
+        dump("Found\n");
+        return true;
+      }
+      return false;
+    },
+    details: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+      if (ccEvent) {
+        return "" +
+          "Duration: " + ccEvent.duration + " ms\n" +
+          "Suspected: " + ccEvent.suspected;
+      }
+      return null;
+    },
+    onclickDetails: function(frames, symbols, meta, step) {
+      var ccEvent = findCCEvent(frames, symbols, meta, step);
+      if (ccEvent) {
+        return JSON.stringify(ccEvent);
+      } else {
+        return null;
+      }
+    },
+  },
+  {
+    image: "gc.png",
+    title: "Garbage Collection",
+    canMergeWithGC: false,
+    check: function(frames, symbols, meta) {
+      return stepContainsRegEx(/.*Collect.*Runtime.*Invocation.*/, frames, symbols)
+          || stepContains('GarbageCollectNow', frames, symbols) // Label
+          || stepContains('CycleCollect__', frames, symbols) // Label
+          ;
+    },
+  },
+  {
+    image: "plugin.png",
+    title: "Sync Plugin Constructor",
+    check: function(frames, symbols, meta) {
+      return stepContains('CallPPluginInstanceConstructor', frames, symbols) 
+          || stepContains('CallPCrashReporterConstructor', frames, symbols) 
+          || stepContains('PPluginModuleParent::CallNP_Initialize', frames, symbols)
+          || stepContains('GeckoChildProcessHost::SyncLaunch', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "text.png",
+    title: "Font Loading",
+    check: function(frames, symbols, meta) {
+      return stepContains('gfxFontGroup::BuildFontList', frames, symbols);
+    },
+  },
+  {
+    image: "io.png",
+    title: "Main Thread IO!",
+    check: function(frames, symbols, meta) {
+      return stepContains('__getdirentries64', frames, symbols) 
+          || stepContains('__open', frames, symbols) 
+          || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
+          || stepContains('__unlink', frames, symbols) 
+          || stepContains('fsync', frames, symbols) 
+          || stepContains('stat$INODE64', frames, symbols)
+          ;
+    },
+  },
+];
+
+function hasJSFrame(frames, symbols) {
+  for (var i = 0; i < frames.length; i++) {
+    if (symbols[frames[i]].isJSFrame === true) {
+      return true;
+    }
+  }
+  return false;
+}
+function findCCEvent(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.ccEvents.length; i++) {
+    var ccEvent = meta.gcStats.ccEvents[i];
+    if (ccEvent.start_timestamp <= time && ccEvent.end_timestamp >= time) {
+      //dump("JSON: " + js_beautify(JSON.stringify(ccEvent)) + "\n");
+      return ccEvent;
+    }
+  }
+
+  return null;
+}
+function findGCEvent(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.gcEvents.length; i++) {
+    var gcEvent = meta.gcStats.gcEvents[i];
+    if (!gcEvent.slices)
+      continue;
+    for (var j = 0; j < gcEvent.slices.length; j++) {
+      var slice = gcEvent.slices[j];
+      if (slice.start_timestamp <= time && slice.end_timestamp >= time) {
+        return gcEvent;
+      }
+    }
+  }
+
+  return null;
+}
+function findGCSlice(frames, symbols, meta, step) {
+  if (!step || !step.extraInfo || !step.extraInfo.time || !meta || !meta.gcStats)
+    return null;
+
+  var time = step.extraInfo.time;
+
+  for (var i = 0; i < meta.gcStats.gcEvents.length; i++) {
+    var gcEvent = meta.gcStats.gcEvents[i];
+    if (!gcEvent.slices)
+      continue;
+    for (var j = 0; j < gcEvent.slices.length; j++) {
+      var slice = gcEvent.slices[j];
+      if (slice.start_timestamp <= time && slice.end_timestamp >= time) {
+        return slice;
+      }
+    }
+  }
+
+  return null;
+}
+function stepContains(substring, frames, symbols) {
+  for (var i = 0; frames && i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (frameSym.indexOf(substring) != -1) {
+      return true;
+    }
+  }
+  return false;
+}
+function stepContainsRegEx(regex, frames, symbols) {
+  for (var i = 0; frames && i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (regex.exec(frameSym)) {
+      return true;
+    }
+  }
+  return false;
+}
+function symbolSequence(symbolsOrder, frames, symbols) {
+  var symbolIndex = 0;
+  for (var i = 0; frames && i < frames.length; i++) {
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    var substring = symbolsOrder[symbolIndex];
+    if (frameSym.indexOf(substring) != -1) {
+      symbolIndex++;
+      if (symbolIndex == symbolsOrder.length) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function firstMatch(array, matchFunction) {
+  for (var i = 0; i < array.length; i++) {
+    if (matchFunction(array[i]))
+      return array[i];
+  }
+  return undefined;
+}
+
+function calculateDiagnosticItems(requestID, profileID, meta) {
+  /*
+  if (!histogramData || histogramData.length < 1) {
+    sendFinished(requestID, []);
+    return;
+  }*/
+
+  var profile = gProfiles[profileID];
+  //var symbols = profile.symbols;
+  var symbols = profile.functions;
+  var data = profile.filteredSamples;
+
+  var lastStep = data[data.length-1];
+  var widthSum = data.length;
+  var pendingDiagnosticInfo = null;
+
+  var diagnosticItems = [];
+
+  function finishPendingDiagnostic(endX) {
+    if (!pendingDiagnosticInfo)
+      return;
+
+    diagnosticItems.push({
+      x: pendingDiagnosticInfo.x / widthSum,
+      width: (endX - pendingDiagnosticInfo.x) / widthSum,
+      imageFile: pendingDiagnosticInfo.diagnostic.image,
+      title: pendingDiagnosticInfo.diagnostic.title,
+      details: pendingDiagnosticInfo.details,
+      onclickDetails: pendingDiagnosticInfo.onclickDetails
+    });
+    pendingDiagnosticInfo = null;
+  }
+
+/*
+  dump("meta: " + meta.gcStats + "\n");
+  if (meta && meta.gcStats) {
+    dump("GC Stats: " + JSON.stringify(meta.gcStats) + "\n");
+  }
+*/
+
+  data.forEach(function diagnoseStep(step, x) {
+    if (!step)
+      return;
+
+    var frames = step.frames;
+
+    var diagnostic = firstMatch(diagnosticList, function (diagnostic) {
+      return diagnostic.check(frames, symbols, meta, step);
+    });
+
+    if (!diagnostic) {
+      finishPendingDiagnostic(x);
+      return;
+    }
+
+    var details = diagnostic.details ? diagnostic.details(frames, symbols, meta, step) : null;
+
+    if (pendingDiagnosticInfo) {
+      // We're already inside a diagnostic range.
+      if (diagnostic == pendingDiagnosticInfo.diagnostic && pendingDiagnosticInfo.details == details) {
+        // We're still inside the same diagnostic.
+        return;
+      }
+
+      // We have left the old diagnostic and found a new one. Finish the old one.
+      finishPendingDiagnostic(x);
+    }
+
+    pendingDiagnosticInfo = {
+      diagnostic: diagnostic,
+      x: x,
+      details: details,
+      onclickDetails: diagnostic.onclickDetails ? diagnostic.onclickDetails(frames, symbols, meta, step) : null
+    };
+  });
+  if (pendingDiagnosticInfo)
+    finishPendingDiagnostic(data.length);
+
+  sendFinished(requestID, diagnosticItems);
 }
