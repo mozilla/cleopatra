@@ -959,7 +959,7 @@ function calculateHistogramData(requestID, profileID) {
   }
 
   var profile = gProfiles[profileID];
-  var data = profile.allSamples;
+  var data = profile.filteredSamples;
   var histogramData = [];
   var maxHeight = 0;
   for (var i = 0; i < data.length; ++i) {
