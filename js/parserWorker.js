@@ -94,6 +94,9 @@ self.onmessage = function (msg) {
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
+      case "calculateHistogramData":
+        calculateHistogramData(requestID, taskData.profileID);
+        break;
       default:
         sendError(requestID, "Unknown task " + task);
         break;
@@ -937,4 +940,91 @@ function updateViewOptions(requestID, profileID, options) {
   if (options.mergeUnbranched)
     mergeUnbranchedCallPaths(treeData);
   sendFinished(requestID, treeData);
+}
+
+// The responsiveness threshold (in ms) after which the sample shuold become
+// completely red in the histogram.
+var kDelayUntilWorstResponsiveness = 1000;
+
+function calculateHistogramData(requestID, profileID) {
+
+  function getStepColor(step) {
+    if ("responsiveness" in step.extraInfo) {
+      var res = step.extraInfo.responsiveness;
+      var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+      return "rgb(" + redComponent + ",0,0)";
+    }
+
+    return "rgb(0,0,0)";
+  }
+
+  var profile = gProfiles[profileID];
+  var data = profile.allSamples;
+  var histogramData = [];
+  var maxHeight = 0;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i])
+      continue;
+    var value = data[i].frames ? data[i].frames.length : 0;
+    if (maxHeight < value)
+      maxHeight = value;
+  }
+  maxHeight += 1;
+  var nextX = 0;
+  // The number of data items per histogramData rects.
+  // Except when seperated by a marker.
+  // This is used to cut down the number of rects, since
+  // there's no point in having more rects then pixels
+  var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
+  for (var i = 0; i < data.length; i++) {
+    var step = data[i];
+    if (!step || !step.frames) {
+      // Add a gap for the sample that was filtered out.
+      nextX += 1 / samplesPerStep;
+      continue;
+    }
+    nextX = Math.ceil(nextX);
+    var value = step.frames.length / maxHeight;
+    var frames = step.frames;
+    var currHistogramData = histogramData[histogramData.length-1];
+    if ("marker" in step.extraInfo) {
+      // A new marker boundary has been discovered.
+      histogramData.push({
+        frames: "marker",
+        x: nextX,
+        width: 2,
+        value: 1,
+        marker: step.extraInfo.marker,
+        color: "fuchsia"
+      });
+      nextX += 2;
+      histogramData.push({
+        frames: [step.frames],
+        x: nextX,
+        width: 1,
+        value: value,
+        color: getStepColor(step),
+      });
+      nextX += 1;
+    } else if (currHistogramData != null &&
+      currHistogramData.frames.length < samplesPerStep) {
+      currHistogramData.frames.push(step.frames);
+      // When merging data items take the average:
+      currHistogramData.value =
+        (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
+        currHistogramData.frames.length;
+      // Merge the colors? For now we keep the first color set.
+    } else {
+      // A new name boundary has been discovered.
+      histogramData.push({
+        frames: [step.frames],
+        x: nextX,
+        width: 1,
+        value: value,
+        color: getStepColor(step),
+      });
+      nextX += 1;
+    }
+  }
+  sendFinished(requestID, { histogramData: histogramData, widthSum: Math.ceil(nextX) });
 }

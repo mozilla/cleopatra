@@ -220,10 +220,6 @@ PluginView.prototype = {
   },
 }
 
-// The responsiveness threshold (in ms) after which the sample shuold become
-// completely red in the histogram.
-var kDelayUntilWorstResponsiveness = 1000;
-
 function HistogramView() {
   this._container = document.createElement("div");
   this._container.className = "histogram";
@@ -276,12 +272,13 @@ HistogramView.prototype = {
     var minWidth = 2000;
     return Math.ceil(minWidth / this._widthSum);
   },
-  display: function HistogramView_display(samples, highlightedCallstack) {
-    this._busyCover.classList.remove("busy");
-    this._calculateHistogramData(samples);
+  display: function HistogramView_display(histogramData, widthSum, highlightedCallstack) {
+    this._histogramData = histogramData;
+    this._widthSum = widthSum;
     this._widthMultiplier = this._calculateWidthMultiplier();
     this._canvas.width = this._widthMultiplier * this._widthSum;
     this._render(highlightedCallstack);
+    this._busyCover.classList.remove("busy");
   },
   _render: function HistogramView__render(highlightedCallstack) {
     var ctx = this._canvas.getContext("2d");
@@ -344,76 +341,6 @@ HistogramView.prototype = {
       }
 
       return "rgb(0,0,0)";
-  },
-  _calculateHistogramData: function HistogramView__calculateHistogramData(data) {
-    var histogramData = [];
-    var maxHeight = 0;
-    for (var i = 0; i < data.length; ++i) {
-      if (!data[i])
-        continue;
-      var value = data[i].frames ? data[i].frames.length : 0;
-      if (maxHeight < value)
-        maxHeight = value;
-    }
-    maxHeight += 1;
-    var nextX = 0;
-    // The number of data items per histogramData rects.
-    // Except when seperated by a marker.
-    // This is used to cut down the number of rects, since
-    // there's no point in having more rects then pixels
-    var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
-    for (var i = 0; i < data.length; i++) {
-      var step = data[i];
-      if (!step || !step.frames) {
-        // Add a gap for the sample that was filtered out.
-        nextX += 1 / samplesPerStep;
-        continue;
-      }
-      nextX = Math.ceil(nextX);
-      var value = step.frames.length / maxHeight;
-      var frames = step.frames;
-      var currHistogramData = histogramData[histogramData.length-1];
-      if ("marker" in step.extraInfo) {
-        // A new marker boundary has been discovered.
-        histogramData.push({
-          frames: "marker",
-          x: nextX,
-          width: 2,
-          value: 1,
-          marker: step.extraInfo.marker,
-          color: "fuchsia"
-        });
-        nextX += 2;
-        histogramData.push({
-          frames: [step.frames],
-          x: nextX,
-          width: 1,
-          value: value,
-          color: this._getStepColor(step),
-        });
-        nextX += 1;
-      } else if (currHistogramData != null &&
-        currHistogramData.frames.length < samplesPerStep) {
-        currHistogramData.frames.push(step.frames);
-        // When merging data items take the average:
-        currHistogramData.value =
-          (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
-          currHistogramData.frames.length;
-        // Merge the colors? For now we keep the first color set.
-      } else {
-        // A new name boundary has been discovered.
-        histogramData.push({
-          frames: [step.frames],
-          x: nextX,
-          width: 1,
-          value: value,
-          color: this._getStepColor(step),
-        });
-        nextX += 1;
-      }
-    }
-    this._histogramData = histogramData;
-    this._widthSum = Math.ceil(nextX);
   },
 };
 
@@ -1388,13 +1315,6 @@ function filtersChanged() {
     gCurrentlyShownSampleData = filteredSamples;
     gInfoBar.display();
 
-    start = Date.now();
-    gHistogramView.display(gCurrentlyShownSampleData, gHighlightedCallstack);
-    console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-
-    gDiagnosticBar.display(gMeta, gCurrentlyShownSampleData, gHighlightedCallstack,
-                           gHistogramView.getHistogramData(), gFunctions);
-
     if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();
       gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName, gSampleFilters[gSampleFilters.length-1].param,
@@ -1404,6 +1324,19 @@ function filtersChanged() {
       gPluginView.hide();
     }
   });
+
+  var histogramRequest = Parser.calculateHistogramData();
+  histogramRequest.addEventListener("finished", function (data) {
+    start = Date.now();
+    gHistogramView.display(data.histogramData, data.widthSum, gHighlightedCallstack);
+    console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+
+    gDiagnosticBar.display(gMeta, gCurrentlyShownSampleData, gHighlightedCallstack,
+                           gHistogramView.getHistogramData(), gFunctions);
+
+
+  });
+
   viewOptionsChanged();
 }
 

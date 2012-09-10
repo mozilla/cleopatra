@@ -242,4 +242,12 @@ var Parser = {
     });
     request.addEventListener("finished", callback);
   },
+
+  calculateHistogramData: function Parser_calculateHistogramData() {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("calculateHistogramData", {
+      profileID: 0
+    });
+    return request;
+  },
 };
