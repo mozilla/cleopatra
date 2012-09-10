@@ -245,39 +245,68 @@ function parseRawProfile(requestID, params, rawProfile) {
     return functionName;
   }
 
+  function resourceNameForAddon(addonID) {
+    for (var i in meta.addons) {
+      var addon = meta.addons[i];
+      if (addon.id.toLowerCase() == addonID.toLowerCase()) {
+        var iconHTML = "";
+        if (addon.iconURL)
+          iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
+        return iconHTML + " " + (/@jetpack$/.exec(addonID) ? "Jetpack: " : "") + addon.name;
+      }
+    }
+    return "";
+  }
+
   function parseResourceName(url) {
+
+    if (url.startsWith("resource:///")) {
+      // Take the last URL from a chained list of URLs.
+      var urls = url.split(" -> ");
+      url = urls[urls.length - 1];
+    }
+
     // TODO Fix me, this certainly doesn't handle all URLs formats
     var match = /^.*:\/\/(.*?)\/.*$/.exec(url);
 
     if (!match)
       return url;
 
-    if (meta && meta.addons && url.indexOf("resource:") == 0 && endsWith(match[1], "-at-jetpack")) {
-      // Assume this is a jetpack url
-      var jetpackID = match[1].substring(0, match[1].length - 11) + "@jetpack";
+    var host = match[1];
 
-      for (var i in meta.addons) {
-        var addon = meta.addons[i];
-        //dump("match " + addon.id + " vs. " + jetpackID + "\n");
-        // TODO handle lowercase name collision
-        if (addon.id.toLowerCase() == jetpackID.toLowerCase()) {
-          //dump("Found addon: " + addon.name + "\n");
-          var iconHTML = "";
-          if (addon.iconURL)
-            iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
-          return iconHTML + " Jetpack: " + addon.name;
+    if (meta && meta.addons) {
+      if (url.startsWith("resource:") && endsWith(host, "-at-jetpack")) {
+        // Assume this is a jetpack url
+        var jetpackID = host.substring(0, host.length - 11) + "@jetpack";
+        var resName = resourceNameForAddon(jetpackID);
+        if (resName)
+          return resName;
+      }
+      if (url.startsWith("file:///") && url.indexOf("/extensions/") != -1) {
+        var unpackedAddonNameMatch = /\/extensions\/(.*?)\//.exec(url);
+        if (unpackedAddonNameMatch) {
+          var resName = resourceNameForAddon(decodeURIComponent(unpackedAddonNameMatch[1]));
+          if (resName)
+            return resName;
         }
       }
-      //dump("Found jetpackID: " + jetpackID + "\n");
+      if (url.startsWith("jar:file:///") && url.indexOf("/extensions/") != -1) {
+        var packedAddonNameMatch = /\/extensions\/(.*?).xpi/.exec(url);
+        if (packedAddonNameMatch) {
+          var resName = resourceNameForAddon(decodeURIComponent(packedAddonNameMatch[1]));
+          if (resName)
+            return resName;
+        }
+      }
     }
 
     var iconHTML = "";
     if (url.indexOf("http://") == 0) {
-      iconHTML = "<img src=\"http://" + match[1] + "/favicon.ico\" style='width:12px; height:12px;'> ";
+      iconHTML = "<img src=\"http://" + host + "/favicon.ico\" style='width:12px; height:12px;'> ";
     } else if (url.indexOf("https://") == 0) {
-      iconHTML = "<img src=\"https://" + match[1] + "/favicon.ico\" style='width:12px; height:12px;'> ";
+      iconHTML = "<img src=\"https://" + host + "/favicon.ico\" style='width:12px; height:12px;'> ";
     }
-    return iconHTML + match[1];
+    return iconHTML + host;
   }
 
   function parseScriptFile(url) {
