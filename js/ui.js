@@ -349,17 +349,28 @@ HistogramView.prototype = {
     ctx.clearRect(0, 0, this._widthSum, height);
 
     var self = this;
-    this._histogramData.forEach(function plotStep(step) {
+    for (var i = 0; i < this._histogramData.length; i++) {
+      var step = this._histogramData[i];
       var isSelected = self._isStepSelected(step, highlightedCallstack);
-      ctx.fillStyle = isSelected ? "green" : step.color;
+      var isInRangeSelector = self._isInRangeSelector(i);
+      if (isSelected) {
+        ctx.fillStyle = "green";
+      } else if (isInRangeSelector) {
+        ctx.fillStyle = "blue";
+      } else {
+        ctx.fillStyle = step.color;
+      }
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
-    });
+    }
 
     this._finishedRendering = true;
   },
   highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
     this._render(highlightedCallstack);
+  },
+  _isInRangeSelector: function HistogramView_isInRangeSelector(index) {
+    return false;
   },
   _isStepSelected: function HistogramView__isStepSelected(step, highlightedCallstack) {
     if ("marker" in step)
