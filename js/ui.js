@@ -510,11 +510,12 @@ RangeSelector.prototype = {
     }, false);
     graph.addEventListener("mouseup", function(e) {
       graph.style.cursor = "default";
-      isDrawingRectangle = false;
       if (!this._movedDuringClick) {
+        isDrawingRectangle = false;
         // Handle as a click on the histogram. Select the sample:
         histogramClick(e.pageX, e.pageY);
       } else if (isDrawingRectangle) {
+        isDrawingRectangle = false;
         updateHiliteRectangle(e.pageX, e.pageY);
         self.finishHistogramSelection(e.pageX != origX);
         if (e.pageX == origX) {
