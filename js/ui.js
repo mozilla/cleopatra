@@ -223,12 +223,13 @@ SampleBar.prototype = {
   },
   setSample: function SampleBar_setSample(sample) {
     var str = "";
-    if (!gInvertCallstack) {
-      // Always show heavy
-      sample = sample.reverse();
-    }
     for (var i = 0; i < sample.length; i++) {
+      dump("look for: " + sample[i] + "\n");
       var functionObj = gMergeFunctions ? gFunctions[sample[i]] : gFunctions[symbols[sample[i]].functionIndex];
+      if (!functionObj) {
+        dump("WTF\n");
+        continue;
+      }
       str += "- " + functionObj.functionName + "\n";
     }
     this._text.textContent = str;
@@ -278,7 +279,7 @@ function HistogramView() {
   this._canvas = this._createCanvas();
   this._container.appendChild(this._canvas);
 
-  this._rangeSelector = new RangeSelector(this._canvas);
+  this._rangeSelector = new RangeSelector(this._canvas, this);
   this._rangeSelector.enableRangeSelectionOnHistogram();
   this._container.appendChild(this._rangeSelector.getContainer());
 
@@ -322,6 +323,11 @@ HistogramView.prototype = {
   _calculateWidthMultiplier: function () {
     var minWidth = 2000;
     return Math.ceil(minWidth / this._widthSum);
+  },
+  histogramClick: function HistogramView_histogramClick(index) {
+    var sample = this._histogramData[index]; 
+    var frames = sample.frames;
+    gSampleBar.setSample(frames[0]);
   },
   display: function HistogramView_display(histogramData, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
@@ -395,7 +401,8 @@ HistogramView.prototype = {
   },
 };
 
-function RangeSelector(graph) {
+function RangeSelector(graph, histogram) {
+  this._histogram = histogram;
   this.container = document.createElement("div");
   this.container.className = "rangeSelectorContainer";
   this._graph = graph;
@@ -447,6 +454,12 @@ RangeSelector.prototype = {
     var isDrawingRectangle = false;
     var origX, origY;
     var self = this;
+    function histogramClick(clickX, clickY) {
+      clickX = Math.min(clickX, graph.parentNode.getBoundingClientRect().right);
+      clickX = clickX - graph.parentNode.getBoundingClientRect().left;
+      var index = self._sampleIndexFromPoint(clickX);
+      self._histogram.histogramClick(index);
+    }
     function updateHiliteRectangle(newX, newY) {
       newX = Math.min(newX, graph.parentNode.getBoundingClientRect().right);
       var startX = Math.min(newX, origX) - graph.parentNode.getBoundingClientRect().left;
@@ -477,12 +490,16 @@ RangeSelector.prototype = {
       // Reset the highlight rectangle
       updateHiliteRectangle(e.pageX, e.pageY);
       e.preventDefault();
+      this._movedDuringClick = false;
     }, false);
     graph.addEventListener("mouseup", function(e) {
       graph.style.cursor = "default";
-      if (isDrawingRectangle) {
+      isDrawingRectangle = false;
+      if (!this._movedDuringClick) {
+        // Handle as a click on the histogram. Select the sample:
+        histogramClick(e.pageX, e.pageY);
+      } else if (isDrawingRectangle) {
         updateHiliteRectangle(e.pageX, e.pageY);
-        isDrawingRectangle = false;
         self.finishHistogramSelection(e.pageX != origX);
         if (e.pageX == origX) {
           // Simple click in the histogram
@@ -494,6 +511,7 @@ RangeSelector.prototype = {
       }
     }, false);
     graph.addEventListener("mousemove", function(e) {
+      this._movedDuringClick = true;
       if (isDrawingRectangle) {
         console.log(e.pageX);
         updateMouseMarker(-1); // Clear
@@ -525,7 +543,6 @@ RangeSelector.prototype = {
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
       var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
       self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
-        // BENWA
         title: "Sample Range [" + start + ", " + (end + 1) + "]",
         enterCallback: function () {
           gSampleFilters = newFilterChain;
@@ -1221,6 +1238,10 @@ function viewJSSource(sample) {
 function setHighlightedCallstack(samples, heaviestSample) {
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
+  if (!gInvertCallstack) {
+    // Always show heavy
+    heaviestSample = heaviestSample.clone().reverse();
+  }
   gSampleBar.setSample(heaviestSample);
 }
 
