@@ -331,6 +331,7 @@ HistogramView.prototype = {
     var sample = this._histogramData[index]; 
     var frames = sample.frames;
     var list = gSampleBar.setSample(frames[0]);
+    gTreeManager.setSelection(list);
     setHighlightedCallstack(frames[0], frames[0]);
   },
   display: function HistogramView_display(histogramData, widthSum, highlightedCallstack) {
