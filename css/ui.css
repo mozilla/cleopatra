@@ -136,14 +136,22 @@ body {
   opacity: 0;
   margin-left: -270px;
 }
+.treeContainer {
+  /*For asbolute position child*/
+  position: relative;
+}
 .tree {
-  left: 0px;
-  right: 200px;
   height: 100%;
+  padding: 0px 200px 0px 0px;
 }
 .sampleBar {
+  position: absolute;
+  float: right;
+  top: 0;
   right: 0;
   width: 200px;
+  height: 100%;
+  background-color: white;
 }
 #fileList {
   position: absolute;

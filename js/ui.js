@@ -1286,25 +1286,26 @@ function enterFinishedProfileUI() {
     currRow.insertCell(0).appendChild(gVideoPane.getContainer());
   }
 
-  var dummyDiv = document.createElement("div");
-  dummyDiv.style.width = "100%";
-  dummyDiv.style.height = "100%";
+  var treeContainerDiv = document.createElement("div");
+  treeContainerDiv.className = "treeContainer";
+  treeContainerDiv.style.width = "100%";
+  treeContainerDiv.style.height = "100%";
 
   gTreeManager = new ProfileTreeManager();
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.style.height = "100%";
   var cell = currRow.insertCell(0);
-  cell.appendChild(dummyDiv);
-  dummyDiv.appendChild(gTreeManager.getContainer());
+  cell.appendChild(treeContainerDiv);
+  treeContainerDiv.appendChild(gTreeManager.getContainer());
 
   gSampleBar = new SampleBar();
-  dummyDiv.appendChild(gSampleBar.getContainer());
+  treeContainerDiv.appendChild(gSampleBar.getContainer());
 
   // sampleBar
 
   gPluginView = new PluginView();
   //currRow = finishedProfilePane.insertRow(4);
-  dummyDiv.appendChild(gPluginView.getContainer());
+  treeContainerDiv.appendChild(gPluginView.getContainer());
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
