@@ -259,7 +259,9 @@ function parseRawProfile(requestID, params, rawProfile) {
   }
 
   function parseResourceName(url) {
-
+    if (!url) {
+      return "No URL";
+    }
     if (url.startsWith("resource:///")) {
       // Take the last URL from a chained list of URLs.
       var urls = url.split(" -> ");
