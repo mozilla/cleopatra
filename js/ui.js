@@ -187,7 +187,12 @@ ProfileTreeManager.prototype = {
 
 function SampleBar() {
   this._container = document.createElement("div");
-  this._container.className = "sampleBar";
+  this._container.id = "sampleBar";
+  this._container.className = "sideBar";
+
+  this._header = document.createElement("h2");
+  this._header.innerHTML = "Sample";
+  this._container.appendChild(this._header);
 }
 
 SampleBar.prototype = {
@@ -817,7 +822,8 @@ function addTooltips() {
 
 function InfoBar() {
   this._container = document.createElement("div");
-  this._container.id = "infobar";
+  this._container.id = "infoBar";
+  this._container.className = "sideBar";
 }
 
 InfoBar.prototype = {

@@ -144,9 +144,10 @@ body {
   height: 100%;
   padding: 0px 200px 0px 0px;
 }
-.sampleBar {
+#sampleBar {
   position: absolute;
   float: right;
+  left: auto;
   top: 0;
   right: 0;
   width: 200px;
@@ -165,7 +166,7 @@ body {
   background: #DBDFE7;
   border-right: 1px solid #BBB;
 }
-#infobar {
+.sideBar {
   position: absolute;
   left: 0;
   bottom: 0;
@@ -177,7 +178,7 @@ body {
   border-top: 1px solid #BBB;
   border-right: 1px solid #BBB;
 }
-#infobar h2 {
+.sideBar h2 {
   font-size: 1em;
   padding: 1px 3px;
   margin: 3px -3px;
@@ -185,10 +186,10 @@ body {
   border: solid #CCC;
   border-width: 1px 0;
 }
-#infobar h2:first-child {
+.sideBar h2:first-child {
   margin-top: -4px;
 }
-#infobar ul {
+.sideBar ul {
   margin: 2px 0;
   padding-left: 18px;
 }
