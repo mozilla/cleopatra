@@ -142,8 +142,11 @@ TreeView.prototype = {
 
     return snapshot.reverse();
   },
+  setSelection: function TreeView_setSelection(frames) {
+    this.restoreSelectionSnapshot(frames, false);
+  },
   // Take a selection snapshot and restore the selection
-  restoreSelectionSnapshot: function TreeView__restoreSelectionSnapshot(snapshot, allowNonContigious) {
+  restoreSelectionSnapshot: function TreeView_restoreSelectionSnapshot(snapshot, allowNonContigious) {
     var currNode = this._horizontalScrollbox.firstChild;
     if (currNode.data.name == snapshot[0] || snapshot[0] == "(total)") {
       snapshot.shift();

@@ -86,6 +86,9 @@ ProfileTreeManager.prototype = {
   _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot, allowNonContigous) {
     return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
   },
+  setSelection: function ProfileTreeManager_setSelection(frames) {
+    return this.treeView.setSelection(frames);
+  },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
     var callstack = [];
     var curr = frame;
@@ -223,16 +226,16 @@ SampleBar.prototype = {
   },
   setSample: function SampleBar_setSample(sample) {
     var str = "";
+    var list = [];
     for (var i = 0; i < sample.length; i++) {
-      dump("look for: " + sample[i] + "\n");
       var functionObj = gMergeFunctions ? gFunctions[sample[i]] : gFunctions[symbols[sample[i]].functionIndex];
-      if (!functionObj) {
-        dump("WTF\n");
+      if (!functionObj)
         continue;
-      }
       str += "- " + functionObj.functionName + "\n";
+      list.push(functionObj.functionName);
     }
     this._text.textContent = str;
+    return list;
   },
 }
 
@@ -327,7 +330,8 @@ HistogramView.prototype = {
   histogramClick: function HistogramView_histogramClick(index) {
     var sample = this._histogramData[index]; 
     var frames = sample.frames;
-    gSampleBar.setSample(frames[0]);
+    var list = gSampleBar.setSample(frames[0]);
+    setHighlightedCallstack(frames[0], frames[0]);
   },
   display: function HistogramView_display(histogramData, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
@@ -1236,6 +1240,7 @@ function viewJSSource(sample) {
 }
 
 function setHighlightedCallstack(samples, heaviestSample) {
+  dump("highlight: " + samples + "\n");
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
   if (!gInvertCallstack) {
