@@ -72,7 +72,7 @@ ProfileTreeManager.prototype = {
     return this._container;
   },
   highlightFrame: function Treedisplay_highlightFrame(frameData) {
-    setHighlightedCallstack(this._getCallstackUpTo(frameData));
+    setHighlightedCallstack(this._getCallstackUpTo(frameData), this._getHeaviestCallstack(frameData));
   },
   dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();
@@ -101,6 +101,16 @@ ProfileTreeManager.prototype = {
     if (gInvertCallstack)
       callstack.shift(); // remove (total)
     return callstack;
+  },
+  _getHeaviestCallstack: function ProfileTreeManager__getHeaviestCallstack(frame) {
+    // FIXME: This gets the first leaf which is not the heaviest leaf.
+    while(frame.children && frame.children.length > 0) {
+      var nextFrame = frame.children[0].getData();
+      if (!nextFrame)
+        break;
+      frame = nextFrame;
+    }
+    return this._getCallstackUpTo(frame);
   },
   _onContextMenuClick: function ProfileTreeManager__onContextMenuClick(e) {
     var node = e.node;
@@ -176,8 +186,14 @@ ProfileTreeManager.prototype = {
     function getChildrenObjects(children, parent) {
       var sortedChildren = children.slice(0).sort(treeObjSort);
       return sortedChildren.map(function (child) {
+        var createdNode = null;
         return {
-          getData: function () { return createTreeViewNode(child, parent); }
+          getData: function () {
+            if (!createdNode) {
+              createdNode = createTreeViewNode(child, parent); 
+            }
+            return createdNode;
+          }
         };
       });
     }
@@ -191,8 +207,14 @@ function SampleBar() {
   this._container.className = "sideBar";
 
   this._header = document.createElement("h2");
-  this._header.innerHTML = "Sample";
+  this._header.innerHTML = "Selection - Most time spent in:";
+  this._header.alt = "This shows the heaviest leaf of the selected sample. Use this to get a quick glimpse of where the selection is spending most of its time.";
   this._container.appendChild(this._header);
+
+  this._text = document.createElement("span");
+  this._text.style.whiteSpace = "pre";
+  this._text.innerHTML = "Sample text";
+  this._container.appendChild(this._text);
 }
 
 SampleBar.prototype = {
@@ -200,7 +222,16 @@ SampleBar.prototype = {
     return this._container;
   },
   setSample: function SampleBar_setSample(sample) {
-    dump("set sample\n"); 
+    var str = "";
+    if (!gInvertCallstack) {
+      // Always show heavy
+      sample = sample.reverse();
+    }
+    for (var i = 0; i < sample.length; i++) {
+      var functionObj = gMergeFunctions ? gFunctions[sample[i]] : gFunctions[symbols[sample[i]].functionIndex];
+      str += "- " + functionObj.functionName + "\n";
+    }
+    this._text.textContent = str;
   },
 }
 
@@ -1187,9 +1218,10 @@ function viewJSSource(sample) {
 
 }
 
-function setHighlightedCallstack(samples) {
+function setHighlightedCallstack(samples, heaviestSample) {
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
+  gSampleBar.setSample(heaviestSample);
 }
 
 function enterMainUI() {
