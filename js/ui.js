@@ -240,9 +240,21 @@ SampleBar.prototype = {
       this._text.appendChild(functionLink);
       this._text.appendChild(document.createElement("br"));
       list.push(functionObj.functionName);
-      functionLink.selectToList = list.clone();
+      functionLink.selectIndex = i;
       functionLink.onclick = function() {
-        gTreeManager.setSelection(this.selectToList);
+        var selectedFrames = [];
+        if (gInvertCallstack) {
+          for (var i = 0; i <= this.selectIndex; i++) {
+            var functionObj = gMergeFunctions ? gFunctions[sample[i]] : gFunctions[symbols[sample[i]].functionIndex];
+            selectedFrames.push(functionObj.functionName);
+          }
+        } else {
+          for (var i = sample.length - 1; i >= this.selectIndex; i--) {
+            var functionObj = gMergeFunctions ? gFunctions[sample[i]] : gFunctions[symbols[sample[i]].functionIndex];
+            selectedFrames.push(functionObj.functionName);
+          }
+        }
+        gTreeManager.setSelection(selectedFrames);
         return false;
       }
     }
