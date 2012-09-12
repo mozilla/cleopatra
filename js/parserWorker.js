@@ -15,6 +15,12 @@ function endsWith(str, suffix) {
       return str.indexOf(suffix, this.length - suffix.length) !== -1;
 };
 
+// https://bugzilla.mozilla.org/show_bug.cgi?id=728780
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith =
+    function(s) { return this.lastIndexOf(s, 0) === 0; }
+}
+
 // functions for which lr is unconditionally valid.  These are
 // largely going to be atomics and other similar functions
 // that don't touch lr.  This is currently populated with
