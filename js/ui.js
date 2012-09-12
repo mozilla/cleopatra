@@ -227,14 +227,25 @@ SampleBar.prototype = {
   setSample: function SampleBar_setSample(sample) {
     var str = "";
     var list = [];
+
+    this._text.innerHTML = "";
+
     for (var i = 0; i < sample.length; i++) {
       var functionObj = gMergeFunctions ? gFunctions[sample[i]] : gFunctions[symbols[sample[i]].functionIndex];
       if (!functionObj)
         continue;
-      str += "- " + functionObj.functionName + "\n";
+      var functionLink = document.createElement("a");
+      functionLink.textContent = "- " + functionObj.functionName;
+      functionLink.href = "#";
+      this._text.appendChild(functionLink);
+      this._text.appendChild(document.createElement("br"));
       list.push(functionObj.functionName);
+      functionLink.selectToList = list.clone();
+      functionLink.onclick = function() {
+        gTreeManager.setSelection(this.selectToList);
+        return false;
+      }
     }
-    this._text.textContent = str;
     return list;
   },
 }
