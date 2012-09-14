@@ -164,6 +164,7 @@ body {
   margin: 0;
   background: #DBDFE7;
   border-right: 1px solid #BBB;
+  cursor: pointer;
 }
 .sideBar {
   position: absolute;

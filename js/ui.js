@@ -62,14 +62,14 @@ FileList.prototype = {
           var profileInfo = profileList[i];
           //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
           var fileEntry = self.addFile(profileInfo.profileKey, "local storage", function fileEntryClick() {
-            self.setSelection(fileEntry);  
+            loadLocalStorageProfile(profileInfo.profileKey);
           });
         })();
       }
     });
   },
 
-  addFile: function FileList_addFile(fileName, description, onclick) {
+  addFile: function FileList_addFile(fileName, description, onselect) {
     var li = document.createElement("li");
 
     li.fileName = fileName || "New Profile";
@@ -81,7 +81,11 @@ FileList.prototype = {
       this._selectedFileItem = li;
     }
 
-    li.onclick = onclick;
+    li.onselect = onselect;
+    var self = this;
+    li.onclick = function() {
+      self.setSelection(li);
+    }
 
     var fileListItemTitleSpan = document.createElement("span");
     fileListItemTitleSpan.className = "fileListItemTitle";
@@ -106,6 +110,8 @@ FileList.prototype = {
     }
     this._selectedFileItem = fileEntry;
     fileEntry.classList.add("selected");
+    if (this._selectedFileItem.onselect)
+      this._selectedFileItem.onselect();
   },
 
   profileParsingFinished: function FileList_profileParsingFinished() {
@@ -1115,6 +1121,21 @@ function loadProfileFile(fileList) {
   };
   reader.readAsText(file, "utf-8");
   subreporters.fileLoading.begin("Reading local file...");
+}
+
+function loadLocalStorageProfile(profileKey) {
+  var reporter = enterProgressUI();
+  var subreporters = reporter.addSubreporters({
+    fileLoading: 1000,
+    parsing: 1000
+  });
+
+  gLocalStorage.getProfile(profileKey, function(profile) {
+    subreporters.fileLoading.finish();
+    dump("profile: " + JSON.stringify(profile) + "\n");
+    loadRawProfile(subreporters.parsing, JSON.stringify(profile));
+  });
+  subreporters.fileLoading.begin("Reading local storage...");
 }
 
 function appendVideoCapture(videoCapture) {
