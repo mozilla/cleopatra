@@ -56,7 +56,7 @@ function WorkerRequest(worker) {
           self._executeReporter.setAction("Error in worker: " + data.error);
           self._receiveChunkReporter.setAction("Error in worker: " + data.error);
           self._totalReporter.setAction("Error in worker: " + data.error);
-          console.log("Error in worker: " + data.error);
+          PROFILERERROR("Error in worker: " + data.error);
           self._fireEvent("error", data.error);
           break;
         case "progress":
@@ -89,9 +89,9 @@ function WorkerRequest(worker) {
       }
       // dump log if present
       if (data.log) {
-	for (var line in data.log) {
-	  console.log(line);
-	}
+        for (var line in data.log) {
+          PROFILERLOG(line);
+        }
       }
     }
   }
@@ -121,7 +121,7 @@ WorkerRequest.prototype = {
       taskData: taskData
     });
     var postTime = Date.now() - startTime;
-    if (postTime > 10)
+    if (true || postTime > 10)
       console.log("posting message to worker: " + postTime + "ms");
     this._sendChunkReporter.finish();
     this._executeReporter.begin("Processing worker request...");
@@ -256,6 +256,15 @@ var Parser = {
     request.send("calculateDiagnosticItems", {
       profileID: 0,
       meta: meta
+    });
+    return request;
+  },
+
+  updateLogSetting: function Parser_updateLogSetting() {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("initWorker", {
+      debugLog: gDebugLog,
+      debugTrace: gDebugTrace,
     });
     return request;
   },

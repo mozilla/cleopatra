@@ -10,6 +10,24 @@ var gNextProfileID = 0;
 
 var gLogLines = [];
 
+var gDebugLog = false;
+var gDebugTrace = false;
+// Use for verbose tracing, otherwise use log
+function PROFILDERTRACE(msg) {
+  if (gDebugTrace)
+    PROFILERLOG(msg);
+}
+function PROFILERLOG(msg) {
+  if (gDebugLog) {
+    msg = "Cleo: " + msg;
+    dump(msg + "\n");
+  }
+}
+function PROFILERERROR(msg) {
+  msg = "Cleo: " + msg;
+  dump(msg + "\n");
+}
+
 // http://stackoverflow.com/a/2548133
 function endsWith(str, suffix) {
       return str.indexOf(suffix, this.length - suffix.length) !== -1;
@@ -72,11 +90,16 @@ self.onmessage = function (msg) {
       taskData = partialTaskData[requestID];
       delete partialTaskData[requestID];
     }
-    dump("Start task: " + task + "\n");
+    PROFILERLOG("Start task: " + task);
 
     gLogLines = [];
 
     switch (task) {
+      case "initWorker":
+        gDebugLog = taskData.debugLog;
+        gDebugTrace = taskData.debugTrace;
+        PROFILERLOG("Init logging in parserWorker");
+        return;
       case "chunkedStart":
         partialTaskData[requestID] = null;
         break;
@@ -110,10 +133,10 @@ self.onmessage = function (msg) {
         sendError(requestID, "Unknown task " + task);
         break;
     }
-    dump("Complete task: " + task + "\n");
+    PROFILERDEBUG("Complete task: " + task);
   } catch (e) {
-    dump("Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
-    sendError(requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")\n");
+    PROFILERERROR("Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")");
+    sendError(requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")");
   }
 }
 

@@ -36,6 +36,11 @@
       if (queryData.videoCapture) {
         appendVideoCapture(queryData.videoCapture);
       }
+      if (queryData.trace) {
+        enableProfilerTracing();
+      } else if (queryData.logging) {
+        enableProfilerLogging();
+      }
 
       if (queryData.report) {
         if (queryData.report.length == 40) {

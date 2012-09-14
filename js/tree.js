@@ -204,7 +204,7 @@ TreeView.prototype = {
     }
 
     if (currNode == this._horizontalScrollbox) {
-      dump("Failed to restore selection, could not find root.\n");
+      PROFILERERROR("Failed to restore selection, could not find root.\n");
       return;
     }
 

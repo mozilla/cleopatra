@@ -1,5 +1,40 @@
 var EIDETICKER_BASE_URL = "http://wrla.ch/eideticker/dashboard/";
 
+var gDebugLog = false;
+var gDebugTrace = false;
+var gLocation = window.location + "";
+if (gLocation.indexOf("file:") == 0) {
+  gDebugLog = true;
+  gDebugTrace = true;
+  PROFILERLOG("Turning on logging+tracing since cleopatra is served from the file protocol");
+}
+// Use for verbose tracing, otherwise use log
+function PROFILDERTRACE(msg) {
+  if (gDebugTrace)
+    PROFILERLOG(msg);
+}
+function PROFILERLOG(msg) {
+  if (gDebugLog) {
+    msg = "Cleo: " + msg;
+    console.log(msg);
+    dump(msg + "\n");
+  }
+}
+function PROFILERERROR(msg) {
+  msg = "Cleo: " + msg;
+  console.log(msg);
+  dump(msg + "\n");
+}
+function enableProfilerTracing() {
+  gDebugLog = true;
+  gDebugTrace = true;
+  Parser.updateLogSetting();
+}
+function enableProfilerLogging() {
+  gDebugLog = true;
+  Parser.updateLogSetting();
+}
+
 function removeAllChildren(element) {
   while (element.firstChild) {
     element.removeChild(element.firstChild);
@@ -468,7 +503,7 @@ RangeSelector.prototype = {
   },
   showVideoPosition: function RangeSelector_showVideoPosition(position) {
     this.drawMouseMarker(position * this._graph.parentNode.clientWidth);
-    dump("Show video position: " + position + "\n");
+    PROFILERLOG("Show video position: " + position);
   },
   drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
     var hilite = this._highlighter;
@@ -1060,11 +1095,11 @@ function loadZippedProfileURL(url) {
     url = EIDETICKER_BASE_URL + url;
   }
   reporter.begin("Fetching " + url);
-  dump("Fetch url: " + url + "\n");
+  PROFILDERTRACE("Fetch url: " + url);
 
   function onerror(e) {
-    dump("zip.js error\n");
-    dump(JSON.stringify(e) + "\n");
+    PROFILERERROR("zip.js error");
+    PROFILERERROR(JSON.stringify(e));
   }
 
   zip.workerScriptsPath = "js/zip.js/";
@@ -1073,7 +1108,7 @@ function loadZippedProfileURL(url) {
     zipReader.getEntries(function(entries) {
       for (var i = 0; i < entries.length; i++) {
         var entry = entries[i];
-        //dump("Zip file: " + entry.filename + "\n");
+        PROFILERTRACE("Zip file: " + entry.filename);
         if (entry.filename === "symbolicated_profile.txt") {
           reporter.begin("Decompressing " + url);
           subreporters.fileLoading.setProgress(0.8);
@@ -1123,7 +1158,7 @@ function loadProfile(rawProfile) {
 }
 
 function loadRawProfile(reporter, rawProfile) {
-  dump("Parse raw profile: ~" + rawProfile.length + " bytes\n");
+  PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile, {
@@ -1276,7 +1311,7 @@ function viewJSSource(sample) {
 }
 
 function setHighlightedCallstack(samples, heaviestSample) {
-  dump("highlight: " + samples + "\n");
+  PROFILDERTRACE("highlight: " + samples);
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
   if (!gInvertCallstack) {
@@ -1338,6 +1373,8 @@ function enterProgressUI() {
   });
 
   gMainArea.appendChild(profileProgressPane);
+
+  Parser.updateLogSetting();
 
   return totalProgressReporter;
 }

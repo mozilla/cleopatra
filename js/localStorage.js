@@ -1,5 +1,34 @@
 var PROFILE_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000;
 
+// Simple wrapper for an abstract local storage provider (indexedDB)
+// to provide a key based JSON storage.
+function JSONStorage() {
+  this._indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB;
+  this._db = null;
+  if (!this._indexedDB)
+    return; // No storage
+
+  var dbRequest = indexedDB.open("cleopatra");
+  var self = this;
+  dbRequest.onupgradeneeded = function(event) {
+    dump("Upgrade cleopatra DB\n");
+    var db = event.target.result;
+    var store = db.createObjectStore("profiles", {keyPath: "storage_key"});
+    store.add( {storageKey: "profile_directory", profileList: []} );
+  }
+  dbRequest.onsuccess = function(event) {
+    dump("Got DB\n");
+    this._db = dbRequest.result;
+    this._db.transaction("profiles").objectStore("profiles").get("profile_directory").onsuccess = function(event) {
+      alert("Name for SSN 444-44-4444 is " + JSON.stringify(event.target.result));
+    }
+  };
+
+}
+JSONStorage.prototype = {
+
+}
+
 function ProfileLocalStorage() {
   this._indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB;
   this._db = null;
