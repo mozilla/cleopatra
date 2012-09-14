@@ -36,7 +36,7 @@ JSONStorage.prototype = {
       return;
     }
     this._db.transaction("profiles", "readwrite").objectStore("profiles").put( {storage_key: key, value: value} );
-    PROFILERTRACE("JSONStorage['" + key + "'] set " + JSON.stringify(value));
+    //PROFILERTRACE("JSONStorage['" + key + "'] set " + JSON.stringify(value));
     if (callback)
       callback();
   },
@@ -52,8 +52,12 @@ JSONStorage.prototype = {
     var transaction = this._db.transaction("profiles");
     var request = transaction.objectStore("profiles").get(key);
     request.onsuccess = function(event) {
-      PROFILERTRACE("JSONStorage['" + key + "'] get " + JSON.stringify(request.result));
-      callback(request.result.value);
+      //PROFILERTRACE("JSONStorage['" + key + "'] get " + JSON.stringify(request.result));
+      if (request.result) {
+        callback(request.result.value);
+      } else {
+        callback(null);
+      }
     }
     request.onerror = function() {
       PROFILERERROR("Error getting value from indexedDB");
@@ -95,7 +99,7 @@ ProfileLocalStorage.prototype = {
     var time = new Date().getTime();
     this.getProfileList(function got_profile(profileList) {
       var profileKey = "local_profile:" + time;
-      profileList.push( {profileKey: profileKey, expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
+      profileList.push( {profileKey: profileKey, name: "Profile " + new Date(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
       self._storage.setValue(profileKey, profile);
       self._storage.setValue("profileList", profileList);
       if (callback)
@@ -116,9 +120,7 @@ var gLocalStorage = new ProfileLocalStorage();
 
 function quickTest() {
   gLocalStorage.getProfileList(function(profileList) {
-    dump("ProfileList: " + JSON.stringify(profileList) + "\n");
     gLocalStorage.storeLocalProfile({}, function() {
-      dump("Stored\n");
       gLocalStorage.clearStorage();
     });
   });

@@ -50,23 +50,40 @@ FileList.prototype = {
   getContainer: function FileList_getContainer() {
     return this._container;
   },
-  addFile: function FileList_addFile() {
+
+  loadProfileListFromLocalStraoge: function FileList_loadProfileListFromLocalStorage() {
+    var self = this;
+    gLocalStorage.getProfileList(function(profileList) {
+      for (var i = 0; i < profileList.length; i++) {
+        // This only carries info about the profile and the access key to retrieve it.
+        var profileInfo = profileList[i];
+        //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
+        self.addFile(profileInfo.profileKey, "local storage");
+      }
+    });
+  },
+
+  addFile: function FileList_addFile(fileName, description) {
+    fileName = fileName || "New Profile";
+    description = description || "(empty)";
+
     var li = document.createElement("li");
     li.className = "fileListItem";
     li.classList.add("selected");
 
     var fileListItemTitleSpan = document.createElement("span");
     fileListItemTitleSpan.className = "fileListItemTitle";
-    fileListItemTitleSpan.textContent = "New Profile";
+    fileListItemTitleSpan.textContent = fileName;
     li.appendChild(fileListItemTitleSpan);
 
     var fileListItemDescriptionSpan = document.createElement("span");
     fileListItemDescriptionSpan.className = "fileListItemDescription";
-    fileListItemDescriptionSpan.textContent = "(empty)";
+    fileListItemDescriptionSpan.textContent = description;
     li.appendChild(fileListItemDescriptionSpan);
 
     this._container.appendChild(li);
   },
+
   profileParsingFinished: function FileList_profileParsingFinished() {
     this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
     this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
@@ -1329,6 +1346,7 @@ function enterMainUI() {
   uiContainer.appendChild(gFileList.getContainer());
 
   gFileList.addFile();
+  gFileList.loadProfileListFromLocalStraoge();
 
   gInfoBar = new InfoBar();
   uiContainer.appendChild(gInfoBar.getContainer());

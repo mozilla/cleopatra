@@ -133,7 +133,7 @@ self.onmessage = function (msg) {
         sendError(requestID, "Unknown task " + task);
         break;
     }
-    PROFILERDEBUG("Complete task: " + task);
+    PROFILERLOG("Complete task: " + task);
   } catch (e) {
     PROFILERERROR("Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")");
     sendError(requestID, "Exception: " + e + " (" + e.fileName + ":" + e.lineNumber + ")");
