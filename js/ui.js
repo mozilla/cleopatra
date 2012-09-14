@@ -9,7 +9,7 @@ if (gLocation.indexOf("file:") == 0) {
   PROFILERLOG("Turning on logging+tracing since cleopatra is served from the file protocol");
 }
 // Use for verbose tracing, otherwise use log
-function PROFILDERTRACE(msg) {
+function PROFILERTRACE(msg) {
   if (gDebugTrace)
     PROFILERLOG(msg);
 }
@@ -1095,7 +1095,7 @@ function loadZippedProfileURL(url) {
     url = EIDETICKER_BASE_URL + url;
   }
   reporter.begin("Fetching " + url);
-  PROFILDERTRACE("Fetch url: " + url);
+  PROFILERTRACE("Fetch url: " + url);
 
   function onerror(e) {
     PROFILERERROR("zip.js error");
@@ -1311,7 +1311,7 @@ function viewJSSource(sample) {
 }
 
 function setHighlightedCallstack(samples, heaviestSample) {
-  PROFILDERTRACE("highlight: " + samples);
+  PROFILERTRACE("highlight: " + samples);
   gHighlightedCallstack = samples;
   gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
   if (!gInvertCallstack) {

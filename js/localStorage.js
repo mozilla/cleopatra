@@ -5,83 +5,122 @@ var PROFILE_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000;
 function JSONStorage() {
   this._indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB;
   this._db = null;
+  this._pendingRequests = [];
   if (!this._indexedDB)
     return; // No storage
 
-  var dbRequest = indexedDB.open("cleopatra");
+  var dbRequest = indexedDB.open("cleopatra", 2);
   var self = this;
   dbRequest.onupgradeneeded = function(event) {
-    dump("Upgrade cleopatra DB\n");
+    PROFILERLOG("Upgrade cleopatra DB");
     var db = event.target.result;
     var store = db.createObjectStore("profiles", {keyPath: "storage_key"});
-    store.add( {storageKey: "profile_directory", profileList: []} );
   }
   dbRequest.onsuccess = function(event) {
-    dump("Got DB\n");
-    this._db = dbRequest.result;
-    this._db.transaction("profiles").objectStore("profiles").get("profile_directory").onsuccess = function(event) {
-      alert("Name for SSN 444-44-4444 is " + JSON.stringify(event.target.result));
+    PROFILERLOG("'cleopatra' database open");
+    self._db = dbRequest.result;
+    for (var i = 0; i < self._pendingRequests.length; i++) {
+      self._pendingRequests[i]();
     }
+    self._pendingRequests = [];
   };
 
 }
 JSONStorage.prototype = {
+  setValue: function JSONStorage_setValue(key, value, callback) {
+    if (!this._db) {
+      var self = this;
+      this._pendingRequests.push(function pendingSetValue() {
+        self.setValue(key, value, callback);
+      });
+      return;
+    }
+    this._db.transaction("profiles", "readwrite").objectStore("profiles").put( {storage_key: key, value: value} );
+    PROFILERTRACE("JSONStorage['" + key + "'] set " + JSON.stringify(value));
+    if (callback)
+      callback();
+  },
 
+  getValue: function JSONStorage_getValue(key, callback) {
+    if (!this._db) {
+      var self = this;
+      this._pendingRequests.push(function pendingSetValue() {
+        self.getValue(key, callback);
+      });
+      return;
+    }
+    var transaction = this._db.transaction("profiles");
+    var request = transaction.objectStore("profiles").get(key);
+    request.onsuccess = function(event) {
+      PROFILERTRACE("JSONStorage['" + key + "'] get " + JSON.stringify(request.result));
+      callback(request.result.value);
+    }
+    request.onerror = function() {
+      PROFILERERROR("Error getting value from indexedDB");
+    }
+  },
+
+  clearStorage: function JSONStorage_clearStorage(callback) {
+    if (!this._db) {
+      var self = this;
+      this._pendingRequests.push(function pendingSetValue() {
+        self.clearStorage(callback);
+      });
+      return;
+    }
+    var transaction = this._db.transaction("profiles", "readwrite");
+    var request = transaction.objectStore("profiles").clear();
+    request.onsuccess = function() {
+      PROFILERLOG("Cleared local profile storage");
+      if (callback)
+        callback();
+    }
+  },
 }
 
 function ProfileLocalStorage() {
-  this._indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB;
-  this._db = null;
-  if (!this._indexedDB)
-    return; // No storage
-
-  var dbRequest = indexedDB.open("cleopatra");
-  var self = this;
-  dbRequest.onupgradeneeded = function(event) {
-    dump("Upgrade cleopatra DB\n");
-    var db = event.target.result;
-    var store = db.createObjectStore("profiles", {keyPath: "storage_key"});
-    store.add( {storageKey: "profile_directory", profileList: []} );
-  }
-  dbRequest.onsuccess = function(event) {
-    dump("Got DB\n");
-    this._db = dbRequest.result;
-    this._db.transaction("profiles").objectStore("profiles").get("profile_directory").onsuccess = function(event) {
-      alert("Name for SSN 444-44-4444 is " + JSON.stringify(event.target.result));
-    }
-  };
+  this._storage = new JSONStorage();
 }
 ProfileLocalStorage.prototype = {
   getProfileList: function ProfileLocalStorage_getProfileList(callback) {
-    if (!this._db)
-      return;
-    this._db.transaction("profiles").objectStore("profiles").get("profile_directory").onsuccess = function(event) {
-      callback(event.target.result.profileList || []);
-    };
+    this._storage.getValue("profileList", function gotProfileList(profileList) {
+      profileList = profileList || [];
+      callback(profileList);
+    });
   },
+
   storeLocalProfile: function ProfileLocalStorage_storeLocalProfile(profile, callback) {
-    if (!this._db)
-      return;
+    dump("Store\n");
     var self = this;
     var time = new Date().getTime();
     this.getProfileList(function got_profile(profileList) {
       var profileKey = "local_profile:" + time;
-      self._db.transaction("profiles").objectStore("profiles").add( {storage_key: profileKey, profile: profile} );
       profileList.push( {profileKey: profileKey, expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
-      self._setProfileList(profileList, function updated_profile_list() {
-        callback( {profileKey: profileKey} );
-      });
+      self._storage.setValue(profileKey, profile);
+      self._storage.setValue("profileList", profileList);
+      if (callback)
+        callback();
     });
   },
-  _setProfileList: function ProfileLocalStorage_setProfileList(profileList, callback) {
-    if (!this._db)
-      return;
-    this._db.transaction("profiles").objectStore("profiles").add( {storage_key: "profile_directory", profileList: profileList} );
-    callback();
+
+  getProfile: function ProfileLocalStorage_getProfile(profileKey, callback) {
+     this._storage.getValue(profileKey, callback); 
   },
-  getProfile: function ProfileLocalStorage_getProfile(profile_key, callback) {
-    
+
+  clearStorage: function ProfileLocalStorage_clearStorage(callback) {
+     this._storage.clearStorage(callback);
   },
 };
 
-window.localStorage = new ProfileLocalStorage();
+var gLocalStorage = new ProfileLocalStorage();
+
+function quickTest() {
+  gLocalStorage.getProfileList(function(profileList) {
+    dump("ProfileList: " + JSON.stringify(profileList) + "\n");
+    gLocalStorage.storeLocalProfile({}, function() {
+      dump("Stored\n");
+      gLocalStorage.clearStorage();
+    });
+  });
+}
+//quickTest();
