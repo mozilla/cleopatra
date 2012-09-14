@@ -44,6 +44,8 @@ function removeAllChildren(element) {
 function FileList() {
   this._container = document.createElement("ul");
   this._container.id = "fileList";
+  this._selectedFileItem = null;
+  this._fileItemList = [];
 }
 
 FileList.prototype = {
@@ -55,33 +57,55 @@ FileList.prototype = {
     var self = this;
     gLocalStorage.getProfileList(function(profileList) {
       for (var i = 0; i < profileList.length; i++) {
-        // This only carries info about the profile and the access key to retrieve it.
-        var profileInfo = profileList[i];
-        //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
-        self.addFile(profileInfo.profileKey, "local storage");
+        (function closure() {
+          // This only carries info about the profile and the access key to retrieve it.
+          var profileInfo = profileList[i];
+          //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
+          var fileEntry = self.addFile(profileInfo.profileKey, "local storage", function fileEntryClick() {
+            self.setSelection(fileEntry);  
+          });
+        })();
       }
     });
   },
 
-  addFile: function FileList_addFile(fileName, description) {
-    fileName = fileName || "New Profile";
-    description = description || "(empty)";
-
+  addFile: function FileList_addFile(fileName, description, onclick) {
     var li = document.createElement("li");
+
+    li.fileName = fileName || "New Profile";
+    li.description = description || "(empty)";
+
     li.className = "fileListItem";
-    li.classList.add("selected");
+    if (!this._selectedFileItem) {
+      li.classList.add("selected");
+      this._selectedFileItem = li;
+    }
+
+    li.onclick = onclick;
 
     var fileListItemTitleSpan = document.createElement("span");
     fileListItemTitleSpan.className = "fileListItemTitle";
-    fileListItemTitleSpan.textContent = fileName;
+    fileListItemTitleSpan.textContent = li.fileName;
     li.appendChild(fileListItemTitleSpan);
 
     var fileListItemDescriptionSpan = document.createElement("span");
     fileListItemDescriptionSpan.className = "fileListItemDescription";
-    fileListItemDescriptionSpan.textContent = description;
+    fileListItemDescriptionSpan.textContent = li.description;
     li.appendChild(fileListItemDescriptionSpan);
 
     this._container.appendChild(li);
+
+    this._fileItemList.push(li);
+
+    return li;
+  },
+
+  setSelection: function FileList_setSelection(fileEntry) {
+    if (this._selectedFileItem) {
+      this._selectedFileItem.classList.remove("selected");
+    }
+    this._selectedFileItem = fileEntry;
+    fileEntry.classList.add("selected");
   },
 
   profileParsingFinished: function FileList_profileParsingFinished() {
