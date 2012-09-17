@@ -489,18 +489,14 @@ HistogramView.prototype = {
       if (gInvertCallstack) {
         for (var j = 0; j < highlightedCallstack.length; j++) {
           var compareFrameIndex = compareFrames.length - 1 - j;
-          if (highlightedCallstack[j] == "(total)") continue;
-          if (highlightedCallstack[j] != compareFrames[compareFrameIndex] &&
-              compareFrames[compareFrameIndex] != "(root)") {
+          if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
             return false;
           }
         }
       } else {
         for (var j = 0; j < highlightedCallstack.length; j++) {
           var compareFrameIndex = j;
-          if (highlightedCallstack[j] == "(total)") continue;
-          if (highlightedCallstack[j] != compareFrames[compareFrameIndex] &&
-              compareFrames[compareFrameIndex] != "(root)") {
+          if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
             return false;
           }
         }
