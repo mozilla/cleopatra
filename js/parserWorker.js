@@ -1134,7 +1134,7 @@ var diagnosticList = [
     title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
     check: function(frames, symbols, meta) {
 
-      return stepContains('LoginManagerStorage_mozStorage.init()', frames, symbols)
+      return stepContains('LoginManagerStorage_mozStorage.prototype.init()', frames, symbols)
           ;
     },
   },

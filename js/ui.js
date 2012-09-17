@@ -882,6 +882,13 @@ function copyProfile() {
   window.prompt ("Copy to clipboard: Ctrl+C, Enter", document.getElementById("data").value);
 }
 
+function saveProfileToLocalStorage() {
+  Parser.getSerializedProfile(true, function (serializedProfile) {
+    gLocalStorage.storeLocalProfile(serializedProfile, function profileSaved() {
+
+    });
+  });
+}
 function downloadProfile() {
   Parser.getSerializedProfile(true, function (serializedProfile) {
     var bb = new MozBlobBuilder();
@@ -1443,6 +1450,10 @@ function enterProgressUI() {
 }
 
 function enterFinishedProfileUI() {
+  dump("prepare to save\n");
+  saveProfileToLocalStorage();
+  dump("prepare to saved\n");
+
   var finishedProfilePaneBackgroundCover = document.createElement("div");
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
 
