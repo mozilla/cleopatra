@@ -578,7 +578,7 @@ RangeSelector.prototype = {
     function histogramClick(clickX, clickY) {
       clickX = Math.min(clickX, graph.parentNode.getBoundingClientRect().right);
       clickX = clickX - graph.parentNode.getBoundingClientRect().left;
-      var index = self._sampleIndexFromPoint(clickX);
+      var index = self._histogramIndexFromPoint(clickX);
       self._histogram.histogramClick(index);
     }
     function updateHiliteRectangle(newX, newY) {
@@ -683,6 +683,13 @@ RangeSelector.prototype = {
   _sampleIndexFromPoint: function RangeSelector__sampleIndexFromPoint(x) {
     // XXX this is completely wrong, fix please
     var totalSamples = parseFloat(gCurrentlyShownSampleData.length);
+    var width = parseFloat(this._graph.parentNode.clientWidth);
+    var factor = totalSamples / width;
+    return parseInt(parseFloat(x) * factor);
+  },
+  _histogramIndexFromPoint: function RangeSelector__histogramIndexFromPoint(x) {
+    // XXX this is completely wrong, fix please
+    var totalSamples = parseFloat(this._histogram._histogramData.length);
     var width = parseFloat(this._graph.parentNode.clientWidth);
     var factor = totalSamples / width;
     return parseInt(parseFloat(x) * factor);
