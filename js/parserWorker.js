@@ -1113,6 +1113,7 @@ var diagnosticList = [
   {
     image: "js.png",
     title: "Bug 772916 - Gradients are slow on mobile",
+    bugNumber: "772916",
     check: function(frames, symbols, meta) {
 
       return stepContains('PaintGradient', frames, symbols)
@@ -1123,6 +1124,7 @@ var diagnosticList = [
   {
     image: "js.png",
     title: "Bug 789193 - AMI_startup() takes 200ms on startup",
+    bugNumber: "789193",
     check: function(frames, symbols, meta) {
 
       return stepContains('AMI_startup()', frames, symbols)
@@ -1132,6 +1134,7 @@ var diagnosticList = [
   {
     image: "js.png",
     title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
+    bugNumber: "789185",
     check: function(frames, symbols, meta) {
 
       return stepContains('LoginManagerStorage_mozStorage.prototype.init()', frames, symbols)
@@ -1142,6 +1145,7 @@ var diagnosticList = [
   {
     image: "js.png",
     title: "JS - Bug 767070 - Text selection performance is bad on android",
+    bugNumber: "767070",
     check: function(frames, symbols, meta) {
 
       if (!stepContains('FlushPendingNotifications', frames, symbols))
@@ -1156,6 +1160,7 @@ var diagnosticList = [
   {
     image: "js.png",
     title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
+    bugNumber: "765930",
     check: function(frames, symbols, meta) {
 
       return stepContains('Readability.js', frames, symbols)
@@ -1407,14 +1412,22 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
     if (!pendingDiagnosticInfo)
       return;
 
-    diagnosticItems.push({
+    var diagnostic = pendingDiagnosticInfo.diagnostic;
+    var currDiagnostic = {
       x: pendingDiagnosticInfo.x / widthSum,
       width: (endX - pendingDiagnosticInfo.x) / widthSum,
       imageFile: pendingDiagnosticInfo.diagnostic.image,
       title: pendingDiagnosticInfo.diagnostic.title,
       details: pendingDiagnosticInfo.details,
       onclickDetails: pendingDiagnosticInfo.onclickDetails
-    });
+    };
+
+    if (!currDiagnostic.onclickDetails && diagnostic.bugNumber) {
+      currDiagnostic.onclickDetails = "bug " + diagnostic.bugNumber;
+    }
+
+    diagnosticItems.push(currDiagnostic);
+
     pendingDiagnosticInfo = null;
   }
 

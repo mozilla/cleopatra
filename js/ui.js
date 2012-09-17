@@ -1485,9 +1485,14 @@ function enterFinishedProfileUI() {
 
   gDiagnosticBar = new DiagnosticBar();
   gDiagnosticBar.setDetailsListener(function(details) {
-    var sourceView = new SourceView();
-    sourceView.setText("Diagnostic", js_beautify(details));
-    gMainArea.appendChild(sourceView.getContainer());
+    if (details.indexOf("bug ") == 0) {
+      dump("here\n");
+      window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
+    } else {
+      var sourceView = new SourceView();
+      sourceView.setText("Diagnostic", js_beautify(details));
+      gMainArea.appendChild(sourceView.getContainer());
+    }
   });
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
