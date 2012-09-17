@@ -1398,7 +1398,7 @@ function enterMainUI() {
   uiContainer.appendChild(gFileList.getContainer());
 
   gFileList.addFile();
-  gFileList.loadProfileListFromLocalStraoge();
+  //gFileList.loadProfileListFromLocalStraoge();
 
   gInfoBar = new InfoBar();
   uiContainer.appendChild(gInfoBar.getContainer());
@@ -1450,9 +1450,9 @@ function enterProgressUI() {
 }
 
 function enterFinishedProfileUI() {
-  dump("prepare to save\n");
-  saveProfileToLocalStorage();
-  dump("prepare to saved\n");
+  //dump("prepare to save\n");
+  //saveProfileToLocalStorage();
+  //dump("prepare to saved\n");
 
   var finishedProfilePaneBackgroundCover = document.createElement("div");
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
