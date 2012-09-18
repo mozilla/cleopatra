@@ -1,4 +1,4 @@
-var EIDETICKER_BASE_URL = "http://wrla.ch/eideticker/dashboard/";
+var EIDETICKER_BASE_URL = "http://eideticker.wrla.ch/";
 
 var gDebugLog = false;
 var gDebugTrace = false;
