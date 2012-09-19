@@ -1173,7 +1173,8 @@ var diagnosticList = [
     image: "js.png",
     title: "JS is triggering a sync reflow",
     check: function(frames, symbols, meta) {
-      return symbolSequence(['js::RunScript','layout::DoReflow'], frames, symbols)
+      return symbolSequence(['js::RunScript','layout::DoReflow'], frames, symbols) ||
+             symbolSequence(['js::RunScript','layout::Flush'], frames, symbols)
           ;
     },
   },
