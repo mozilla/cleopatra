@@ -545,7 +545,7 @@ RangeSelector.prototype = {
     mouseMarker.style.left = x + "px";
   },
   showVideoPosition: function RangeSelector_showVideoPosition(position) {
-    this.drawMouseMarker(position * this._graph.parentNode.clientWidth);
+    this.drawMouseMarker(position * (this._graph.parentNode.clientWidth-1));
     PROFILERLOG("Show video position: " + position);
   },
   drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
