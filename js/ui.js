@@ -411,6 +411,11 @@ HistogramView.prototype = {
   getContainer: function HistogramView_getContainer() {
     return this._container;
   },
+  showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
+    if (!this._frameStart || !this._frameStart[frame])
+      return;
+    this._rangeSelector.showVideoRange(this._frameStart[frame], this._frameStart[frame+1]);
+  },
   showVideoPosition: function HistogramView_showVideoPosition(position) {
     // position in 0..1
     this._rangeSelector.showVideoPosition(position);
@@ -439,8 +444,10 @@ HistogramView.prototype = {
     gTreeManager.setSelection(list);
     setHighlightedCallstack(frames[0], frames[0]);
   },
-  display: function HistogramView_display(histogramData, widthSum, highlightedCallstack) {
+  display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
+    dump("FRAME START: " + frameStart + "\n");
+    this._frameStart = frameStart;
     this._widthSum = widthSum;
     this._widthMultiplier = this._calculateWidthMultiplier();
     this._canvas.width = this._widthMultiplier * this._widthSum;
@@ -566,6 +573,19 @@ RangeSelector.prototype = {
       this.changeEventSuppressed = false;
     }
   },
+  showVideoRange: function RangeSelector_showVideoRange(startIndex, endIndex) {
+    if (!endIndex || endIndex < 0)
+      endIndex = gCurrentlyShownSampleData.length;
+
+    var len = this._graph.parentNode.getBoundingClientRect().right - this._graph.parentNode.getBoundingClientRect().left;
+    this._selectedRange.startX = startIndex * len / this._histogram._histogramData.length;
+    this._selectedRange.endX = endIndex * len / this._histogram._histogramData.length;
+    var width = this._selectedRange.endX - this._selectedRange.startX;
+    var height = this._graph.parentNode.clientHeight;
+    this._highlighter.classList.remove("collapsed");
+    this.drawHiliteRectangle(this._selectedRange.startX, 0, width, height);
+    //this._finishSelection(startIndex, endIndex);
+  },
   enableRangeSelectionOnHistogram: function RangeSelector_enableRangeSelectionOnHistogram() {
     var graph = this._graph;
     var isDrawingRectangle = false;
@@ -651,6 +671,18 @@ RangeSelector.prototype = {
       this._transientRestrictionEnteringAffordance.discard();
     }
   },
+  _finishSelection: function RangeSelector__finishSelection(start, end) {
+    var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
+    var self = this;
+    self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
+      title: "Sample Range [" + start + ", " + (end + 1) + "]",
+      enterCallback: function () {
+        gSampleFilters = newFilterChain;
+        self.collapseHistogramSelection();
+        filtersChanged();
+      }
+    });
+  },
   finishHistogramSelection: function RangeSelector_finishHistgramSelection(isSomethingSelected) {
     var self = this;
     var hilite = this._highlighter;
@@ -659,15 +691,7 @@ RangeSelector.prototype = {
       hilite.classList.add("finished");
       var start = this._sampleIndexFromPoint(this._selectedRange.startX);
       var end = this._sampleIndexFromPoint(this._selectedRange.endX);
-      var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
-      self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
-        title: "Sample Range [" + start + ", " + (end + 1) + "]",
-        enterCallback: function () {
-          gSampleFilters = newFilterChain;
-          self.collapseHistogramSelection();
-          filtersChanged();
-        }
-      });
+      self._finishSelection(start, end);
     } else {
       hilite.classList.add("collapsed");
     }
@@ -693,9 +717,14 @@ RangeSelector.prototype = {
 };
 
 function videoPaneTimeChange(video) {
-  //var frame = gVideoPane.getCurrentFrameNumber();
-  //dump("Got frame time: " + frame + "\n");
-  gHistogramView.showVideoPosition(video.currentTime / video.duration); 
+  if (!gMeta || !gMeta.frameStart)
+    return;
+
+  var frame = gVideoPane.getCurrentFrameNumber();
+  //var frameStart = gMeta.frameStart[frame];
+  //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
+
+  gHistogramView.showVideoFramePosition(frame); 
 }
 
 
@@ -1144,7 +1173,6 @@ function loadLocalStorageProfile(profileKey) {
 
   gLocalStorage.getProfile(profileKey, function(profile) {
     subreporters.fileLoading.finish();
-    dump("profile: " + JSON.stringify(profile) + "\n");
     loadRawProfile(subreporters.parsing, JSON.stringify(profile));
   });
   subreporters.fileLoading.begin("Reading local storage...");
@@ -1489,7 +1517,6 @@ function enterFinishedProfileUI() {
   gDiagnosticBar = new DiagnosticBar();
   gDiagnosticBar.setDetailsListener(function(details) {
     if (details.indexOf("bug ") == 0) {
-      dump("here\n");
       window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
     } else {
       var sourceView = new SourceView();
@@ -1576,7 +1603,7 @@ function filtersChanged() {
   var histogramRequest = Parser.calculateHistogramData();
   histogramRequest.addEventListener("finished", function (data) {
     start = Date.now();
-    gHistogramView.display(data.histogramData, data.widthSum, gHighlightedCallstack);
+    gHistogramView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
 

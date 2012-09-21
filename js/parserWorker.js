@@ -248,8 +248,6 @@ function parseRawProfile(requestID, params, rawProfile) {
     rawProfile.profileJSON.meta = rawProfile.meta;
   }
 
-
-
   if (typeof rawProfile == "object") {
     switch (rawProfile.format) {
       case "profileStringWithSymbolicationTable,1":
@@ -540,6 +538,8 @@ function parseRawProfile(requestID, params, rawProfile) {
     }
     var rootSymbol = null;
     var insertCommonRoot = false;
+    var frameStart = {};
+    meta.frameStart = frameStart;
     for (var j = 0; j < profileSamples.length; j++) {
       var sample = profileSamples[j];
       var indicedFrames = [];
@@ -576,8 +576,13 @@ function parseRawProfile(requestID, params, rawProfile) {
       if (sample.responsiveness) {
         sample.extraInfo["responsiveness"] = sample.responsiveness;
       }
-      if (sample.responsiveness) {
+      if (sample.time) {
         sample.extraInfo["time"] = sample.time;
+      }
+      if (sample.frameNumber) {
+        sample.extraInfo["frameNumber"] = sample.frameNumber;
+        //dump("Got frame number: " + sample.frameNumber + "\n");
+        frameStart[sample.frameNumber] = samples.length;
       }
       samples.push(makeSample(indicedFrames, sample.extraInfo));
       progressReporter.setProgress((j + 1) / profileSamples.length);
@@ -1039,6 +1044,7 @@ function calculateHistogramData(requestID, profileID) {
   // This is used to cut down the number of rects, since
   // there's no point in having more rects then pixels
   var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
+  var frameStart = {};
   for (var i = 0; i < data.length; i++) {
     var step = data[i];
     if (!step || !step.frames) {
@@ -1070,7 +1076,8 @@ function calculateHistogramData(requestID, profileID) {
       });
       nextX += 1;
     } else if (currHistogramData != null &&
-      currHistogramData.frames.length < samplesPerStep) {
+      currHistogramData.frames.length < samplesPerStep &&
+      !(step.extraInfo && "frameNumber" in step.extraInfo)) {
       currHistogramData.frames.push(step.frames);
       // When merging data items take the average:
       currHistogramData.value =
@@ -1079,17 +1086,22 @@ function calculateHistogramData(requestID, profileID) {
       // Merge the colors? For now we keep the first color set.
     } else {
       // A new name boundary has been discovered.
-      histogramData.push({
+      currHistogramData = {
         frames: [step.frames],
         x: nextX,
         width: 1,
         value: value,
         color: getStepColor(step),
-      });
+      };
+      if (step.extraInfo && "frameNumber" in step.extraInfo) {
+        currHistogramData.frameNumber = step.extraInfo.frameNumber;
+        frameStart[step.extraInfo.frameNumber] = histogramData.length;
+      }
+      histogramData.push(currHistogramData);
       nextX += 1;
     }
   }
-  sendFinished(requestID, { histogramData: histogramData, widthSum: Math.ceil(nextX) });
+  sendFinished(requestID, { histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
 }
 
 var diagnosticList = [
