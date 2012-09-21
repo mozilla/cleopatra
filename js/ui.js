@@ -693,6 +693,8 @@ RangeSelector.prototype = {
 };
 
 function videoPaneTimeChange(video) {
+  //var frame = gVideoPane.getCurrentFrameNumber();
+  //dump("Got frame time: " + frame + "\n");
   gHistogramView.showVideoPosition(video.currentTime / video.duration); 
 }
 
@@ -1209,14 +1211,19 @@ function loadProfileURL(url) {
   xhr.onreadystatechange = function (e) {
     if (xhr.readyState === 4 && xhr.status === 200) {
       subreporters.fileLoading.finish();
+      PROFILERLOG("Got profile from '" + url + "'.");
       loadRawProfile(subreporters.parsing, xhr.responseText);
     }
   };
+  xhr.onerror = function (e) { 
+    subreporters.fileLoading.begin("Error fetching profile :(. URL:  " + url);
+  }
   xhr.onprogress = function (e) {
-    if (e.lengthComputable && (e.loaded <= e.total))
+    if (e.lengthComputable && (e.loaded <= e.total)) {
       subreporters.fileLoading.setProgress(e.loaded / e.total);
-    else
+    } else {
       subreporters.fileLoading.setProgress(NaN);
+    }
   };
   xhr.send(null);
   subreporters.fileLoading.begin("Loading remote file...");
