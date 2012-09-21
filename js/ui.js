@@ -414,7 +414,14 @@ HistogramView.prototype = {
   showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
     if (!this._frameStart || !this._frameStart[frame])
       return;
-    this._rangeSelector.showVideoRange(this._frameStart[frame], this._frameStart[frame+1]);
+    var frameStart = this._frameStart[frame];
+    // Now we look for the frame end. Because we can swap frame we don't present we have to look ahead
+    // in the stream if frame+1 doesn't exist.
+    var frameEnd = this._frameStart[frame+1];
+    for (var i = 0; i < 10 && !frameEnd; i++) {
+      frameEnd = this._frameStart[frame+1+i];
+    }
+    this._rangeSelector.showVideoRange(frameStart, frameEnd);
   },
   showVideoPosition: function HistogramView_showVideoPosition(position) {
     // position in 0..1
