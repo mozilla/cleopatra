@@ -44,7 +44,7 @@ JSONStorage.prototype = {
   getValue: function JSONStorage_getValue(key, callback) {
     if (!this._db) {
       var self = this;
-      this._pendingRequests.push(function pendingSetValue() {
+      this._pendingRequests.push(function pendingGetValue() {
         self.getValue(key, callback);
       });
       return;
@@ -52,6 +52,8 @@ JSONStorage.prototype = {
     var transaction = this._db.transaction("profiles");
     var request = transaction.objectStore("profiles").get(key);
     request.onsuccess = function(event) {
+      if (!callback)
+        return;
       //PROFILERTRACE("JSONStorage['" + key + "'] get " + JSON.stringify(request.result));
       if (request.result) {
         callback(request.result.value);
@@ -61,6 +63,31 @@ JSONStorage.prototype = {
     }
     request.onerror = function() {
       PROFILERERROR("Error getting value from indexedDB");
+    }
+  },
+
+  deleteValue: function JSONStorage_deleteValue(key, callback) {
+    if (!this._db) {
+      var self = this;
+      this._pendingRequests.push(function pendingDeleteValue() {
+        self.deleteValue(key, callback);
+      });
+      return;
+    }
+    var transaction = this._db.transaction("profiles");
+    var request = transaction.objectStore("profiles").delete(key);
+    request.onsuccess = function(event) {
+      if (!callback)
+        return;
+      //PROFILERTRACE("JSONStorage['" + key + "'] get " + JSON.stringify(request.result));
+      if (request.result) {
+        callback(request.result.value);
+      } else {
+        callback(null);
+      }
+    }
+    request.onerror = function() {
+      PROFILERERROR("Error deleting value from indexedDB");
     }
   },
 
@@ -94,10 +121,14 @@ ProfileLocalStorage.prototype = {
   },
 
   storeLocalProfile: function ProfileLocalStorage_storeLocalProfile(profile, callback) {
-    dump("Store\n");
     var self = this;
     var time = new Date().getTime();
     this.getProfileList(function got_profile(profileList) {
+      if (profileList.length >= 5) {
+        var profileToRemove = profileList[0].profileKey;
+        self.deleteLocalProfile(profileList);
+        profileList.shift();
+      }
       var profileKey = "local_profile:" + time;
       profileList.push( {profileKey: profileKey, name: "Profile " + new Date(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
       self._storage.setValue(profileKey, profile);
@@ -109,6 +140,10 @@ ProfileLocalStorage.prototype = {
 
   getProfile: function ProfileLocalStorage_getProfile(profileKey, callback) {
      this._storage.getValue(profileKey, callback); 
+  },
+
+  deleteLocalProfile: function ProfileLocalStorage_deleteLocalProfile(profileKey, callback) {
+     this._storage.deleteValue(profileKey, callback); 
   },
 
   clearStorage: function ProfileLocalStorage_clearStorage(callback) {

@@ -55,7 +55,7 @@ FileList.prototype = {
     return this._container;
   },
 
-  loadProfileListFromLocalStraoge: function FileList_loadProfileListFromLocalStorage() {
+  loadProfileListFromLocalStorage: function FileList_loadProfileListFromLocalStorage() {
     var self = this;
     gLocalStorage.getProfileList(function(profileList) {
       for (var i = 0; i < profileList.length; i++) {
@@ -1445,7 +1445,7 @@ function enterMainUI() {
   uiContainer.appendChild(gFileList.getContainer());
 
   gFileList.addFile();
-  //gFileList.loadProfileListFromLocalStraoge();
+  //gFileList.loadProfileListFromLocalStorage();
 
   gInfoBar = new InfoBar();
   uiContainer.appendChild(gInfoBar.getContainer());
