@@ -932,9 +932,7 @@ function saveProfileToLocalStorage() {
 }
 function downloadProfile() {
   Parser.getSerializedProfile(true, function (serializedProfile) {
-    var bb = new MozBlobBuilder();
-    bb.append(serializedProfile);
-    var blob = bb.getBlob("application/octet-stream");
+    var blob = new Blob([serializedProfile], { "type": "application/octet-stream" });
     location.href = window.URL.createObjectURL(blob);
   });
 }
