@@ -16,6 +16,14 @@ RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
+var requestAnimationFrame = window.webkitRequestAnimationFrame ||
+                            window.mozRequestAnimationFrame ||
+                            window.oRequestAnimationFrame ||
+                            window.msRequestAnimationFrame ||
+                            function(callback, element) {
+                              window.setTimeout(callback, 1000 / 60);
+                            };
+
 function TreeView() {
   this._eventListeners = {};
   this._pendingActions = [];
@@ -226,7 +234,7 @@ TreeView.prototype = {
   _schedulePendingActionProcessing: function TreeView__schedulePendingActionProcessing() {
     if (!this._pendingActionsProcessingCallback && this._pendingActions.length > 0) {
       var self = this;
-      this._pendingActionsProcessingCallback = window.mozRequestAnimationFrame(function () {
+      this._pendingActionsProcessingCallback = requestAnimationFrame(function () {
         self._processPendingActionsChunk();
       });
     }
@@ -271,7 +279,7 @@ TreeView.prototype = {
     var self = this;
     function scrollListener(e) {
       if (!waitingForPaint) {
-        window.mozRequestAnimationFrame(function () {
+        requestAnimationFrame(function () {
           self._horizontalScrollbox.scrollLeft += accumulatedDeltaX;
           self._verticalScrollbox.scrollTop += accumulatedDeltaY;
           accumulatedDeltaX = 0;

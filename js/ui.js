@@ -17,13 +17,15 @@ function PROFILERLOG(msg) {
   if (gDebugLog) {
     msg = "Cleo: " + msg;
     console.log(msg);
-    dump(msg + "\n");
+    if (dump)
+      dump(msg + "\n");
   }
 }
 function PROFILERERROR(msg) {
   msg = "Cleo: " + msg;
   console.log(msg);
-  dump(msg + "\n");
+  if (dump)
+    dump(msg + "\n");
 }
 function enableProfilerTracing() {
   gDebugLog = true;
@@ -453,7 +455,7 @@ HistogramView.prototype = {
   },
   display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
-    dump("FRAME START: " + frameStart + "\n");
+    PROFILERTRACE("FRAME START: " + frameStart + "\n");
     this._frameStart = frameStart;
     this._widthSum = widthSum;
     this._widthMultiplier = this._calculateWidthMultiplier();
@@ -736,6 +738,8 @@ function videoPaneTimeChange(video) {
 
 
 window.onpopstate = function(ev) {
+  if (!gBreadcrumbTrail)
+    return;
   console.log("pop: " + JSON.stringify(ev.state));
   gBreadcrumbTrail.pop();
   if (ev.state) {
