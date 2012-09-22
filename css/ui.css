@@ -152,6 +152,12 @@ body {
   right: 0;
   height: 100%;
 }
+#sampleBar a {
+  text-decoration: none;
+}
+#sampleBar a:hover {
+  text-decoration: underline;
+}
 #fileList {
   position: absolute;
   top: 0;
