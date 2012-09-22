@@ -20,12 +20,14 @@ function PROFILDERTRACE(msg) {
 function PROFILERLOG(msg) {
   if (gDebugLog) {
     msg = "Cleo: " + msg;
-    dump(msg + "\n");
+    if (window.dump)
+      window.dump(msg + "\n");
   }
 }
 function PROFILERERROR(msg) {
   msg = "Cleo: " + msg;
-  dump(msg + "\n");
+  if (window.dump)
+    window.dump(msg + "\n");
 }
 
 // http://stackoverflow.com/a/2548133

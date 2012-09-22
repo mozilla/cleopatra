@@ -1,7 +1,37 @@
 {
-  "profile": {
-    "threads": [
-
-    ]
-  }
+  "threads": [
+    {
+      "name" : "Main Thread",
+      "samples": [
+        {
+          "name": "(root)",
+          "frames": [
+            {
+              "location": "Main"
+            },
+            {
+              "location": "Process Event"
+            },
+            {
+              "location": "js_mozilla() (in mozilla.com)"
+            }
+          ]
+        },
+        {
+          "name": "(root)",
+          "frames": [
+            {
+              "location": "Main"
+            },
+            {
+              "location": "Process Event"
+            },
+            {
+              "location": "onclick (in XUL)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

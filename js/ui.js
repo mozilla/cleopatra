@@ -17,15 +17,15 @@ function PROFILERLOG(msg) {
   if (gDebugLog) {
     msg = "Cleo: " + msg;
     console.log(msg);
-    if (dump)
-      dump(msg + "\n");
+    if (window.dump)
+      window.dump(msg + "\n");
   }
 }
 function PROFILERERROR(msg) {
   msg = "Cleo: " + msg;
   console.log(msg);
-  if (dump)
-    dump(msg + "\n");
+  if (window.dump)
+    window.dump(msg + "\n");
 }
 function enableProfilerTracing() {
   gDebugLog = true;
