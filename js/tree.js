@@ -16,6 +16,7 @@ RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
+var requestAnimationFrame_timeout = null;
 var requestAnimationFrame = window.webkitRequestAnimationFrame ||
                             window.mozRequestAnimationFrame ||
                             window.oRequestAnimationFrame ||
@@ -23,6 +24,17 @@ var requestAnimationFrame = window.webkitRequestAnimationFrame ||
                             function(callback, element) {
                               window.setTimeout(callback, 1000 / 60);
                             };
+
+var cancelAnimationFrame = window.webkitCancelAnimationFrame ||
+                           window.mozCancelAnimationFrame ||
+                           window.oCancelAnimationFrame ||
+                           window.msCancelAnimationFrame ||
+                           function(callback, element) {
+                             if (requestAnimationFrame_timeout) {
+                               window.clearTimeout(requestAnimationFrame_timeout);
+                               requestAnimationFrame_timeout = null;
+                             }
+                           };
 
 function TreeView() {
   this._eventListeners = {};
@@ -99,7 +111,7 @@ TreeView.prototype = {
     this._horizontalScrollbox.innerHTML = "";
     this._horizontalScrollbox.data = data[0].getData();
     if (this._pendingActionsProcessingCallback) {
-      window.mozCancelAnimationFrame(this._pendingActionsProcessingCallback);
+      cancelAnimationFrame(this._pendingActionsProcessingCallback);
       this._pendingActionsProcessingCallback = 0;
     }
     this._pendingActions = [];
