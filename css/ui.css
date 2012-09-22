@@ -151,6 +151,9 @@ body {
   top: 0;
   right: 0;
   height: 100%;
+  border-top: none;
+  border-right: none;
+  border-bottom:none;
 }
 #fileList {
   position: absolute;
@@ -165,6 +168,10 @@ body {
   border-right: 1px solid #BBB;
   cursor: pointer;
 }
+#infoBar {
+  border-left: none;
+  border-bottom: none;
+}
 .sideBar {
   -moz-box-sizing: border-box;
   box-sizing: border-box;
@@ -176,8 +183,7 @@ body {
   overflow: auto;
   padding: 3px;
   background: #EEE;
-  border-top: 1px solid #BBB;
-  border-right: 1px solid #BBB;
+  border: 1px solid #BBB;
 }
 .sideBar h2 {
   font-size: 1em;
@@ -188,7 +194,9 @@ body {
   border-width: 1px 0;
 }
 .sideBar h2:first-child {
-  margin-top: -4px;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 .sideBar ul {
   margin: 2px 0;
