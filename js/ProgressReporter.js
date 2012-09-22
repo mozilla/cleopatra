@@ -125,7 +125,8 @@ ProgressReporter.prototype = {
       throw "Can't _recalculateProgressFromSubreporters on a progress reporter without any subreporters";
     this._progress = 0;
     for (var i = 0; i < this._subreporters.length; i++) {
-      var { expectedDuration, reporter } = this._subreporters[i];
+      var expectedDuration = this._subreporters[i].expectedDuration;
+      var reporter = this._subreporters[i].reporter;
       this._progress += reporter.getProgress() * expectedDuration / this._subreporterExpectedDurationsSum;
     }
   },
@@ -136,7 +137,8 @@ ProgressReporter.prototype = {
     var allWaiting = true;
     var allFinished = true;
     for (var i = 0; i < this._subreporters.length; i++) {
-      var { expectedDuration, reporter } = this._subreporters[i];
+      var expectedDuration = this._subreporters[i].expectedDuration;
+      var reporter = this._subreporters[i].reporter;
       var state = reporter.getState();
       if (state != ProgressReporter.STATE_WAITING)
         allWaiting = false;
@@ -163,7 +165,8 @@ ProgressReporter.prototype = {
       this._realDuration = Date.now() - this._startTime;
       if (this._subreporters.length) {
         for (var i = 0; i < this._subreporters.length; i++) {
-          var { expectedDuration, reporter } = this._subreporters[i];
+          var expectedDuration = this._subreporters[i].expectedDuration;
+          var reporter = this._subreporters[i].reporter;
           var realDuration = reporter._realDuration;
           dump("For reporter with expectedDuration " + expectedDuration + ", real duration was " + realDuration + "\n");
         }

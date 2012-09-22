@@ -9,7 +9,7 @@ function JSONStorage() {
   if (!this._indexedDB)
     return; // No storage
 
-  var dbRequest = indexedDB.open("cleopatra", 2);
+  var dbRequest = this._indexedDB.open("cleopatra", 2);
   var self = this;
   dbRequest.onupgradeneeded = function(event) {
     PROFILERLOG("Upgrade cleopatra DB");
