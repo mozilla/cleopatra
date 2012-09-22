@@ -17,25 +17,31 @@ DiagnosticBar.prototype = {
     width = width * 100;
     if (width < 1)
       return false;
+    var diagnosticGradient = document.createElement("a");
+    if (this._colorCode % 2 == 0) {
+      diagnosticGradient.className = "diagnosticItemEven";
+    } else {
+      diagnosticGradient.className = "diagnosticItemOdd";
+    }
+
     var diagnostic = document.createElement("a");
 
     var backgroundImageStr = "url('images/diagnostic/"+imageFile+"')";
-
-    if (this._colorCode % 2 == 0) {
-      backgroundImageStr += ", -moz-linear-gradient(#900, #E00)";
-    } else {
-      backgroundImageStr += ", -moz-linear-gradient(#300, #500)";
-    }
-
     diagnostic.style.position = "absolute";
     diagnostic.style.backgroundImage = backgroundImageStr;
-    diagnostic.style.width = width + "%";
-    diagnostic.style.height = "100%";
     diagnostic.style.backgroundRepeat = "no-repeat";
     diagnostic.style.backgroundPosition = "center";
-
+    diagnostic.style.width = "100%";
+    diagnostic.style.height = "100%";
     diagnostic.title = title + (details?"\n"+details:"");
-    diagnostic.style.left = x + "%";
+
+    diagnosticGradient.style.position = "absolute";
+    diagnosticGradient.style.width = width + "%";
+    diagnosticGradient.style.height = "100%";
+    diagnosticGradient.style.backgroundRepeat = "no-repeat";
+    diagnosticGradient.style.backgroundPosition = "center";
+    diagnosticGradient.style.left = x + "%";
+
 
     if (onclickDetails) {
       diagnostic.onclick = function() {
@@ -44,7 +50,8 @@ DiagnosticBar.prototype = {
         }
       };
     }
-    this._container.appendChild(diagnostic);
+    diagnosticGradient.appendChild(diagnostic);
+    this._container.appendChild(diagnosticGradient);
 
     this._colorCode++;
 
