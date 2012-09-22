@@ -28,7 +28,11 @@ body {
   padding: 20px;
   background-color: rgb(229,229,229);
   background-image: url(../images/noise.png),
-                    -moz-linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,.2));
+                    -moz-linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.2));
+  background-image: url(../images/noise.png),
+                    -webkit-linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.2));
+  background-image: url(../images/noise.png),
+                    linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.2));
   text-shadow: rgba(255, 255, 255, 0.4) 0 1px;
 }
 .profileEntryPane h1 {
@@ -54,11 +58,33 @@ body {
   height: 16px;
 }
 .finishedProfilePaneBackgroundCover {
+  -webkit-animation: darken 300ms cubic-bezier(0, 0, 1, 0);
   -moz-animation: darken 300ms cubic-bezier(0, 0, 1, 0);
   background-color: rgba(0, 0, 0, 0.5);
 }
 .finishedProfilePane {
+  -webkit-animation: appear 300ms ease-out;
   -moz-animation: appear 300ms ease-out;
+}
+@-webkit-keyframes darken {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@-webkit-keyframes appear {
+  from {
+    -webkit-transform: scale(0.3);
+    opacity: 0;
+    pointer-events: none;
+  }
+  to {
+    -webkit-transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 @-moz-keyframes darken {
   from {
@@ -86,6 +112,8 @@ body {
   height: 29px;
   left: 0;
   background: -moz-linear-gradient(#FFF 50%, #F3F3F3 55%);
+  background: -webkit-linear-gradient(#FFF 50%, #F3F3F3 55%);
+  background: linear-gradient(#FFF 50%, #F3F3F3 55%);
   border-bottom: 1px solid #CCC;
   margin: 0;
   padding: 0;
@@ -93,6 +121,8 @@ body {
 }
 .breadcrumbTrailItem {
   background: -moz-linear-gradient(#FFF 50%, #F3F3F3 55%);
+  background: -webkit-linear-gradient(#FFF 50%, #F3F3F3 55%);
+  background: linear-gradient(#FFF 50%, #F3F3F3 55%);
   display: block;
   margin: 0;
   padding: 0;
@@ -101,6 +131,8 @@ body {
   padding: 0 10px;
   font-size: 12px;
   -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
   cursor: default;
   border-right: 1px solid #CCC;
   max-width: 250px;
@@ -108,6 +140,16 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   position: relative;
+}
+@-webkit-keyframes slide-out {
+  from {
+    margin-left: -270px;
+    opacity: 0;
+  }
+  to {
+    margin-left: 0;
+    opacity: 1;
+  }
 }
 @-moz-keyframes slide-out {
   from {
@@ -123,16 +165,21 @@ body {
   -moz-animation: slide-out;
   -moz-animation-duration: 400ms;
   -moz-animation-timing-function: ease-out;
+  -webkit-animation: slide-out;
+  -webkit-animation-duration: 400ms;
+  -webkit-animation-timing-function: ease-out;
 }
 .breadcrumbTrailItem.selected {
-  background: -moz-linear-gradient(#E5E5E5 50%, #DADADA 55%);
+  background: linear-gradient(#E5E5E5 50%, #DADADA 55%);
 }
 .breadcrumbTrailItem:not(.selected):active:hover {
-  background: -moz-linear-gradient(#F2F2F2 50%, #E6E6E6 55%);
+  background: linear-gradient(#F2F2F2 50%, #E6E6E6 55%);
 }
 .breadcrumbTrailItem.deleted {
   -moz-transition: 400ms ease-out;
   -moz-transition-property: opacity, margin-left;
+  -webkit-transition: 400ms ease-out;
+  -webkit-transition-property: opacity, margin-left;
   opacity: 0;
   margin-left: -270px;
 }
@@ -167,6 +214,7 @@ body {
 }
 .sideBar {
   -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
   box-sizing: border-box;
   position: absolute;
   left: 0;
@@ -214,6 +262,8 @@ body {
   left: 0;
   border-bottom: 1px solid #CCC;
   background: -moz-linear-gradient(#EEE, #CCC);
+  background: -webkit-linear-gradient(#EEE, #CCC);
+  background: linear-gradient(#EEE, #CCC);
 }
 .histogramHilite {
   position: absolute;
@@ -253,6 +303,8 @@ body {
 }
 .fileListItem.selected {
   background: -moz-linear-gradient(#4B91D7 1px, #5FA9E4 1px, #5FA9E4 2px, #58A0DE 3px, #2B70C7 39px, #2763B4 39px);
+  background: -webkit-linear-gradient(#4B91D7 1px, #5FA9E4 1px, #5FA9E4 2px, #58A0DE 3px, #2B70C7 39px, #2763B4 39px);
+  background: linear-gradient(#4B91D7 1px, #5FA9E4 1px, #5FA9E4 2px, #58A0DE 3px, #2B70C7 39px, #2763B4 39px);
   color: #FFF;
   text-shadow: 0 1px rgba(0, 0, 0, 0.3);
 }
@@ -278,6 +330,8 @@ body {
   background: rgba(120, 120, 120, 0.2);
   -moz-transition: 200ms ease-in-out;
   -moz-transition-property: visibility, opacity;
+  -webkit-transition: 200ms ease-in-out;
+  -webkit-transition-property: visibility, opacity;
 }
 .busyCover.busy {
   visibility: visible;
@@ -291,6 +345,7 @@ body {
   margin: -12px;
 }
 label {
+  -webkit-user-select: none;
   -moz-user-select: none;
 }
 .videoPane {
