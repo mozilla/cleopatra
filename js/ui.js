@@ -1010,7 +1010,7 @@ function filterUpdate() {
 
   filtersChanged(); 
 
-  filterNameInput = document.getElementById("filterName");
+  var filterNameInput = document.getElementById("filterName");
   if (filterNameInput != null) {
     filterNameInput.focus();
   } 
@@ -1514,6 +1514,14 @@ function enterFinishedProfileUI() {
   finishedProfilePane.cellSpacing = "0";
   finishedProfilePane.borderCollapse = "collapse";
   finishedProfilePane.className = "finishedProfilePane";
+  setTimeout(function() {
+    // Work around a webkit bug. For some reason the table doesn't show up
+    // until some actions happen such as focusing this box
+    var filterNameInput = document.getElementById("filterName");
+    if (filterNameInput != null) {
+      filterNameInput.focus();
+     }
+  }, 100);
 
   gBreadcrumbTrail = new BreadcrumbTrail();
   currRow = finishedProfilePane.insertRow(rowIndex++);
