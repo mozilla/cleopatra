@@ -236,7 +236,7 @@ function parseRawProfile(requestID, params, rawProfile) {
   var functions = [];
   var functionIndices = {};
   var samples = [];
-  var meta = null;
+  var meta = {};
   var armIncludePCIndex = {};
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
@@ -524,7 +524,7 @@ function parseRawProfile(requestID, params, rawProfile) {
     // Thread 0 will always be the main thread of interest
     // TODO support all the thread in the profile
     var profileSamples = null;
-    meta = profile.meta;
+    meta = profile.meta || {};
     if (params.appendVideoCapture) {
       meta.videoCapture = {
         src: params.appendVideoCapture,
