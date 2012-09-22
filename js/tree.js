@@ -60,7 +60,7 @@ function TreeView() {
   this._abortToggleAll = false;
 
   var self = this;
-  this._container.onkeypress = function (e) {
+  this._container.onkeydown = function (e) {
     self._onkeypress(e);
   };
   this._container.onclick = function (e) {
