@@ -154,6 +154,7 @@ body {
   border-top: none;
   border-right: none;
   border-bottom:none;
+  padding-top:0;
 }
 #fileList {
   position: absolute;
@@ -182,6 +183,7 @@ body {
   height: 480px;
   overflow: auto;
   padding: 3px;
+  padding-top: 0;
   background: #EEE;
   border: 1px solid #BBB;
 }
