@@ -165,6 +165,27 @@ body {
   border-right: 1px solid #BBB;
   cursor: pointer;
 }
+#infoBar dl {
+  margin: 0;
+}
+#infoBar dt,
+#infoBar dd {
+  display: inline;
+}
+#infoBar dt {
+  font-weight: bold;
+}
+#infoBar dt::after {
+  content: " ";
+  white-space: pre;
+}
+#infoBar dd {
+  margin-left: 0;
+}
+#infoBar dd::after {
+  content: "\a";
+  white-space:pre;
+}
 .sideBar {
   -moz-box-sizing: border-box;
   box-sizing: border-box;
