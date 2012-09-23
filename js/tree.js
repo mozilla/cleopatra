@@ -400,7 +400,7 @@ TreeView.prototype = {
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
       '<span class="functionName">' + nodeName + '</span>' +
       '<span class="libraryName">' + libName + '</span>' +
-      '<input type="button" value="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
+      '<input type="button" value="Focus Callstack" title="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
   },
   _resolveChildren: function TreeView__resolveChildren(div, childrenCollapsedValue) {
     while (div.pendingExpand != null && div.pendingExpand.length > 0) {
