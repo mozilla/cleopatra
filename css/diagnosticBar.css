@@ -4,6 +4,9 @@
   background-color: white;
   border-bottom: 1px solid #CCC;
   cursor: default;
+  background: -moz-linear-gradient(#CCC, #EEE);
+  background: -webkit-linear-gradient(#CCC, #EEE);
+  background: linear-gradient(#CCC, #EEE);
   -moz-user-select: none;
   -webkit-user-select: none;
   user-select: none;
