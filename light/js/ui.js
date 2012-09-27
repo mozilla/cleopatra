@@ -1123,6 +1123,8 @@ InfoBar.prototype = {
   }
 }
 
+// in light mode we simplify the UI by default
+var gLightMode = false;
 var gNumSamples = 0;
 var gMeta = null;
 var gSymbols = {};
@@ -1437,18 +1439,23 @@ function setHighlightedCallstack(samples, heaviestSample) {
   gSampleBar.setSample(heaviestSample);
 }
 
-function enterMainUI() {
+function enterMainUI(isLightMode) {
+  if (isLightMode !== undefined) {
+    gLightMode = isLightMode;
+  }
+
   var uiContainer = document.createElement("div");
   uiContainer.id = "ui";
 
-  gFileList = new FileList();
-  uiContainer.appendChild(gFileList.getContainer());
-
-  gFileList.addFile();
   //gFileList.loadProfileListFromLocalStorage();
+  if (!gLightMode) {
+    gFileList = new FileList();
+    uiContainer.appendChild(gFileList.getContainer());
 
-  gInfoBar = new InfoBar();
-  uiContainer.appendChild(gInfoBar.getContainer());
+    gFileList.addFile();
+    gInfoBar = new InfoBar();
+    uiContainer.appendChild(gInfoBar.getContainer());
+  }
 
   gMainArea = document.createElement("div");
   gMainArea.id = "mainarea";
@@ -1551,7 +1558,7 @@ function enterFinishedProfileUI() {
   //  src: "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm",
   //};
 
-  if (gMeta && gMeta.videoCapture) {
+  if (!gLightMode && gMeta && gMeta.videoCapture) {
     gVideoPane = new VideoPane(gMeta.videoCapture);
     gVideoPane.onTimeChange(videoPaneTimeChange);
     currRow = finishedProfilePane.insertRow(rowIndex++);
@@ -1570,14 +1577,18 @@ function enterFinishedProfileUI() {
   cell.appendChild(treeContainerDiv);
   treeContainerDiv.appendChild(gTreeManager.getContainer());
 
-  gSampleBar = new SampleBar();
-  treeContainerDiv.appendChild(gSampleBar.getContainer());
+  if (!gLightMode) {
+    gSampleBar = new SampleBar();
+    treeContainerDiv.appendChild(gSampleBar.getContainer());
+  }
 
   // sampleBar
 
-  gPluginView = new PluginView();
-  //currRow = finishedProfilePane.insertRow(4);
-  treeContainerDiv.appendChild(gPluginView.getContainer());
+  if (!gLightMode) {
+    gPluginView = new PluginView();
+    //currRow = finishedProfilePane.insertRow(4);
+    treeContainerDiv.appendChild(gPluginView.getContainer());
+  }
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);

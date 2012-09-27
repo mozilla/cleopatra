@@ -6,7 +6,7 @@ body {
 #mainarea {
   position: absolute;
   top: 0;
-  left: 200px;
+  left: 0px;
   bottom: 0;
   right: 0;
 }
@@ -189,7 +189,6 @@ body {
 }
 .tree {
   height: 100%;
-  padding: 0px 200px 0px 0px;
 }
 #sampleBar {
   position: absolute;
