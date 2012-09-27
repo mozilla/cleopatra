@@ -1443,7 +1443,8 @@ function setHighlightedCallstack(samples, heaviestSample) {
     // Always show heavy
     heaviestSample = heaviestSample.clone().reverse();
   }
-  gSampleBar.setSample(heaviestSample);
+  if (gSampleBar)
+    gSampleBar.setSample(heaviestSample);
 }
 
 function enterMainUI(isLightMode) {
