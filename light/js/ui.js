@@ -1450,6 +1450,9 @@ function setHighlightedCallstack(samples, heaviestSample) {
 function enterMainUI(isLightMode) {
   if (isLightMode !== undefined) {
     gLightMode = isLightMode;
+    if (gLightMode) {
+      gJavascriptOnly = true;
+    }
   }
 
   var uiContainer = document.createElement("div");
