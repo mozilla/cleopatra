@@ -449,9 +449,11 @@ HistogramView.prototype = {
   histogramClick: function HistogramView_histogramClick(index) {
     var sample = this._histogramData[index]; 
     var frames = sample.frames;
-    var list = gSampleBar.setSample(frames[0]);
-    gTreeManager.setSelection(list);
-    setHighlightedCallstack(frames[0], frames[0]);
+    if (gSampleBar) {
+      var list = gSampleBar.setSample(frames[0]);
+      gTreeManager.setSelection(list);
+      setHighlightedCallstack(frames[0], frames[0]);
+    }
   },
   display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
@@ -1296,7 +1298,8 @@ function loadRawProfile(reporter, rawProfile) {
     gSymbols = result.symbols;
     gFunctions = result.functions;
     enterFinishedProfileUI();
-    gFileList.profileParsingFinished();
+    if (gFileList)
+      gFileList.profileParsingFinished();
   });
 }
 
@@ -1629,14 +1632,15 @@ function filtersChanged() {
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
     gCurrentlyShownSampleData = filteredSamples;
-    gInfoBar.display();
+    if (gInfoBar)
+      gInfoBar.display();
 
-    if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
+    if (gPluginView && gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
       start = Date.now();
       gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName, gSampleFilters[gSampleFilters.length-1].param,
                           gCurrentlyShownSampleData, gHighlightedCallstack);
       console.log("plugin displaying: " + (Date.now() - start) + "ms.");
-    } else {
+    } else if (gPluginView) {
       gPluginView.hide();
     }
   });
@@ -1648,12 +1652,14 @@ function filtersChanged() {
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
 
-  var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
-  diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
-    start = Date.now();
-    gDiagnosticBar.display(diagnosticItems);
-    console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
-  });
+  if (gDiagnosticBar) {
+    var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
+    diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
+      start = Date.now();
+      gDiagnosticBar.display(diagnosticItems);
+      console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
+    });
+  }
 
   viewOptionsChanged();
 }
