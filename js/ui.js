@@ -1266,6 +1266,11 @@ function loadProfileURL(url) {
   subreporters.fileLoading.begin("Loading remote file...");
 }
 
+function receiveProfileEvent(event) {
+  loadProfile(event.data);
+}
+window.addEventListener("profile", receiveProfileEvent, false);
+
 function loadProfile(rawProfile) {
   if (!rawProfile)
     return;
