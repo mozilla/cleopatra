@@ -1326,8 +1326,15 @@ window.addEventListener("message", function messageFromAddon(msg) {
     case "importFromAddonFinish":
       importFromAddonFinish(o.rawProfile);
       break;
+    case "receiveProfileData":
+      receiveProfileData(o.rawProfile);
+      break;
   }
 });
+
+function receiveProfileData(data) {
+ loadProfile(JSON.stringify(data));
+}
 
 function importFromAddonFinish(rawProfile) {
   gImportFromAddonSubreporters.import.finish();
