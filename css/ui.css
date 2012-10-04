@@ -203,6 +203,12 @@ body {
   border-bottom:none;
   padding-top:0;
 }
+#sampleBar a {
+  text-decoration: none;
+}
+#sampleBar a:hover {
+  text-decoration: underline;
+}
 #fileList {
   position: absolute;
   top: 0;
