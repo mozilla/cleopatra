@@ -269,22 +269,31 @@ function parseRawProfile(requestID, params, rawProfile) {
 
   function cleanFunctionName(functionName) {
     var ignoredPrefix = "non-virtual thunk to ";
-    if (functionName.substr(0, ignoredPrefix.length) == ignoredPrefix)
+    if (functionName.startsWith(ignoredPrefix))
       return functionName.substr(ignoredPrefix.length);
     return functionName;
   }
 
-  function resourceNameForAddon(addonID) {
-    for (var i in meta.addons) {
-      var addon = meta.addons[i];
-      if (addon.id.toLowerCase() == addonID.toLowerCase()) {
-        var iconHTML = "";
-        if (addon.iconURL)
-          iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
-        return iconHTML + " " + (/@jetpack$/.exec(addonID) ? "Jetpack: " : "") + addon.name;
-      }
-    }
-    return "";
+  function resourceNameForAddon(addon) {
+    if (!addon)
+      return "";
+
+    var iconHTML = "";
+    if (addon.iconURL)
+      iconHTML = "<img src=\"" + addon.iconURL + "\" style='width:12px; height:12px;'> "
+    return iconHTML + " " + (/@jetpack$/.exec(addon.id) ? "Jetpack: " : "") + addon.name;
+  }
+
+  function resourceNameForAddonWithID(addonID) {
+    return resourceNameForAddon(firstMatch(meta.addons, function addonHasID(addon) {
+      return addon.id.toLowerCase() == addonID.toLowerCase();
+    }));
+  }
+
+  function findAddonForChromeURIHost(host) {
+    return firstMatch(meta.addons, function addonUsesChromeURIHost(addon) {
+      return addon.chromeURIHosts && addon.chromeURIHosts.indexOf(host) != -1;
+    });
   }
 
   function parseResourceName(url) {
@@ -309,14 +318,14 @@ function parseRawProfile(requestID, params, rawProfile) {
       if (url.startsWith("resource:") && endsWith(host, "-at-jetpack")) {
         // Assume this is a jetpack url
         var jetpackID = host.substring(0, host.length - 11) + "@jetpack";
-        var resName = resourceNameForAddon(jetpackID);
+        var resName = resourceNameForAddonWithID(jetpackID);
         if (resName)
           return resName;
       }
       if (url.startsWith("file:///") && url.indexOf("/extensions/") != -1) {
         var unpackedAddonNameMatch = /\/extensions\/(.*?)\//.exec(url);
         if (unpackedAddonNameMatch) {
-          var resName = resourceNameForAddon(decodeURIComponent(unpackedAddonNameMatch[1]));
+          var resName = resourceNameForAddonWithID(decodeURIComponent(unpackedAddonNameMatch[1]));
           if (resName)
             return resName;
         }
@@ -324,7 +333,16 @@ function parseRawProfile(requestID, params, rawProfile) {
       if (url.startsWith("jar:file:///") && url.indexOf("/extensions/") != -1) {
         var packedAddonNameMatch = /\/extensions\/(.*?).xpi/.exec(url);
         if (packedAddonNameMatch) {
-          var resName = resourceNameForAddon(decodeURIComponent(packedAddonNameMatch[1]));
+          var resName = resourceNameForAddonWithID(decodeURIComponent(packedAddonNameMatch[1]));
+          if (resName)
+            return resName;
+        }
+      }
+      if (url.startsWith("chrome://")) {
+        var chromeURIMatch = /chrome\:\/\/(.*?)\//.exec(url);
+        if (chromeURIMatch) {
+          var addon = findAddonForChromeURIHost(chromeURIMatch[1]);
+          var resName = resourceNameForAddon(addon)
           if (resName)
             return resName;
         }
