@@ -301,10 +301,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       return "No URL";
     }
 
-    // Take the last URL from a chained list of URLs.
-    var urls = url.split(" -> ");
-    url = urls[urls.length - 1];
-
     // TODO Fix me, this certainly doesn't handle all URLs formats
     var match = /^.*:\/\/(.*?)\/.*$/.exec(url);
 
@@ -358,61 +354,80 @@ function parseRawProfile(requestID, params, rawProfile) {
   }
 
   function parseScriptFile(url) {
-     // TODO Fix me, this certainly doesn't handle all URLs formats
-     var match = /^.*\/(.*)\.js$/.exec(url);
+     var match = /([^\/]*\.js)$/.exec(url);
+     if (match)
+       return match[1];
 
-     if (!match)
-       return url;
-
-     return match[1] + ".js";
+     return url;
   }
 
-  function parseScriptURI(url) {
+  // JS File information sometimes comes with multiple URIs which are chained
+  // with " -> ". We only want the last URI in this list.
+  function getRealScriptURI(url) {
     if (url) {
-      var urlTokens = url.split(" ");
-      url = urlTokens[urlTokens.length-1];
+      var urls = url.split(" -> ");
+      return urls[urls.length - 1];
     }
     return url;
   }
 
   function getFunctionInfo(fullName) {
-    var isJSFrame = false;
-    var match =
-      /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
-      /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
-      /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
-      // Try to parse a JS frame
-    var scriptLocation = null;
-    var jsMatch1 = match ||
-      /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
-    if (!match && jsMatch1) {
-      scriptLocation = {
-        scriptURI: parseScriptURI(jsMatch1[2]),
-        lineInformation: jsMatch1[3]
+
+    function getCPPFunctionInfo(fullName) {
+      var match =
+        /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
+        /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
+        /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
+
+      if (!match)
+        return null;
+
+      return {
+        functionName: cleanFunctionName(match[1]),
+        libraryName: match[2],
+        lineInformation: match[3] || "",
+        isJSFrame: false
       };
-      match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
-      isJSFrame = true;
     }
-    var jsMatch2 = match ||
-      /^(.*):([0-9]+)$/.exec(fullName);
-    if (!match && jsMatch2) {
-      scriptLocation = {
-        scriptURI: parseScriptURI(jsMatch2[1]),
-        lineInformation: jsMatch2[2]
+
+    function getJSFunctionInfo(fullName) {
+      var jsMatch =
+        /^(.*) \((.*):([0-9]+)\)$/.exec(fullName) ||
+        /^()(.*):([0-9]+)$/.exec(fullName);
+
+      if (!jsMatch)
+        return null;
+
+      var functionName = jsMatch[1] || "<Anonymous>";
+      var scriptURI = getRealScriptURI(jsMatch[2]);
+      var lineNumber = jsMatch[3];
+      var scriptFile = parseScriptFile(scriptURI);
+      var resourceName = parseResourceName(scriptURI);
+
+      return {
+        functionName: functionName + "() @ " + scriptFile + ":" + lineNumber,
+        libraryName: resourceName,
+        lineInformation: "",
+        isJSFrame: true,
+        scriptLocation: {
+          scriptURI: scriptURI,
+          lineInformation: lineNumber
+        }
       };
-      match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
-      isJSFrame = true;
     }
-    if (!match) {
-      match = [fullName, fullName];
+
+    function getFallbackFunctionInfo(fullName) {
+      return {
+        functionName: cleanFunctionName(fullName),
+        libraryName: "",
+        lineInformation: "",
+        isJSFrame: false
+      };
     }
-    return {
-      functionName: cleanFunctionName(match[1]),
-      libraryName: match[2] || "",
-      lineInformation: match[3] || "",
-      isJSFrame: isJSFrame,
-      scriptLocation: scriptLocation
-    };
+
+    return getCPPFunctionInfo(fullName) ||
+           getJSFunctionInfo(fullName) ||
+           getFallbackFunctionInfo(fullName);
   }
 
   function indexForFunction(symbol, functionName, libraryName, isJSFrame, scriptLocation) {
