@@ -300,11 +300,10 @@ function parseRawProfile(requestID, params, rawProfile) {
     if (!url) {
       return "No URL";
     }
-    if (url.startsWith("resource:///")) {
-      // Take the last URL from a chained list of URLs.
-      var urls = url.split(" -> ");
-      url = urls[urls.length - 1];
-    }
+
+    // Take the last URL from a chained list of URLs.
+    var urls = url.split(" -> ");
+    url = urls[urls.length - 1];
 
     // TODO Fix me, this certainly doesn't handle all URLs formats
     var match = /^.*:\/\/(.*?)\/.*$/.exec(url);
