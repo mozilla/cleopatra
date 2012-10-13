@@ -355,7 +355,7 @@ function parseRawProfile(requestID, params, rawProfile) {
 
   function parseScriptFile(url) {
      var match = /([^\/]*)$/.exec(url);
-     if (match)
+     if (match && match[1])
        return match[1];
 
      return url;
