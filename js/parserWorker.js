@@ -235,6 +235,7 @@ function parseRawProfile(requestID, params, rawProfile) {
   var symbolicationTable = {};
   var symbols = [];
   var symbolIndices = {};
+  var resources = {};
   var functions = [];
   var functionIndices = {};
   var samples = [];
@@ -284,10 +285,14 @@ function parseRawProfile(requestID, params, rawProfile) {
     return iconHTML + " " + (/@jetpack$/.exec(addon.id) ? "Jetpack: " : "") + addon.name;
   }
 
-  function resourceNameForAddonWithID(addonID) {
-    return resourceNameForAddon(firstMatch(meta.addons, function addonHasID(addon) {
+  function addonWithID(addonID) {
+    return firstMatch(meta.addons, function addonHasID(addon) {
       return addon.id.toLowerCase() == addonID.toLowerCase();
-    }));
+    })
+  }
+
+  function resourceNameForAddonWithID(addonID) {
+    return resourceNameForAddon(addonWithID(addonID));
   }
 
   function findAddonForChromeURIHost(host) {
@@ -296,128 +301,172 @@ function parseRawProfile(requestID, params, rawProfile) {
     });
   }
 
-  function parseResourceName(url) {
-    if (!url) {
-      return "No URL";
+  function ensureResource(name, resourceDescription) {
+    if (!(name in resources)) {
+      resources[name] = resourceDescription;
     }
-    if (url.startsWith("resource:///")) {
-      // Take the last URL from a chained list of URLs.
-      var urls = url.split(" -> ");
-      url = urls[urls.length - 1];
-    }
+    return name;
+  }
 
-    // TODO Fix me, this certainly doesn't handle all URLs formats
-    var match = /^.*:\/\/(.*?)\/.*$/.exec(url);
+  function resourceNameFromLibrary(library) {
+    return ensureResource("lib_" + library, {
+      type: "library",
+      name: library
+    });
+  }
 
-    if (!match)
-      return url;
+  function getAddonForScriptURI(url, host) {
+    if (!meta || !meta.addons)
+      return null;
 
-    var host = match[1];
-
-    if (meta && meta.addons) {
-      if (url.startsWith("resource:") && endsWith(host, "-at-jetpack")) {
-        // Assume this is a jetpack url
-        var jetpackID = host.substring(0, host.length - 11) + "@jetpack";
-        var resName = resourceNameForAddonWithID(jetpackID);
-        if (resName)
-          return resName;
-      }
-      if (url.startsWith("file:///") && url.indexOf("/extensions/") != -1) {
-        var unpackedAddonNameMatch = /\/extensions\/(.*?)\//.exec(url);
-        if (unpackedAddonNameMatch) {
-          var resName = resourceNameForAddonWithID(decodeURIComponent(unpackedAddonNameMatch[1]));
-          if (resName)
-            return resName;
-        }
-      }
-      if (url.startsWith("jar:file:///") && url.indexOf("/extensions/") != -1) {
-        var packedAddonNameMatch = /\/extensions\/(.*?).xpi/.exec(url);
-        if (packedAddonNameMatch) {
-          var resName = resourceNameForAddonWithID(decodeURIComponent(packedAddonNameMatch[1]));
-          if (resName)
-            return resName;
-        }
-      }
-      if (url.startsWith("chrome://")) {
-        var chromeURIMatch = /chrome\:\/\/(.*?)\//.exec(url);
-        if (chromeURIMatch) {
-          var addon = findAddonForChromeURIHost(chromeURIMatch[1]);
-          var resName = resourceNameForAddon(addon)
-          if (resName)
-            return resName;
-        }
-      }
+    if (url.startsWith("resource:") && endsWith(host, "-at-jetpack")) {
+      // Assume this is a jetpack url
+      var jetpackID = host.substring(0, host.length - 11) + "@jetpack";
+      return addonWithID(jetpackID);
     }
 
-    var iconHTML = "";
-    if (url.indexOf("http://") == 0) {
-      iconHTML = "<img src=\"http://" + host + "/favicon.ico\" style='width:12px; height:12px;'> ";
-    } else if (url.indexOf("https://") == 0) {
-      iconHTML = "<img src=\"https://" + host + "/favicon.ico\" style='width:12px; height:12px;'> ";
+    if (url.startsWith("file:///") && url.indexOf("/extensions/") != -1) {
+      var unpackedAddonNameMatch = /\/extensions\/(.*?)\//.exec(url);
+      if (unpackedAddonNameMatch)
+        return addonWithID(decodeURIComponent(unpackedAddonNameMatch[1]));
+      return null;
     }
-    return iconHTML + host;
+
+    if (url.startsWith("jar:file:///") && url.indexOf("/extensions/") != -1) {
+      var packedAddonNameMatch = /\/extensions\/(.*?).xpi/.exec(url);
+      if (packedAddonNameMatch)
+        return addonWithID(decodeURIComponent(packedAddonNameMatch[1]));
+      return null;
+    }
+
+    if (url.startsWith("chrome://")) {
+      var chromeURIMatch = /chrome\:\/\/(.*?)\//.exec(url);
+      if (chromeURIMatch)
+        return findAddonForChromeURIHost(chromeURIMatch[1]);
+      return null;
+    }
+
+    return null;
+  }
+
+  function resourceNameFromURI(url) {
+    if (!url)
+      return ensureResource("unknown", {type: "unknown", name: "<unknown>"});
+
+    var match = /^(.*):\/\/(.*?)\//.exec(url);
+
+    if (!match) {
+      // Can this happen? If so, we should change the regular expression above.
+      return ensureResource("url_" + url, {type: "url", name: url});
+    }
+
+    var urlRoot = match[0];
+    var protocol = match[1];
+    var host = match[2];
+
+    var addon = getAddonForScriptURI(url, host);
+    if (addon) {
+      return ensureResource("addon_" + addon.id, {
+        type: "addon",
+        name: addon.name,
+        addonID: addon.id,
+        icon: addon.iconURL
+      });
+    }
+
+    if (protocol.startsWith("http")) {
+      return ensureResource("webhost_" + host, {
+        type: "webhost",
+        name: host,
+        icon: urlRoot + "favicon.ico"
+      });
+    }
+
+    return ensureResource("otherhost_" + host, {
+      type: "otherhost",
+      name: host
+    });
   }
 
   function parseScriptFile(url) {
-     // TODO Fix me, this certainly doesn't handle all URLs formats
-     var match = /^.*\/(.*)\.js$/.exec(url);
+     var match = /([^\/]*)$/.exec(url);
+     if (match && match[1])
+       return match[1];
 
-     if (!match)
-       return url;
-
-     return match[1] + ".js";
+     return url;
   }
 
-  function parseScriptURI(url) {
+  // JS File information sometimes comes with multiple URIs which are chained
+  // with " -> ". We only want the last URI in this list.
+  function getRealScriptURI(url) {
     if (url) {
-      var urlTokens = url.split(" ");
-      url = urlTokens[urlTokens.length-1];
+      var urls = url.split(" -> ");
+      return urls[urls.length - 1];
     }
     return url;
   }
 
   function getFunctionInfo(fullName) {
-    var isJSFrame = false;
-    var match =
-      /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
-      /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
-      /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
-      // Try to parse a JS frame
-    var scriptLocation = null;
-    var jsMatch1 = match ||
-      /^(.*) \((.*):([0-9]+)\)$/.exec(fullName);
-    if (!match && jsMatch1) {
-      scriptLocation = {
-        scriptURI: parseScriptURI(jsMatch1[2]),
-        lineInformation: jsMatch1[3]
+
+    function getCPPFunctionInfo(fullName) {
+      var match =
+        /^(.*) \(in ([^\)]*)\) (\+ [0-9]+)$/.exec(fullName) ||
+        /^(.*) \(in ([^\)]*)\) (\(.*:.*\))$/.exec(fullName) ||
+        /^(.*) \(in ([^\)]*)\)$/.exec(fullName);
+
+      if (!match)
+        return null;
+
+      return {
+        functionName: cleanFunctionName(match[1]),
+        libraryName: resourceNameFromLibrary(match[2]),
+        lineInformation: match[3] || "",
+        isJSFrame: false
       };
-      match = [0, jsMatch1[1]+"() @ "+parseScriptFile(jsMatch1[2]) + ":" + jsMatch1[3], parseResourceName(jsMatch1[2]), ""];
-      isJSFrame = true;
     }
-    var jsMatch2 = match ||
-      /^(.*):([0-9]+)$/.exec(fullName);
-    if (!match && jsMatch2) {
-      scriptLocation = {
-        scriptURI: parseScriptURI(jsMatch2[1]),
-        lineInformation: jsMatch2[2]
+
+    function getJSFunctionInfo(fullName) {
+      var jsMatch =
+        /^(.*) \((.*):([0-9]+)\)$/.exec(fullName) ||
+        /^()(.*):([0-9]+)$/.exec(fullName);
+
+      if (!jsMatch)
+        return null;
+
+      var functionName = jsMatch[1] || "<Anonymous>";
+      var scriptURI = getRealScriptURI(jsMatch[2]);
+      var lineNumber = jsMatch[3];
+      var scriptFile = parseScriptFile(scriptURI);
+      var resourceName = resourceNameFromURI(scriptURI);
+
+      return {
+        functionName: functionName + "() @ " + scriptFile + ":" + lineNumber,
+        libraryName: resourceName,
+        lineInformation: "",
+        isJSFrame: true,
+        scriptLocation: {
+          scriptURI: scriptURI,
+          lineInformation: lineNumber
+        }
       };
-      match = [0, "<Anonymous> @ "+parseScriptFile(jsMatch2[1]) + ":" + jsMatch2[2], parseResourceName(jsMatch2[1]), ""];
-      isJSFrame = true;
     }
-    if (!match) {
-      match = [fullName, fullName];
+
+    function getFallbackFunctionInfo(fullName) {
+      return {
+        functionName: cleanFunctionName(fullName),
+        libraryName: "",
+        lineInformation: "",
+        isJSFrame: false
+      };
     }
-    return {
-      functionName: cleanFunctionName(match[1]),
-      libraryName: match[2] || "",
-      lineInformation: match[3] || "",
-      isJSFrame: isJSFrame,
-      scriptLocation: scriptLocation
-    };
+
+    return getCPPFunctionInfo(fullName) ||
+           getJSFunctionInfo(fullName) ||
+           getFallbackFunctionInfo(fullName);
   }
 
   function indexForFunction(symbol, functionName, libraryName, isJSFrame, scriptLocation) {
-    var resolve = functionName+"_LIBNAME_"+libraryName;
+    var resolve = functionName + "__" + libraryName;
     if (resolve in functionIndices)
       return functionIndices[resolve];
     var newIndex = functions.length;
@@ -625,6 +674,7 @@ function parseRawProfile(requestID, params, rawProfile) {
     meta: meta,
     symbols: symbols,
     functions: functions,
+    resources: resources,
     allSamples: samples
   }));
   clearRegExpLastMatch();
@@ -633,7 +683,8 @@ function parseRawProfile(requestID, params, rawProfile) {
     numSamples: samples.length,
     profileID: profileID,
     symbols: symbols,
-    functions: functions
+    functions: functions,
+    resources: resources
   });
 }
 

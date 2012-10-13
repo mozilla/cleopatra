@@ -57,6 +57,11 @@
 
 .treeColumnHeader2 {
   left: 147px;
+  width: 20px;
+}
+
+.treeColumnHeader3 {
+  left: 168px;
   right: 0;
 }
 
@@ -83,7 +88,7 @@
 }
 
 .treeViewHorizontalScrollbox {
-  padding-left: 150px;
+  padding-left: 171px;
   overflow: hidden;
 }
 
@@ -96,24 +101,25 @@
 }
 
 .leftColumnBackground {
-  background: -moz-linear-gradient(left, transparent, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px),
+  background: -moz-linear-gradient(left, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px, transparent 146px, #CCC 146px, #CCC 147px, transparent 147px),
     -moz-linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
-  background: -webkit-linear-gradient(left, transparent, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px),
+  background: -webkit-linear-gradient(left, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px, transparent 146px, #CCC 146px, #CCC 147px, transparent 147px),
     -webkit-linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
-  background: linear-gradient(left, transparent, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px),
+  background: linear-gradient(left, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px, transparent 146px, #CCC 146px, #CCC 147px, transparent 147px),
     linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
   background-size: auto, 100px 32px;
   position: absolute;
   top: 0;
   left: 0;
-  width: 146px;
+  width: 167px;
   min-height: 100%;
   border-right: 1px solid #CCC;
 }
 
 .sampleCount,
 .samplePercentage,
-.selfSampleCount {
+.selfSampleCount,
+.resourceIcon {
   position: absolute;
   text-align: right;
 }
@@ -134,6 +140,18 @@
   padding-right: 2px;
   border: solid #CCC;
   border-width: 0 1px;
+}
+
+.resourceIcon {
+  left: 146px;
+  width: 18px;
+  height: 16px;
+  padding-right: 2px;
+  border: solid #CCC;
+  border-width: 0 1px;
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+  background-position: 3px 1px;
 }
 
 .libraryName {
@@ -164,8 +182,8 @@
   background-color: inherit;
   margin-left: -2px;
   padding-left: 2px;
-  padding-right: 95px;
-  margin-right: -95px;
+  padding-right: 115px;
+  margin-right: -115px;
 }
 
 .treeViewContainer:focus .treeLine.selected {
