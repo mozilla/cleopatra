@@ -102,9 +102,11 @@ TreeView.prototype = {
   dataIsOutdated: function TreeView_dataIsOutdated() {
     this._busyCover.classList.add("busy");
   },
-  display: function TreeView_display(data, filterByName) {
+  display: function TreeView_display(data, resources, filterByName) {
     this._busyCover.classList.remove("busy");
     this._filterByName = filterByName;
+    this._resources = resources;
+    this._addResourceIconStyles();
     this._filterByNameReg = null; // lazy init
     if (this._filterByName === "")
       this._filterByName = null;
@@ -345,6 +347,19 @@ TreeView.prototype = {
     parentElement.appendChild(div);
     return div;
   },
+  _addResourceIconStyles: function TreeView__addResourceIconStyles() {
+    var styles = [];
+    for (var resourceName in this._resources) {
+      var resource = this._resources[resourceName];
+      if (resource.icon) {
+        styles.push('.resourceIcon[data-resource="' + resourceName + '"] { background-image: url("' + resource.icon + '"); }');
+      }
+    }
+    var styleElement = document.createElement("style");
+    styleElement.setAttribute("type", "text/css");
+    styleElement.textContent = styles.join("\n");
+    this._container.appendChild(styleElement);
+  },
   _populateContextMenu: function TreeView__populateContextMenu(event) {
     this._verticalScrollbox.setAttribute("contextmenu", "");
 
@@ -381,9 +396,9 @@ TreeView.prototype = {
   _contextMenuForFunction: function TreeView__contextMenuForFunction(node) {
     // TODO move me outside tree.js
     var menu = [];
-    if (node.library != null && (
-      node.library.toLowerCase() == "xul" ||
-      node.library.toLowerCase() == "xul.dll"
+    if (node.library && (
+      node.library.toLowerCase() == "lib_xul" ||
+      node.library.toLowerCase() == "lib_xul.dll"
       )) {
       menu.push("View Source");
     }
@@ -399,7 +414,8 @@ TreeView.prototype = {
   },
   _HTMLForFunction: function TreeView__HTMLForFunction(node) {
     var nodeName = escapeHTML(node.name);
-    var libName = node.library;
+    var resource = this._resources[node.library] || {};
+    var libName = escapeHTML(resource.name || "");
     if (this._filterByName) {
       if (!this._filterByNameReg) {
         this._filterByName = RegExp.escape(this._filterByName);
@@ -418,6 +434,7 @@ TreeView.prototype = {
       '<span class="sampleCount">' + node.counter + '</span> ' +
       '<span class="samplePercentage">' + samplePercentage + '</span> ' +
       '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
+      '<span class="resourceIcon" data-resource="' + node.library + '"></span> ' +
       '<span class="functionName">' + nodeName + '</span>' +
       '<span class="libraryName">' + libName + '</span>' +
       '<input type="button" value="Focus Callstack" title="Focus Callstack" class="focusCallstackButton" tabindex="-1">';
