@@ -320,7 +320,13 @@ TreeView.prototype = {
     };
   },
   _scrollHeightChanged: function TreeView__scrollHeightChanged() {
-    this._leftColumnBackground.style.height = this._horizontalScrollbox.getBoundingClientRect().height + 'px';
+    if (!this._pendingScrollHeightChanged) {
+      var self = this;
+      this._pendingScrollHeightChanged = setTimeout(function() {
+        self._leftColumnBackground.style.height = self._horizontalScrollbox.getBoundingClientRect().height + 'px';
+        self._pendingScrollHeightChanged = null;
+      }, 0);
+    }
   },
   _createTree: function TreeView__createTree(parentElement, parentNode, data) {
     var div = document.createElement("div");
