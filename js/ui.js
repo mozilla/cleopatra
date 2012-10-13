@@ -469,6 +469,7 @@ HistogramView.prototype = {
     var ctx = this._canvas.getContext("2d");
     var height = this._canvas.height;
     ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
+    ctx.font = "20px Georgia";
     ctx.clearRect(0, 0, this._widthSum, height);
 
     var self = this;
@@ -485,6 +486,12 @@ HistogramView.prototype = {
       }
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
+      if (step.marker) {
+        dump("draw text: " + step.marker + "\n");
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillText(step.marker, step.x + step.width + 2, 15);
+        ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
+      }
     }
 
     this._finishedRendering = true;
