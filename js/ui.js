@@ -487,10 +487,7 @@ HistogramView.prototype = {
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
       if (step.marker) {
-        dump("draw text: " + step.marker + "\n");
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillText(step.marker, step.x + step.width + 2, 15);
-        ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
       }
     }
 
