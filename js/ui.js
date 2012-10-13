@@ -131,7 +131,8 @@ function ProfileTreeManager() {
   this.treeView.setColumns([
     { name: "sampleCount", title: "Running time" },
     { name: "selfSampleCount", title: "Self" },
-    { name: "symbolName", title: "Symbol Name"},
+    { name: "resource", title: "" },
+    { name: "symbolName", title: "Symbol Name"}
   ]);
   var self = this;
   this.treeView.addEventListener("select", function (frameData) {
@@ -227,8 +228,8 @@ ProfileTreeManager.prototype = {
   setAllowNonContigous: function ProfileTreeManager_setAllowNonContigous() {
     this._allowNonContigous = true;
   },
-  display: function ProfileTreeManager_display(tree, symbols, functions, useFunctions, filterByName) {
-    this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), filterByName);
+  display: function ProfileTreeManager_display(tree, symbols, functions, resources, useFunctions, filterByName) {
+    this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), resources, filterByName);
     if (this._savedSnapshot) {
       this._restoreSelectionSnapshot(this._savedSnapshot, this._allowNonContigous);
       this._savedSnapshot = null;
@@ -248,7 +249,7 @@ ProfileTreeManager.prototype = {
       curObj.selfCounter = selfCounter;
       curObj.ratio = node.counter / totalSamples;
       curObj.fullFrameNamesAsInSample = node.mergedNames ? node.mergedNames : [node.name];
-      if (useFunctions ? !(node.name in functions) : !(node.name in symbols)) {
+      if (!(node.name in (useFunctions ? functions : symbols))) {
         curObj.name = node.name;
         curObj.library = "";
       } else {
@@ -257,7 +258,7 @@ ProfileTreeManager.prototype = {
           functionName: functionObj.functionName,
           libraryName: functionObj.libraryName,
           lineInformation: useFunctions ? "" : symbols[node.name].lineInformation
-        };
+        };  
         curObj.name = (info.functionName + " " + info.lineInformation).trim();
         curObj.library = info.libraryName;
         curObj.isJSFrame = functionObj.isJSFrame;
@@ -1128,6 +1129,7 @@ var gNumSamples = 0;
 var gMeta = null;
 var gSymbols = {};
 var gFunctions = {};
+var gResources = {};
 var gHighlightedCallstack = [];
 var gTreeManager = null;
 var gSampleBar = null;
@@ -1294,6 +1296,7 @@ function loadRawProfile(reporter, rawProfile) {
     gNumSamples = result.numSamples;
     gSymbols = result.symbols;
     gFunctions = result.functions;
+    gResources = result.resources;
     enterFinishedProfileUI();
     gFileList.profileParsingFinished();
   });
@@ -1644,7 +1647,7 @@ function viewOptionsChanged() {
   });
   updateViewOptionsRequest.addEventListener("finished", function (calltree) {
     var start = Date.now();
-    gTreeManager.display(calltree, gSymbols, gFunctions, gMergeFunctions, filterNameInput && filterNameInput.value);
+    gTreeManager.display(calltree, gSymbols, gFunctions, gResources, gMergeFunctions, filterNameInput && filterNameInput.value);
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
   });
 }
