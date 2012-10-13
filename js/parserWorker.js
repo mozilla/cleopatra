@@ -645,6 +645,9 @@ function parseRawProfile(requestID, params, rawProfile) {
       if (sample.responsiveness) {
         sample.extraInfo["responsiveness"] = sample.responsiveness;
       }
+      if (sample.marker) {
+        sample.extraInfo["marker"] = sample.marker;
+      }
       if (sample.time) {
         sample.extraInfo["time"] = sample.time;
       }
