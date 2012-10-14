@@ -70,7 +70,8 @@ FileList.prototype = {
           var profileInfo = profileList[i];
           //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
           var dateObj = new Date(profileInfo.date);
-          var fileEntry = self.addFile(profileInfo.profileKey, dateObj.toLocaleString(), function fileEntryClick() {
+          var fileEntry = self.addFile(profileInfo, dateObj.toLocaleString(), function fileEntryClick() {
+            dump("open: " + profileInfo.profileKey + "\n");
             loadLocalStorageProfile(profileInfo.profileKey);
           });
         })();
@@ -82,12 +83,15 @@ FileList.prototype = {
     });
   },
 
-  addFile: function FileList_addFile(fileName, description, onselect) {
+  addFile: function FileList_addFile(profileInfo, description, onselect) {
     var li = document.createElement("li");
 
-    if (fileName && fileName.indexOf("http://profile-store.commondatastorage.googleapis.com/") >= 0) {
-      fileName = fileName.substring(54);
+    var fileName;
+    if (profileInfo.profileKey && profileInfo.profileKey.indexOf("http://profile-store.commondatastorage.googleapis.com/") >= 0) {
+      fileName = profileInfo.profileKey.substring(54);
       fileName = fileName.substring(0, 8) + "..." + fileName.substring(28);
+    } else {
+      fileName = profileInfo.name;
     }
     li.fileName = fileName || "(New Profile)";
     li.description = description || "(empty)";
@@ -133,8 +137,8 @@ FileList.prototype = {
   },
 
   profileParsingFinished: function FileList_profileParsingFinished() {
-    this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
-    this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
+    //this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
+    //this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
   }
 }
 
@@ -1539,7 +1543,7 @@ function enterMainUI() {
   gFileList = new FileList();
   uiContainer.appendChild(gFileList.getContainer());
 
-  gFileList.addFile();
+  //gFileList.addFile();
   gFileList.loadProfileListFromLocalStorage();
 
   gInfoBar = new InfoBar();

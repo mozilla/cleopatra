@@ -676,7 +676,11 @@ function parseRawProfile(requestID, params, rawProfile) {
   }
 
   progressReporter.finish();
-  var profileID = gNextProfileID++;
+  // Don't increment the profile ID now because (1) it's buggy
+  // and (2) for now there's no point in storing each profile
+  // here if we're storing them in the local storage.
+  //var profileID = gNextProfileID++;
+  var profileID = gNextProfileID;
   gProfiles[profileID] = JSON.parse(JSON.stringify({
     meta: meta,
     symbols: symbols,
@@ -1309,7 +1313,6 @@ var diagnosticList = [
       var ccEvent = findCCEvent(frames, symbols, meta, step);
 
       if (ccEvent) {
-        dump("Found\n");
         return true;
       }
       return false;

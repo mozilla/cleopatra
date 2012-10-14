@@ -141,7 +141,7 @@ ProfileLocalStorage.prototype = {
         self.deleteLocalProfile(profileToRemove);
         profileList.shift();
       }
-      profileList.push( {profileKey: profileKey, key: profileKey, name: "Profile " + date, date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
+      profileList.push( {profileKey: profileKey, key: profileKey, name: "Local Profile", date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
       self._storage.setValue(profileKey, profile);
       self._storage.setValue("profileList", profileList);
       if (callback)
