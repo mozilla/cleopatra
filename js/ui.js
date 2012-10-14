@@ -64,7 +64,7 @@ FileList.prototype = {
   loadProfileListFromLocalStorage: function FileList_loadProfileListFromLocalStorage() {
     var self = this;
     gLocalStorage.getProfileList(function(profileList) {
-      for (var i = 0; i < profileList.length; i++) {
+      for (var i = profileList.length - 1; i >= 0; i--) {
         (function closure() {
           // This only carries info about the profile and the access key to retrieve it.
           var profileInfo = profileList[i];
