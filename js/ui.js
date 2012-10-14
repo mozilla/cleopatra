@@ -606,6 +606,9 @@ RangeSelector.prototype = {
     var isDrawingRectangle = false;
     var origX, origY;
     var self = this;
+    // Compute this on the mouse down rather then forcing a sync reflow
+    // every frame.
+    var boundingRect = null;
     function histogramClick(clickX, clickY) {
       clickX = Math.min(clickX, graph.parentNode.getBoundingClientRect().right);
       clickX = clickX - graph.parentNode.getBoundingClientRect().left;
@@ -613,8 +616,8 @@ RangeSelector.prototype = {
       self._histogram.histogramClick(index);
     }
     function updateHiliteRectangle(newX, newY) {
-      newX = Math.min(newX, graph.parentNode.getBoundingClientRect().right);
-      var startX = Math.min(newX, origX) - graph.parentNode.getBoundingClientRect().left;
+      newX = Math.min(newX, boundingRect.right);
+      var startX = Math.min(newX, origX) - boundingRect.left;
       var startY = 0;
       var width = Math.abs(newX - origX);
       var height = graph.parentNode.clientHeight;
@@ -637,6 +640,7 @@ RangeSelector.prototype = {
       self.beginHistogramSelection();
       origX = e.pageX;
       origY = e.pageY;
+      boundingRect = graph.parentNode.getBoundingClientRect();
       if (this.setCapture)
         this.setCapture();
       // Reset the highlight rectangle
