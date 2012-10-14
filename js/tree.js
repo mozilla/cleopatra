@@ -79,6 +79,11 @@ function TreeView() {
   this._container.onkeydown = function (e) {
     self._onkeypress(e);
   };
+  this._container.onkeypress = function (e) {
+    // on key down gives us '8' and mapping shift+8='*' may not be portable.
+    if (String.fromCharCode(e.charCode) == '*')
+      self._onkeypress(e);
+  };
   this._container.onclick = function (e) {
     self._onclick(e);
   };
@@ -319,7 +324,13 @@ TreeView.prototype = {
     };
   },
   _scrollHeightChanged: function TreeView__scrollHeightChanged() {
-    this._leftColumnBackground.style.height = this._horizontalScrollbox.getBoundingClientRect().height + 'px';
+    if (!this._pendingScrollHeightChanged) {
+      var self = this;
+      this._pendingScrollHeightChanged = setTimeout(function() {
+        self._leftColumnBackground.style.height = self._horizontalScrollbox.getBoundingClientRect().height + 'px';
+        self._pendingScrollHeightChanged = null;
+      }, 0);
+    }
   },
   _createTree: function TreeView__createTree(parentElement, parentNode, data) {
     var div = document.createElement("div");

@@ -220,7 +220,6 @@ body {
   margin: 0;
   background: #DBDFE7;
   border-right: 1px solid #BBB;
-  cursor: pointer;
 }
 #infoBar {
   border-left: none;
@@ -337,6 +336,7 @@ body {
   padding: 0;
   height: 40px;
   text-indent: 8px;
+  cursor: pointer;
 }
 .fileListItem.selected {
   background: -moz-linear-gradient(#4B91D7 1px, #5FA9E4 1px, #5FA9E4 2px, #58A0DE 3px, #2B70C7 39px, #2763B4 39px);

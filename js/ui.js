@@ -55,26 +55,45 @@ FileList.prototype = {
     return this._container;
   },
 
+  clearFiles: function FileList_clearFiles() {
+    this.fileItemList = [];
+    this._selectedFileItem = null;
+    this._container.innerHTML = "";
+  },
+
   loadProfileListFromLocalStorage: function FileList_loadProfileListFromLocalStorage() {
     var self = this;
     gLocalStorage.getProfileList(function(profileList) {
-      for (var i = 0; i < profileList.length; i++) {
+      for (var i = profileList.length - 1; i >= 0; i--) {
         (function closure() {
           // This only carries info about the profile and the access key to retrieve it.
           var profileInfo = profileList[i];
           //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
-          var fileEntry = self.addFile(profileInfo.profileKey, "local storage", function fileEntryClick() {
+          var dateObj = new Date(profileInfo.date);
+          var fileEntry = self.addFile(profileInfo, dateObj.toLocaleString(), function fileEntryClick() {
+            dump("open: " + profileInfo.profileKey + "\n");
             loadLocalStorageProfile(profileInfo.profileKey);
           });
         })();
       }
     });
+    gLocalStorage.onProfileListChange(function(profileList) {
+      self.clearFiles();
+      self.loadProfileListFromLocalStorage();
+    });
   },
 
-  addFile: function FileList_addFile(fileName, description, onselect) {
+  addFile: function FileList_addFile(profileInfo, description, onselect) {
     var li = document.createElement("li");
 
-    li.fileName = fileName || "New Profile";
+    var fileName;
+    if (profileInfo.profileKey && profileInfo.profileKey.indexOf("http://profile-store.commondatastorage.googleapis.com/") >= 0) {
+      fileName = profileInfo.profileKey.substring(54);
+      fileName = fileName.substring(0, 8) + "..." + fileName.substring(28);
+    } else {
+      fileName = profileInfo.name;
+    }
+    li.fileName = fileName || "(New Profile)";
     li.description = description || "(empty)";
 
     li.className = "fileListItem";
@@ -83,10 +102,11 @@ FileList.prototype = {
       this._selectedFileItem = li;
     }
 
-    li.onselect = onselect;
     var self = this;
     li.onclick = function() {
       self.setSelection(li);
+      if (onselect)
+        onselect();
     }
 
     var fileListItemTitleSpan = document.createElement("span");
@@ -117,8 +137,8 @@ FileList.prototype = {
   },
 
   profileParsingFinished: function FileList_profileParsingFinished() {
-    this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
-    this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
+    //this._container.querySelector(".fileListItemTitle").textContent = "Current Profile";
+    //this._container.querySelector(".fileListItemDescription").textContent = gNumSamples + " Samples";
   }
 }
 
@@ -376,11 +396,9 @@ PluginView.prototype = {
     this._iframe.src = "js/plugins/" + pluginName + "/index.html";
     var self = this;
     this._iframe.onload = function() {
-      console.log("Pluginview '" + pluginName + " iframe onload");
       self._iframe.contentWindow.initCleopatraPlugin(data, param, gSymbols);
     }
     this.show();
-    //console.log(gSymbols); 
   },
 }
 
@@ -469,6 +487,7 @@ HistogramView.prototype = {
     var ctx = this._canvas.getContext("2d");
     var height = this._canvas.height;
     ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
+    ctx.font = "20px Georgia";
     ctx.clearRect(0, 0, this._widthSum, height);
 
     var self = this;
@@ -485,6 +504,9 @@ HistogramView.prototype = {
       }
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
+      if (step.marker) {
+        ctx.fillText(step.marker, step.x + step.width + 2, 15);
+      }
     }
 
     this._finishedRendering = true;
@@ -602,6 +624,9 @@ RangeSelector.prototype = {
     var isDrawingRectangle = false;
     var origX, origY;
     var self = this;
+    // Compute this on the mouse down rather then forcing a sync reflow
+    // every frame.
+    var boundingRect = null;
     function histogramClick(clickX, clickY) {
       clickX = Math.min(clickX, graph.parentNode.getBoundingClientRect().right);
       clickX = clickX - graph.parentNode.getBoundingClientRect().left;
@@ -609,8 +634,8 @@ RangeSelector.prototype = {
       self._histogram.histogramClick(index);
     }
     function updateHiliteRectangle(newX, newY) {
-      newX = Math.min(newX, graph.parentNode.getBoundingClientRect().right);
-      var startX = Math.min(newX, origX) - graph.parentNode.getBoundingClientRect().left;
+      newX = Math.min(newX, boundingRect.right);
+      var startX = Math.min(newX, origX) - boundingRect.left;
       var startY = 0;
       var width = Math.abs(newX - origX);
       var height = graph.parentNode.clientHeight;
@@ -633,6 +658,7 @@ RangeSelector.prototype = {
       self.beginHistogramSelection();
       origX = e.pageX;
       origY = e.pageY;
+      boundingRect = graph.parentNode.getBoundingClientRect();
       if (this.setCapture)
         this.setCapture();
       // Reset the highlight rectangle
@@ -655,14 +681,12 @@ RangeSelector.prototype = {
           var index = self._sampleIndexFromPoint(e.pageX - graph.parentNode.getBoundingClientRect().left);
           // TODO Select this sample in the tree view
           var sample = gCurrentlyShownSampleData[index];
-          console.log("Should select: " + sample);
         }
       }
     }, false);
     graph.addEventListener("mousemove", function(e) {
       this._movedDuringClick = true;
       if (isDrawingRectangle) {
-        console.log(e.pageX);
         updateMouseMarker(-1); // Clear
         updateHiliteRectangle(e.pageX, e.pageY);
       } else {
@@ -931,7 +955,7 @@ function copyProfile() {
 
 function saveProfileToLocalStorage() {
   Parser.getSerializedProfile(true, function (serializedProfile) {
-    gLocalStorage.storeLocalProfile(serializedProfile, function profileSaved() {
+    gLocalStorage.storeLocalProfile(serializedProfile, gMeta.profileId, function profileSaved() {
 
     });
   });
@@ -941,6 +965,76 @@ function downloadProfile() {
     var blob = new Blob([serializedProfile], { "type": "application/octet-stream" });
     location.href = window.URL.createObjectURL(blob);
   });
+}
+
+function promptUploadProfile(selected) {
+  var overlay = document.createElement("div");
+  overlay.style.position = "absolute";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "transparent";
+
+  var bg = document.createElement("div");
+  bg.style.position = "absolute";
+  bg.style.top = 0;
+  bg.style.left = 0;
+  bg.style.width = "100%";
+  bg.style.height = "100%";
+  bg.style.opacity = "0.6";
+  bg.style.backgroundColor = "#aaaaaa";
+  overlay.appendChild(bg);
+
+  var contentDiv = document.createElement("div");
+  contentDiv.className = "sideBar";
+  contentDiv.style.position = "absolute";
+  contentDiv.style.top = "50%";
+  contentDiv.style.left = "50%";
+  contentDiv.style.width = "40em";
+  contentDiv.style.height = "20em";
+  contentDiv.style.marginLeft = "-20em";
+  contentDiv.style.marginTop = "-10em";
+  contentDiv.style.padding = "10px";
+  contentDiv.style.border = "2px solid black";
+  contentDiv.style.backgroundColor = "rgb(219, 223, 231)";
+  overlay.appendChild(contentDiv);
+
+  var noticeHTML = "";
+  noticeHTML += "<center><h2 style='font-size: 2em'>Upload Profile - Privacy Notice</h2></center>";
+  noticeHTML += "You're about to upload your profile publicly where anyone will be able to access it. ";
+  noticeHTML += "To better diagnose performance problems profiles include the following information:";
+  noticeHTML += "<ul>";
+  noticeHTML += " <li>The <b>URLs</b> and scripts of the tabs that were executing.</li>";
+  noticeHTML += " <li>The <b>metadata of all your Add-ons</b> to identify slow Add-ons.</li>";
+  noticeHTML += " <li>Firefox build and runtime configuration.</li>";
+  noticeHTML += "</ul><br>";
+  noticeHTML += "To view all the information you can download the full profile to a file and open the json structure with a text editor.<br><br>";
+  contentDiv.innerHTML = noticeHTML;
+
+  var cancelButton = document.createElement("input");
+  cancelButton.style.position = "absolute";
+  cancelButton.style.bottom = "10px";
+  cancelButton.type = "button";
+  cancelButton.value = "Cancel";
+  cancelButton.onclick = function() {
+    document.body.removeChild(overlay);
+  }
+  contentDiv.appendChild(cancelButton);
+
+  var uploadButton = document.createElement("input");
+  uploadButton.style.position = "absolute";
+  uploadButton.style.right = "10px";
+  uploadButton.style.bottom = "10px";
+  uploadButton.type = "button";
+  uploadButton.value = "Upload";
+  uploadButton.onclick = function() {
+    document.body.removeChild(overlay);
+    uploadProfile(selected);
+  }
+  contentDiv.appendChild(uploadButton);
+
+  document.body.appendChild(overlay);
 }
 
 function uploadProfile(selected) {
@@ -965,9 +1059,9 @@ function uploadProfile(selected) {
 
     var dataSize;
     if (dataToUpload.length > 1024*1024) {
-      dataSize = (dataToUpload.length/1024/1024) + " MB(s)";
+      dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
     } else {
-      dataSize = (dataToUpload.length/1024) + " KB(s)";
+      dataSize = (dataToUpload.length/1024).toFixed(1) + " KB(s)";
     }
 
     var formData = new FormData();
@@ -1112,11 +1206,11 @@ InfoBar.prototype = {
       //filterNameInputNew.value = filterNameInputOld.value;
     }
     document.getElementById('upload').onclick = function() {
-      uploadProfile(false);
+      promptUploadProfile(false);
     };
     document.getElementById('download').onclick = downloadProfile;
     document.getElementById('upload_select').onclick = function() {
-      uploadProfile(true);
+      promptUploadProfile(true);
     };
     //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
     //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
@@ -1185,7 +1279,7 @@ function loadLocalStorageProfile(profileKey) {
 
   gLocalStorage.getProfile(profileKey, function(profile) {
     subreporters.fileLoading.finish();
-    loadRawProfile(subreporters.parsing, JSON.stringify(profile));
+    loadRawProfile(subreporters.parsing, profile, profileKey);
   });
   subreporters.fileLoading.begin("Reading local storage...");
 }
@@ -1252,7 +1346,7 @@ function loadProfileURL(url) {
     if (xhr.readyState === 4 && xhr.status === 200) {
       subreporters.fileLoading.finish();
       PROFILERLOG("Got profile from '" + url + "'.");
-      loadRawProfile(subreporters.parsing, xhr.responseText);
+      loadRawProfile(subreporters.parsing, xhr.responseText, url);
     }
   };
   xhr.onerror = function (e) { 
@@ -1276,12 +1370,13 @@ function loadProfile(rawProfile) {
   loadRawProfile(reporter, rawProfile);
 }
 
-function loadRawProfile(reporter, rawProfile) {
+function loadRawProfile(reporter, rawProfile, profileId) {
   PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile, {
     appendVideoCapture : gAppendVideoCapture,  
+    profileId: profileId,
   });
   gVideoCapture = null;
   parseRequest.addEventListener("progress", function (progress, action) {
@@ -1448,8 +1543,8 @@ function enterMainUI() {
   gFileList = new FileList();
   uiContainer.appendChild(gFileList.getContainer());
 
-  gFileList.addFile();
-  //gFileList.loadProfileListFromLocalStorage();
+  //gFileList.addFile();
+  gFileList.loadProfileListFromLocalStorage();
 
   gInfoBar = new InfoBar();
   uiContainer.appendChild(gInfoBar.getContainer());
@@ -1501,9 +1596,7 @@ function enterProgressUI() {
 }
 
 function enterFinishedProfileUI() {
-  //dump("prepare to save\n");
-  //saveProfileToLocalStorage();
-  //dump("prepare to saved\n");
+  saveProfileToLocalStorage();
 
   var finishedProfilePaneBackgroundCover = document.createElement("div");
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";

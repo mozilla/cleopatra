@@ -268,6 +268,10 @@ function parseRawProfile(requestID, params, rawProfile) {
     parseProfileString(rawProfile);
   }
 
+  if (params.profileId) {
+    meta.profileId = params.profileId;
+  }
+
   function cleanFunctionName(functionName) {
     var ignoredPrefix = "non-virtual thunk to ";
     if (functionName.startsWith(ignoredPrefix))
@@ -645,6 +649,9 @@ function parseRawProfile(requestID, params, rawProfile) {
       if (sample.responsiveness) {
         sample.extraInfo["responsiveness"] = sample.responsiveness;
       }
+      if (sample.marker) {
+        sample.extraInfo["marker"] = sample.marker;
+      }
       if (sample.time) {
         sample.extraInfo["time"] = sample.time;
       }
@@ -669,7 +676,11 @@ function parseRawProfile(requestID, params, rawProfile) {
   }
 
   progressReporter.finish();
-  var profileID = gNextProfileID++;
+  // Don't increment the profile ID now because (1) it's buggy
+  // and (2) for now there's no point in storing each profile
+  // here if we're storing them in the local storage.
+  //var profileID = gNextProfileID++;
+  var profileID = gNextProfileID;
   gProfiles[profileID] = JSON.parse(JSON.stringify({
     meta: meta,
     symbols: symbols,
@@ -772,7 +783,6 @@ function convertToCallTree(samples, isReverse) {
   var firstRoot = null;
   for (var i = 0; i < samples.length; ++i) {
     if (!samples[i].frames) continue;
-    sendError(null, "got root: " + samples[i].frames[0]);
     firstRoot = samples[i].frames[0];
     break;
   }
@@ -1303,7 +1313,6 @@ var diagnosticList = [
       var ccEvent = findCCEvent(frames, symbols, meta, step);
 
       if (ccEvent) {
-        dump("Found\n");
         return true;
       }
       return false;
