@@ -951,6 +951,76 @@ function downloadProfile() {
   });
 }
 
+function promptUploadProfile(selected) {
+  var overlay = document.createElement("div");
+  overlay.style.position = "absolute";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "transparent";
+
+  var bg = document.createElement("div");
+  bg.style.position = "absolute";
+  bg.style.top = 0;
+  bg.style.left = 0;
+  bg.style.width = "100%";
+  bg.style.height = "100%";
+  bg.style.opacity = "0.6";
+  bg.style.backgroundColor = "#aaaaaa";
+  overlay.appendChild(bg);
+
+  var contentDiv = document.createElement("div");
+  contentDiv.className = "sideBar";
+  contentDiv.style.position = "absolute";
+  contentDiv.style.top = "50%";
+  contentDiv.style.left = "50%";
+  contentDiv.style.width = "40em";
+  contentDiv.style.height = "20em";
+  contentDiv.style.marginLeft = "-20em";
+  contentDiv.style.marginTop = "-10em";
+  contentDiv.style.padding = "10px";
+  contentDiv.style.border = "2px solid black";
+  contentDiv.style.backgroundColor = "rgb(219, 223, 231)";
+  overlay.appendChild(contentDiv);
+
+  var noticeHTML = "";
+  noticeHTML += "<center><h2 style='font-size: 2em'>Upload Profile - Privacy Notice</h2></center>";
+  noticeHTML += "You're about to upload your profile publicly where anyone will be able to access it. ";
+  noticeHTML += "To better diagnose performance problems profiles include the following information:";
+  noticeHTML += "<ul>";
+  noticeHTML += " <li>The <b>URLs</b> and scripts of the tabs that were executing.</li>";
+  noticeHTML += " <li>The <b>metadata of all your Add-ons</b> to identify slow Add-ons.</li>";
+  noticeHTML += " <li>Firefox build and runtime configuration.</li>";
+  noticeHTML += "</ul><br>";
+  noticeHTML += "To view all the information you can download the full profile to a file and open the json structure with a text editor.<br><br>";
+  contentDiv.innerHTML = noticeHTML;
+
+  var cancelButton = document.createElement("input");
+  cancelButton.style.position = "absolute";
+  cancelButton.style.bottom = "10px";
+  cancelButton.type = "button";
+  cancelButton.value = "Cancel";
+  cancelButton.onclick = function() {
+    document.body.removeChild(overlay);
+  }
+  contentDiv.appendChild(cancelButton);
+
+  var uploadButton = document.createElement("input");
+  uploadButton.style.position = "absolute";
+  uploadButton.style.right = "10px";
+  uploadButton.style.bottom = "10px";
+  uploadButton.type = "button";
+  uploadButton.value = "Upload";
+  uploadButton.onclick = function() {
+    document.body.removeChild(overlay);
+    uploadProfile(selected);
+  }
+  contentDiv.appendChild(uploadButton);
+
+  document.body.appendChild(overlay);
+}
+
 function uploadProfile(selected) {
   Parser.getSerializedProfile(!selected, function (dataToUpload) {
     var oXHR = new XMLHttpRequest();
@@ -1120,11 +1190,11 @@ InfoBar.prototype = {
       //filterNameInputNew.value = filterNameInputOld.value;
     }
     document.getElementById('upload').onclick = function() {
-      uploadProfile(false);
+      promptUploadProfile(false);
     };
     document.getElementById('download').onclick = downloadProfile;
     document.getElementById('upload_select').onclick = function() {
-      uploadProfile(true);
+      promptUploadProfile(true);
     };
     //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
     //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
