@@ -61,6 +61,10 @@ function TreeView() {
   this._horizontalScrollbox.className = "treeViewHorizontalScrollbox";
   this._verticalScrollbox.appendChild(this._horizontalScrollbox);
 
+  this._styleElement = document.createElement("style");
+  this._styleElement.setAttribute("type", "text/css");
+  this._container.appendChild(this._styleElement);
+
   this._contextMenu = document.createElement("menu");
   this._contextMenu.setAttribute("type", "context");
   this._contextMenu.id = "contextMenuForTreeView" + TreeView.instanceCounter++;
@@ -355,10 +359,7 @@ TreeView.prototype = {
         styles.push('.resourceIcon[data-resource="' + resourceName + '"] { background-image: url("' + resource.icon + '"); }');
       }
     }
-    var styleElement = document.createElement("style");
-    styleElement.setAttribute("type", "text/css");
-    styleElement.textContent = styles.join("\n");
-    this._container.appendChild(styleElement);
+    this._styleElement.textContent = styles.join("\n");
   },
   _populateContextMenu: function TreeView__populateContextMenu(event) {
     this._verticalScrollbox.setAttribute("contextmenu", "");
