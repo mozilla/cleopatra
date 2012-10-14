@@ -1330,7 +1330,7 @@ function loadProfileURL(url) {
     if (xhr.readyState === 4 && xhr.status === 200) {
       subreporters.fileLoading.finish();
       PROFILERLOG("Got profile from '" + url + "'.");
-      loadRawProfile(subreporters.parsing, xhr.responseText);
+      loadRawProfile(subreporters.parsing, xhr.responseText, url);
     }
   };
   xhr.onerror = function (e) { 
@@ -1354,12 +1354,13 @@ function loadProfile(rawProfile) {
   loadRawProfile(reporter, rawProfile);
 }
 
-function loadRawProfile(reporter, rawProfile) {
+function loadRawProfile(reporter, rawProfile, remoteURL) {
   PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile, {
     appendVideoCapture : gAppendVideoCapture,  
+    remoteURL: remoteURL,
   });
   gVideoCapture = null;
   parseRequest.addEventListener("progress", function (progress, action) {

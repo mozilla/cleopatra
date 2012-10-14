@@ -599,6 +599,9 @@ function parseRawProfile(requestID, params, rawProfile) {
         src: params.appendVideoCapture,
       };
     }
+    if (params.remoteURL) {
+      meta.remoteURL = params.remoteURL;
+    }
     // Support older format that aren't thread aware
     if (profile.threads != null) {
       profileSamples = profile.threads[0].samples;
