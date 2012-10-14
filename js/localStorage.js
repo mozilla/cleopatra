@@ -111,8 +111,13 @@ JSONStorage.prototype = {
 
 function ProfileLocalStorage() {
   this._storage = new JSONStorage();
+  this._profileListChangeCallback = null;
 }
 ProfileLocalStorage.prototype = {
+  onProfileListChange: function ProfileLocalStorage_OnProfileListChange(callback) {
+    this._profileListChangeCallback = callback;
+  },
+
   getProfileList: function ProfileLocalStorage_getProfileList(callback) {
     this._storage.getValue("profileList", function gotProfileList(profileList) {
       profileList = profileList || [];
@@ -125,11 +130,6 @@ ProfileLocalStorage.prototype = {
     var date = new Date();
     var time = date.getTime();
     this.getProfileList(function got_profile(profileList) {
-      if (profileList.length >= 5) {
-        var profileToRemove = profileList[0].profileKey;
-        self.deleteLocalProfile(profileList);
-        profileList.shift();
-      }
       profileKey = profileKey || "local_profile:" + time;
       for (var i = 0; i < profileList.length; i++) {
         if (profileList[i].profileKey == profileKey) {
@@ -137,7 +137,15 @@ ProfileLocalStorage.prototype = {
           return;
         }
       }
+      if (profileList.length >= 5) {
+        var profileToRemove = profileList[0].profileKey;
+        self.deleteLocalProfile(profileToRemove);
+        profileList.shift();
+      }
       profileList.push( {profileKey: profileKey, key: profileKey, name: "Profile " + date, date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
+      if (self._profileListChangeCallback) {
+        self._profileListChangeCallback(profileList);
+      }
       self._storage.setValue(profileKey, profile);
       self._storage.setValue("profileList", profileList);
       if (callback)

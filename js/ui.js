@@ -55,6 +55,12 @@ FileList.prototype = {
     return this._container;
   },
 
+  clearFiles: function FileList_clearFiles() {
+    this.fileItemList = [];
+    this._selectedFileItem = null;
+    this._container.innerHTML = "";
+  },
+
   loadProfileListFromLocalStorage: function FileList_loadProfileListFromLocalStorage() {
     var self = this;
     gLocalStorage.getProfileList(function(profileList) {
@@ -70,9 +76,13 @@ FileList.prototype = {
         })();
       }
     });
+    gLocalStorage.onProfileListChange(function(profileList) {
+      self.clearFiles();
+      self.loadProfileListFromLocalStorage();
+    });
   },
 
-  addFile: function FileList_addFile(fileName, description, remoteURL, onselect) {
+  addFile: function FileList_addFile(fileName, description, onselect) {
     var li = document.createElement("li");
 
     if (fileName && fileName.indexOf("http://profile-store.commondatastorage.googleapis.com/") >= 0) {
@@ -88,10 +98,11 @@ FileList.prototype = {
       this._selectedFileItem = li;
     }
 
-    li.onselect = onselect;
     var self = this;
     li.onclick = function() {
       self.setSelection(li);
+      if (onselect)
+        onselect();
     }
 
     var fileListItemTitleSpan = document.createElement("span");
@@ -944,7 +955,8 @@ function copyProfile() {
 
 function saveProfileToLocalStorage() {
   Parser.getSerializedProfile(true, function (serializedProfile) {
-    gLocalStorage.storeLocalProfile(serializedProfile, gMeta.remoteURL, function profileSaved() {
+    console.error(gMeta.profileId + " prof id\n");
+    gLocalStorage.storeLocalProfile(serializedProfile, gMeta.profileId, function profileSaved() {
 
     });
   });
@@ -1268,7 +1280,8 @@ function loadLocalStorageProfile(profileKey) {
 
   gLocalStorage.getProfile(profileKey, function(profile) {
     subreporters.fileLoading.finish();
-    loadRawProfile(subreporters.parsing, JSON.stringify(profile));
+    console.error("Load: " + profileKey);
+    loadRawProfile(subreporters.parsing, JSON.stringify(profile), profileKey);
   });
   subreporters.fileLoading.begin("Reading local storage...");
 }
@@ -1359,13 +1372,14 @@ function loadProfile(rawProfile) {
   loadRawProfile(reporter, rawProfile);
 }
 
-function loadRawProfile(reporter, rawProfile, remoteURL) {
+function loadRawProfile(reporter, rawProfile, profileId) {
   PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
   var startTime = Date.now();
+  console.error("PROFID: " + profileId);
   var parseRequest = Parser.parse(rawProfile, {
     appendVideoCapture : gAppendVideoCapture,  
-    remoteURL: remoteURL,
+    profileId: profileId,
   });
   gVideoCapture = null;
   parseRequest.addEventListener("progress", function (progress, action) {

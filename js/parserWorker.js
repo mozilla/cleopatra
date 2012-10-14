@@ -268,6 +268,10 @@ function parseRawProfile(requestID, params, rawProfile) {
     parseProfileString(rawProfile);
   }
 
+  if (params.profileId) {
+    meta.profileId = params.profileId;
+  }
+
   function cleanFunctionName(functionName) {
     var ignoredPrefix = "non-virtual thunk to ";
     if (functionName.startsWith(ignoredPrefix))
@@ -598,9 +602,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       meta.videoCapture = {
         src: params.appendVideoCapture,
       };
-    }
-    if (params.remoteURL) {
-      meta.remoteURL = params.remoteURL;
     }
     // Support older format that aren't thread aware
     if (profile.threads != null) {
