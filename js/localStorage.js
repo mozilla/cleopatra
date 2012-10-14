@@ -133,7 +133,6 @@ ProfileLocalStorage.prototype = {
       profileKey = profileKey || "local_profile:" + time;
       for (var i = 0; i < profileList.length; i++) {
         if (profileList[i].profileKey == profileKey) {
-          dump("Profile already exists\n");
           return;
         }
       }
@@ -143,13 +142,13 @@ ProfileLocalStorage.prototype = {
         profileList.shift();
       }
       profileList.push( {profileKey: profileKey, key: profileKey, name: "Profile " + date, date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
-      if (self._profileListChangeCallback) {
-        self._profileListChangeCallback(profileList);
-      }
       self._storage.setValue(profileKey, profile);
       self._storage.setValue("profileList", profileList);
       if (callback)
         callback();
+      if (self._profileListChangeCallback) {
+        self._profileListChangeCallback(profileList);
+      }
     });
   },
 

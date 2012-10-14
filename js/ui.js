@@ -1275,7 +1275,7 @@ function loadLocalStorageProfile(profileKey) {
 
   gLocalStorage.getProfile(profileKey, function(profile) {
     subreporters.fileLoading.finish();
-    loadRawProfile(subreporters.parsing, JSON.stringify(profile), profileKey);
+    loadRawProfile(subreporters.parsing, profile, profileKey);
   });
   subreporters.fileLoading.begin("Reading local storage...");
 }
@@ -1592,9 +1592,7 @@ function enterProgressUI() {
 }
 
 function enterFinishedProfileUI() {
-  //dump("prepare to save\n");
   saveProfileToLocalStorage();
-  //dump("prepare to saved\n");
 
   var finishedProfilePaneBackgroundCover = document.createElement("div");
   finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
