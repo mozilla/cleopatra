@@ -1043,9 +1043,9 @@ function uploadProfile(selected) {
 
     var dataSize;
     if (dataToUpload.length > 1024*1024) {
-      dataSize = (dataToUpload.length/1024/1024) + " MB(s)";
+      dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
     } else {
-      dataSize = (dataToUpload.length/1024) + " KB(s)";
+      dataSize = (dataToUpload.length/1024).toFixed(1) + " KB(s)";
     }
 
     var formData = new FormData();
