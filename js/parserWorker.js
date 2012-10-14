@@ -779,7 +779,6 @@ function convertToCallTree(samples, isReverse) {
   var firstRoot = null;
   for (var i = 0; i < samples.length; ++i) {
     if (!samples[i].frames) continue;
-    sendError(null, "got root: " + samples[i].frames[0]);
     firstRoot = samples[i].frames[0];
     break;
   }
