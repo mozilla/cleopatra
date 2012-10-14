@@ -392,11 +392,9 @@ PluginView.prototype = {
     this._iframe.src = "js/plugins/" + pluginName + "/index.html";
     var self = this;
     this._iframe.onload = function() {
-      console.log("Pluginview '" + pluginName + " iframe onload");
       self._iframe.contentWindow.initCleopatraPlugin(data, param, gSymbols);
     }
     this.show();
-    //console.log(gSymbols); 
   },
 }
 
@@ -679,14 +677,12 @@ RangeSelector.prototype = {
           var index = self._sampleIndexFromPoint(e.pageX - graph.parentNode.getBoundingClientRect().left);
           // TODO Select this sample in the tree view
           var sample = gCurrentlyShownSampleData[index];
-          console.log("Should select: " + sample);
         }
       }
     }, false);
     graph.addEventListener("mousemove", function(e) {
       this._movedDuringClick = true;
       if (isDrawingRectangle) {
-        console.log(e.pageX);
         updateMouseMarker(-1); // Clear
         updateHiliteRectangle(e.pageX, e.pageY);
       } else {
@@ -955,7 +951,6 @@ function copyProfile() {
 
 function saveProfileToLocalStorage() {
   Parser.getSerializedProfile(true, function (serializedProfile) {
-    console.error(gMeta.profileId + " prof id\n");
     gLocalStorage.storeLocalProfile(serializedProfile, gMeta.profileId, function profileSaved() {
 
     });
@@ -1280,7 +1275,6 @@ function loadLocalStorageProfile(profileKey) {
 
   gLocalStorage.getProfile(profileKey, function(profile) {
     subreporters.fileLoading.finish();
-    console.error("Load: " + profileKey);
     loadRawProfile(subreporters.parsing, JSON.stringify(profile), profileKey);
   });
   subreporters.fileLoading.begin("Reading local storage...");
@@ -1376,7 +1370,6 @@ function loadRawProfile(reporter, rawProfile, profileId) {
   PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
   var startTime = Date.now();
-  console.error("PROFID: " + profileId);
   var parseRequest = Parser.parse(rawProfile, {
     appendVideoCapture : gAppendVideoCapture,  
     profileId: profileId,
