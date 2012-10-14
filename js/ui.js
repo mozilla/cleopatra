@@ -63,7 +63,8 @@ FileList.prototype = {
           // This only carries info about the profile and the access key to retrieve it.
           var profileInfo = profileList[i];
           //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
-          var fileEntry = self.addFile(profileInfo.profileKey, "local storage", function fileEntryClick() {
+          var dateObj = new Date(profileInfo.date);
+          var fileEntry = self.addFile(profileInfo.profileKey, dateObj.toLocaleString(), function fileEntryClick() {
             loadLocalStorageProfile(profileInfo.profileKey);
           });
         })();
@@ -71,10 +72,14 @@ FileList.prototype = {
     });
   },
 
-  addFile: function FileList_addFile(fileName, description, onselect) {
+  addFile: function FileList_addFile(fileName, description, remoteURL, onselect) {
     var li = document.createElement("li");
 
-    li.fileName = fileName || "New Profile";
+    if (fileName && fileName.indexOf("http://profile-store.commondatastorage.googleapis.com/") >= 0) {
+      fileName = fileName.substring(54);
+      fileName = fileName.substring(0, 8) + "..." + fileName.substring(28);
+    }
+    li.fileName = fileName || "(New Profile)";
     li.description = description || "(empty)";
 
     li.className = "fileListItem";
@@ -939,7 +944,7 @@ function copyProfile() {
 
 function saveProfileToLocalStorage() {
   Parser.getSerializedProfile(true, function (serializedProfile) {
-    gLocalStorage.storeLocalProfile(serializedProfile, function profileSaved() {
+    gLocalStorage.storeLocalProfile(serializedProfile, gMeta.remoteURL, function profileSaved() {
 
     });
   });
@@ -1528,7 +1533,7 @@ function enterMainUI() {
   uiContainer.appendChild(gFileList.getContainer());
 
   gFileList.addFile();
-  //gFileList.loadProfileListFromLocalStorage();
+  gFileList.loadProfileListFromLocalStorage();
 
   gInfoBar = new InfoBar();
   uiContainer.appendChild(gInfoBar.getContainer());
@@ -1581,7 +1586,7 @@ function enterProgressUI() {
 
 function enterFinishedProfileUI() {
   //dump("prepare to save\n");
-  //saveProfileToLocalStorage();
+  saveProfileToLocalStorage();
   //dump("prepare to saved\n");
 
   var finishedProfilePaneBackgroundCover = document.createElement("div");

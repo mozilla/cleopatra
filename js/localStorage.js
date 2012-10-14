@@ -74,7 +74,7 @@ JSONStorage.prototype = {
       });
       return;
     }
-    var transaction = this._db.transaction("profiles");
+    var transaction = this._db.transaction("profiles", "readwrite");
     var request = transaction.objectStore("profiles").delete(key);
     request.onsuccess = function(event) {
       if (!callback)
@@ -120,17 +120,24 @@ ProfileLocalStorage.prototype = {
     });
   },
 
-  storeLocalProfile: function ProfileLocalStorage_storeLocalProfile(profile, callback) {
+  storeLocalProfile: function ProfileLocalStorage_storeLocalProfile(profile, profileKey, callback) {
     var self = this;
-    var time = new Date().getTime();
+    var date = new Date();
+    var time = date.getTime();
     this.getProfileList(function got_profile(profileList) {
       if (profileList.length >= 5) {
         var profileToRemove = profileList[0].profileKey;
         self.deleteLocalProfile(profileList);
         profileList.shift();
       }
-      var profileKey = "local_profile:" + time;
-      profileList.push( {profileKey: profileKey, name: "Profile " + new Date(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
+      profileKey = profileKey || "local_profile:" + time;
+      for (var i = 0; i < profileList.length; i++) {
+        if (profileList[i].profileKey == profileKey) {
+          dump("Profile already exists\n");
+          return;
+        }
+      }
+      profileList.push( {profileKey: profileKey, key: profileKey, name: "Profile " + date, date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
       self._storage.setValue(profileKey, profile);
       self._storage.setValue("profileList", profileList);
       if (callback)
