@@ -764,7 +764,6 @@ function convertToCallTree(samples, isReverse) {
   function areSamplesMultiroot(samples) {
     var previousRoot;
     for (var i = 0; i < samples.length; ++i) {
-      if (!samples[i].frames) continue;
       if (!previousRoot) {
         previousRoot = samples[i].frames[0];
         continue;
@@ -782,7 +781,6 @@ function convertToCallTree(samples, isReverse) {
     return new TreeNode("(empty)", null, 0);
   var firstRoot = null;
   for (var i = 0; i < samples.length; ++i) {
-    if (!samples[i].frames) continue;
     firstRoot = samples[i].frames[0];
     break;
   }
@@ -793,9 +791,6 @@ function convertToCallTree(samples, isReverse) {
   var treeRoot = new TreeNode((isReverse || multiRoot) ? "(total)" : firstRoot, null, 0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
-    if (!sample.frames) {
-      continue;
-    }
     var callstack = sample.frames.slice(0);
     callstack.shift();
     if (isReverse)
@@ -896,11 +891,11 @@ function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
       }
     }
     if (!newFrames.length) {
-      newFrames = null;
+      samples[i] = null;
     } else {
       newFrames.splice(0, 0, "(total)");
+      samples[i].frames = newFrames;
     }
-    samples[i].frames = newFrames;
   }
   return samples;
 }
@@ -1076,7 +1071,7 @@ function updateFilters(requestID, profileID, filters) {
   gProfiles[profileID].filterSettings = filters;
   gProfiles[profileID].filteredSamples = samples;
   sendFinishedInChunks(requestID, samples, 40000,
-                       function (sample) { return (sample && sample.frames) ? sample.frames.length : 1; });
+                       function (sample) { return sample ? sample.frames.length : 1; });
 }
 
 function updateViewOptions(requestID, profileID, options) {
@@ -1114,7 +1109,7 @@ function calculateHistogramData(requestID, profileID) {
   for (var i = 0; i < data.length; ++i) {
     if (!data[i])
       continue;
-    var value = data[i].frames ? data[i].frames.length : 0;
+    var value = data[i].frames.length;
     if (maxHeight < value)
       maxHeight = value;
   }
@@ -1128,7 +1123,7 @@ function calculateHistogramData(requestID, profileID) {
   var frameStart = {};
   for (var i = 0; i < data.length; i++) {
     var step = data[i];
-    if (!step || !step.frames) {
+    if (!step) {
       // Add a gap for the sample that was filtered out.
       nextX += 1 / samplesPerStep;
       continue;
