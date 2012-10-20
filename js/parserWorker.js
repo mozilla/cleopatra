@@ -1552,14 +1552,13 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
 */
 
   data.forEach(function diagnoseStep(step, x) {
-    if (!step)
-      return;
+    if (step) {
+      var frames = step.frames;
 
-    var frames = step.frames;
-
-    var diagnostic = firstMatch(tmpDiagnosticList, function (diagnostic) {
-      return diagnostic.check(frames, symbols, meta, step);
-    });
+      var diagnostic = firstMatch(tmpDiagnosticList, function (diagnostic) {
+        return diagnostic.check(frames, symbols, meta, step);
+      });
+    }
 
     if (!diagnostic) {
       finishPendingDiagnostic(x);
