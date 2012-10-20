@@ -11,7 +11,7 @@ DiagnosticBar.prototype = {
   setDetailsListener: function(callback) {
     this._detailsListener = callback;
   },
-  _addDiagnosticItem: function(x, width, imageFile, title, details, onclickDetails) {
+  _addDiagnosticItem: function(x, width, imageFile, imageURL, title, details, onclickDetails) {
     var self = this;
     x = x * 100;
     width = width * 100;
@@ -26,7 +26,8 @@ DiagnosticBar.prototype = {
 
     var diagnostic = document.createElement("a");
 
-    var backgroundImageStr = "url('images/diagnostic/"+imageFile+"')";
+    var backgroundImageStr = imageURL ? "url('" + imageURL + "')" :
+                                        "url('images/diagnostic/"+imageFile+"')";
     diagnostic.style.position = "absolute";
     diagnostic.style.backgroundImage = backgroundImageStr;
     diagnostic.style.backgroundRepeat = "no-repeat";
@@ -62,7 +63,8 @@ DiagnosticBar.prototype = {
     this._container.innerHTML = "";
 
     var addedAnyDiagnosticItem = diagnosticItems.map(function addOneItem(item) {
-      return self._addDiagnosticItem(item.x, item.width, item.imageFile, item.title, item.details, item.onclickDetails);
+      return self._addDiagnosticItem(item.x, item.width, item.imageFile, item.imageURL,
+                                     item.title, item.details, item.onclickDetails);
     }).some(function (didAdd) { return didAdd; });
 
     if (!addedAnyDiagnosticItem) {
