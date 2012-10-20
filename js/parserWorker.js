@@ -1496,6 +1496,30 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
 
   var diagnosticItems = [];
 
+  // add diagnostics specific to this profile.
+  var tmpDiagnosticList = diagnosticList.concat(
+    Object.keys(profile.resources)
+      .map(function(resourceKey) {
+        var resource = profile.resources[resourceKey];
+        return (resource.type != "addon") ? null : {
+          image: "addon.png",
+          imageURL: resource.icon,
+          title: "Add-on: " + resource.name,
+          check: function(frames, symbols, meta) {
+            for (var i = 0; i < frames.length; i++) {
+              if (symbols[frames[i]].libraryName == resourceKey) {
+                return true;
+              }
+            }
+            return false;
+          }
+        };
+      })
+      .filter(function(diagnostic) {
+        return diagnostic != null;
+      })
+  );
+
   function finishPendingDiagnostic(endX) {
     if (!pendingDiagnosticInfo)
       return;
@@ -1505,6 +1529,7 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
       x: pendingDiagnosticInfo.x / widthSum,
       width: (endX - pendingDiagnosticInfo.x) / widthSum,
       imageFile: pendingDiagnosticInfo.diagnostic.image,
+      imageURL: pendingDiagnosticInfo.diagnostic.imageURL,
       title: pendingDiagnosticInfo.diagnostic.title,
       details: pendingDiagnosticInfo.details,
       onclickDetails: pendingDiagnosticInfo.onclickDetails
@@ -1532,7 +1557,7 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
 
     var frames = step.frames;
 
-    var diagnostic = firstMatch(diagnosticList, function (diagnostic) {
+    var diagnostic = firstMatch(tmpDiagnosticList, function (diagnostic) {
       return diagnostic.check(frames, symbols, meta, step);
     });
 
