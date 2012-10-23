@@ -213,7 +213,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  bottom: 360px;
+  bottom: 480px; /* must match .sideBar height */
   width: 199px;
   overflow: auto;
   padding: 0;

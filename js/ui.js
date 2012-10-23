@@ -1173,7 +1173,6 @@ InfoBar.prototype = {
     infoText += "<h2>Pre Filtering</h2>\n";
     // Disable for now since it's buggy and not useful
     //infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
-    infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
 
     var filterNameInputOld = document.getElementById("filterName");
     infoText += "<label>Filter:\n";
@@ -1182,6 +1181,7 @@ InfoBar.prototype = {
     infoText += "<h2>Post Filtering</h2>\n";
     infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label>\n";
     infoText += "<h2>View Options</h2>\n";
+    infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
     infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
@@ -1489,7 +1489,8 @@ function focusOnSymbol(focusSymbol, name) {
 function focusOnCallstack(focusedCallstack, name) {
   var filter = {
     type: gInvertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
-    focusedCallstack: focusedCallstack
+    focusedCallstack: focusedCallstack,
+    appliesToJS: gJavascriptOnly
   };
   var newFilterChain = gSampleFilters.concat([filter]);
   gBreadcrumbTrail.addAndEnter({
