@@ -867,33 +867,21 @@ function filterByCallstackPostfix(samples, callstack) {
 }
 
 function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
-  function isJSFrame(index, useFunction) {
-    if (useFunctions) {
-      if (!(index in functions))
-        return "";
-      return functions[index].isJSFrame;
-    }
-    if (!(index in symbols))
-      return "";
-    return symbols[index].isJSFrame;
-  }
+  var isJSFrame = useFunctions ? function isJSFunction(functionIndex) {
+      return (functionIndex in functions) && functions[functionIndex].isJSFrame;
+    } : function isJSSymbol(symbolIndex) {
+      return (symbolIndex in symbols) && symbols[symbolIndex].isJSFrame;
+    };
   samples = samples.slice(0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
     if (!sample)
       continue;
-    var callstack = sample.frames;
-    var newFrames = [];
-    for (var j = 0; j < callstack.length; ++j) {
-      if (isJSFrame(callstack[j], useFunctions)) {
-        // Record Javascript frames
-        newFrames.push(callstack[j]);
-      }
-    }
+    var newFrames = sample.frames.filter(isJSFrame);
     if (!newFrames.length) {
       samples[i] = null;
     } else {
-      newFrames.splice(0, 0, "(total)");
+      newFrames.unshift("(total)");
       samples[i].frames = newFrames;
     }
   }
