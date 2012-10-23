@@ -425,6 +425,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         functionName: cleanFunctionName(match[1]),
         libraryName: resourceNameFromLibrary(match[2]),
         lineInformation: match[3] || "",
+        isRoot: false,
         isJSFrame: false
       };
     }
@@ -447,6 +448,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         functionName: functionName + "() @ " + scriptFile + ":" + lineNumber,
         libraryName: resourceName,
         lineInformation: "",
+        isRoot: false,
         isJSFrame: true,
         scriptLocation: {
           scriptURI: scriptURI,
@@ -460,6 +462,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         functionName: cleanFunctionName(fullName),
         libraryName: "",
         lineInformation: "",
+        isRoot: fullName == "(root)",
         isJSFrame: false
       };
     }
@@ -469,18 +472,13 @@ function parseRawProfile(requestID, params, rawProfile) {
            getFallbackFunctionInfo(fullName);
   }
 
-  function indexForFunction(symbol, functionName, libraryName, isJSFrame, scriptLocation) {
-    var resolve = functionName + "__" + libraryName;
+  function indexForFunction(symbol, info) {
+    var resolve = info.functionName + "__" + info.libraryName;
     if (resolve in functionIndices)
       return functionIndices[resolve];
     var newIndex = functions.length;
-    functions[newIndex] = {
-      symbol: symbol,
-      functionName: functionName,
-      libraryName: libraryName,
-      isJSFrame: isJSFrame,
-      scriptLocation: scriptLocation
-    };
+    info.symbol = symbol;
+    functions[newIndex] = info;
     functionIndices[resolve] = newIndex;
     return newIndex;
   }
@@ -491,8 +489,9 @@ function parseRawProfile(requestID, params, rawProfile) {
     return {
       symbolName: symbol,
       functionName: info.functionName,
-      functionIndex: indexForFunction(symbol, info.functionName, info.libraryName, info.isJSFrame, info.scriptLocation),
+      functionIndex: indexForFunction(symbol, info),
       lineInformation: info.lineInformation,
+      isRoot: info.isRoot,
       isJSFrame: info.isJSFrame,
       scriptLocation: info.scriptLocation
     };
@@ -670,7 +669,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         if (!sample) continue;
         // If length == 0 then the sample was filtered when saving the profile
         if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
-          sample.frames.splice(0, 0, rootIndex)
+          sample.frames.unshift(rootIndex)
       }
     }
   }
@@ -834,66 +833,70 @@ function filterBySymbol(samples, symbolOrFunctionIndex) {
   });
 }
 
-function filterByCallstackPrefix(samples, callstack) {
-  return samples.map(function filterSample(origSample) {
-    if (!origSample)
+function filterByCallstackPrefix(samples, symbols, functions, callstack, appliesToJS, useFunctions) {
+  var isJSFrameOrRoot = useFunctions ? function isJSFunctionOrRoot(functionIndex) {
+      return (functionIndex in functions) && (functions[functionIndex].isJSFrame || functions[functionIndex].isRoot);
+    } : function isJSSymbolOrRoot(symbolIndex) {
+      return (symbolIndex in symbols) && (symbols[symbolIndex].isJSFrame || symbols[symbolIndex].isRoot);
+    };
+  return samples.map(function filterSample(sample) {
+    if (!sample)
       return null;
-    if (origSample.frames.length < callstack.length)
+    if (sample.frames.length < callstack.length)
       return null;
-    var sample = cloneSample(origSample);
-    for (var i = 0; i < callstack.length; i++) {
-      if (sample.frames[i] != callstack[i])
+    for (var i = 0, j = 0; j < callstack.length; i++) {
+      if (i >= sample.frames.length)
         return null;
+      if (appliesToJS && !isJSFrameOrRoot(sample.frames[i]))
+        continue;
+      if (sample.frames[i] != callstack[j])
+        return null;
+      j++;
     }
-    sample.frames = sample.frames.slice(callstack.length - 1);
-    return sample;
+    return makeSample(sample.frames.slice(i - 1), sample.extraInfo);
   });
 }
 
-function filterByCallstackPostfix(samples, callstack) {
-  return samples.map(function filterSample(origSample) {
-    if (!origSample)
+function filterByCallstackPostfix(samples, symbols, functions, callstack, appliesToJS, useFunctions) {
+  var isJSFrameOrRoot = useFunctions ? function isJSFunctionOrRoot(functionIndex) {
+      return (functionIndex in functions) && (functions[functionIndex].isJSFrame || functions[functionIndex].isRoot);
+    } : function isJSSymbolOrRoot(symbolIndex) {
+      return (symbolIndex in symbols) && (symbols[symbolIndex].isJSFrame || symbols[symbolIndex].isRoot);
+    };
+  return samples.map(function filterSample(sample) {
+    if (!sample)
       return null;
-    if (origSample.frames.length < callstack.length)
+    if (sample.frames.length < callstack.length)
       return null;
-    var sample = cloneSample(origSample);
-    for (var i = 0; i < callstack.length; i++) {
-      if (sample.frames[sample.frames.length - i - 1] != callstack[i])
+    for (var i = 0, j = 0; j < callstack.length; i++) {
+      if (i >= sample.frames.length)
         return null;
+      if (appliesToJS && !isJSFrameOrRoot(sample.frames[sample.frames.length - i - 1]))
+        continue;
+      if (sample.frames[sample.frames.length - i - 1] != callstack[j])
+        return null;
+      j++;
     }
-    sample.frames = sample.frames.slice(0, sample.frames.length - callstack.length + 1);
-    return sample;
+    var newFrames = sample.frames.slice(0, sample.frames.length - i + 1);
+    return makeSample(newFrames, sample.extraInfo);
   });
 }
 
 function chargeNonJSToCallers(samples, symbols, functions, useFunctions) {
-  function isJSFrame(index, useFunction) {
-    if (useFunctions) {
-      if (!(index in functions))
-        return "";
-      return functions[index].isJSFrame;
-    }
-    if (!(index in symbols))
-      return "";
-    return symbols[index].isJSFrame;
-  }
+  var isJSFrameOrRoot = useFunctions ? function isJSFunctionOrRoot(functionIndex) {
+      return (functionIndex in functions) && (functions[functionIndex].isJSFrame || functions[functionIndex].isRoot);
+    } : function isJSSymbolOrRoot(symbolIndex) {
+      return (symbolIndex in symbols) && (symbols[symbolIndex].isJSFrame || symbols[symbolIndex].isRoot);
+    };
   samples = samples.slice(0);
   for (var i = 0; i < samples.length; ++i) {
     var sample = samples[i];
     if (!sample)
       continue;
-    var callstack = sample.frames;
-    var newFrames = [];
-    for (var j = 0; j < callstack.length; ++j) {
-      if (isJSFrame(callstack[j], useFunctions)) {
-        // Record Javascript frames
-        newFrames.push(callstack[j]);
-      }
-    }
+    var newFrames = sample.frames.filter(isJSFrameOrRoot);
     if (!newFrames.length) {
       samples[i] = null;
     } else {
-      newFrames.splice(0, 0, "(total)");
       samples[i].frames = newFrames;
     }
   }
@@ -982,26 +985,28 @@ function FocusedFrameSampleFilter(focusedSymbol) {
   this._focusedSymbol = focusedSymbol;
 }
 FocusedFrameSampleFilter.prototype = {
-  filter: function FocusedFrameSampleFilter_filter(samples, symbols, functions) {
+  filter: function FocusedFrameSampleFilter_filter(samples, symbols, functions, useFunctions) {
     return filterBySymbol(samples, this._focusedSymbol);
   }
 };
 
-function FocusedCallstackPrefixSampleFilter(focusedCallstack) {
+function FocusedCallstackPrefixSampleFilter(focusedCallstack, appliesToJS) {
   this._focusedCallstackPrefix = focusedCallstack;
+  this._appliesToJS = appliesToJS;
 }
 FocusedCallstackPrefixSampleFilter.prototype = {
-  filter: function FocusedCallstackPrefixSampleFilter_filter(samples, symbols, functions) {
-    return filterByCallstackPrefix(samples, this._focusedCallstackPrefix);
+  filter: function FocusedCallstackPrefixSampleFilter_filter(samples, symbols, functions, useFunctions) {
+    return filterByCallstackPrefix(samples, symbols, functions, this._focusedCallstackPrefix, this._appliesToJS, useFunctions);
   }
 };
 
-function FocusedCallstackPostfixSampleFilter(focusedCallstack) {
+function FocusedCallstackPostfixSampleFilter(focusedCallstack, appliesToJS) {
   this._focusedCallstackPostfix = focusedCallstack;
+  this._appliesToJS = appliesToJS;
 }
 FocusedCallstackPostfixSampleFilter.prototype = {
-  filter: function FocusedCallstackPostfixSampleFilter_filter(samples, symbols, functions) {
-    return filterByCallstackPostfix(samples, this._focusedCallstackPostfix);
+  filter: function FocusedCallstackPostfixSampleFilter_filter(samples, symbols, functions, useFunctions) {
+    return filterByCallstackPostfix(samples, symbols, functions, this._focusedCallstackPostfix, this._appliesToJS, useFunctions);
   }
 };
 
@@ -1021,9 +1026,9 @@ function unserializeSampleFilters(filters) {
       case "FocusedFrameSampleFilter":
         return new FocusedFrameSampleFilter(filter.focusedSymbol);
       case "FocusedCallstackPrefixSampleFilter":
-        return new FocusedCallstackPrefixSampleFilter(filter.focusedCallstack);
+        return new FocusedCallstackPrefixSampleFilter(filter.focusedCallstack, filter.appliesToJS);
       case "FocusedCallstackPostfixSampleFilter":
-        return new FocusedCallstackPostfixSampleFilter(filter.focusedCallstack);
+        return new FocusedCallstackPostfixSampleFilter(filter.focusedCallstack, filter.appliesToJS);
       case "RangeSampleFilter":
         return new RangeSampleFilter(filter.start, filter.end);
       case "PluginView":
@@ -1045,14 +1050,6 @@ function updateFilters(requestID, profileID, filters) {
   if (filters.mergeFunctions) {
     samples = discardLineLevelInformation(samples, symbols, functions);
   }
-  if (filters.javascriptOnly) {
-    try {
-      //samples = filterByName(samples, symbols, functions, "runScript", filters.mergeFunctions);
-      samples = chargeNonJSToCallers(samples, symbols, functions, filters.mergeFunctions);
-    } catch (e) {
-      dump("Could not filer by javascript: " + e + "\n");
-    }
-  }
   if (filters.nameFilter) {
     try {
       samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
@@ -1062,10 +1059,13 @@ function updateFilters(requestID, profileID, filters) {
   }
   samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
     if (currentFilter===null) return filteredSamples;
-    return currentFilter.filter(filteredSamples, symbols, functions);
+    return currentFilter.filter(filteredSamples, symbols, functions, filters.mergeFunctions);
   }, samples);
   if (filters.jankOnly) {
     samples = filterByJank(samples, gJankThreshold);
+  }
+  if (filters.javascriptOnly) {
+    samples = chargeNonJSToCallers(samples, symbols, functions, filters.mergeFunctions);
   }
 
   gProfiles[profileID].filterSettings = filters;
@@ -1440,6 +1440,8 @@ function findGCSlice(frames, symbols, meta, step) {
 }
 function stepContains(substring, frames, symbols) {
   for (var i = 0; frames && i < frames.length; i++) {
+    if (!(frames[i] in symbols))
+      continue;
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     if (frameSym.indexOf(substring) != -1) {
       return true;
@@ -1449,6 +1451,8 @@ function stepContains(substring, frames, symbols) {
 }
 function stepContainsRegEx(regex, frames, symbols) {
   for (var i = 0; frames && i < frames.length; i++) {
+    if (!(frames[i] in symbols))
+      continue;
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     if (regex.exec(frameSym)) {
       return true;
@@ -1459,6 +1463,8 @@ function stepContainsRegEx(regex, frames, symbols) {
 function symbolSequence(symbolsOrder, frames, symbols) {
   var symbolIndex = 0;
   for (var i = 0; frames && i < frames.length; i++) {
+    if (!(frames[i] in symbols))
+      continue;
     var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     var substring = symbolsOrder[symbolIndex];
     if (frameSym.indexOf(substring) != -1) {
