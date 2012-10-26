@@ -1722,14 +1722,14 @@ function filtersChanged() {
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
 
+  viewOptionsChanged();
+
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
     start = Date.now();
     gDiagnosticBar.display(diagnosticItems);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
   });
-
-  viewOptionsChanged();
 }
 
 function viewOptionsChanged() {
