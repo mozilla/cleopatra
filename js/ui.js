@@ -1170,18 +1170,18 @@ InfoBar.prototype = {
     infoText += "  <dt>Max Responsiveness:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Real Interval:</dt><dd>" + effectiveInterval() + "</dd>";
     infoText += "</dl>\n";
-    infoText += "<h2>Pre Filtering</h2>\n";
     // Disable for now since it's buggy and not useful
+    //infoText += "<h2>Pre Filtering</h2>\n";
     //infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
 
+    infoText += "<h2>Filtering</h2>\n";
     var filterNameInputOld = document.getElementById("filterName");
-    infoText += "<label>Filter:\n";
-    infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></label>\n";
-
-    infoText += "<h2>Post Filtering</h2>\n";
-    infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label>\n";
-    infoText += "<h2>View Options</h2>\n";
+    infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Jank only</label><br>\n";
     infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
+    infoText += "<label>Filter:\n";
+    infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></label><br>\n";
+
+    infoText += "<h2>View Options</h2>\n";
     infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
