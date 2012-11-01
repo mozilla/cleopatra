@@ -182,11 +182,17 @@ ProfileTreeManager.prototype = {
   dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();
   },
-  saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot(isJavascriptOnly) {
+  saveSelectionSnapshot: function ProfileTreeManager_saveSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getSelectionSnapshot(isJavascriptOnly);
   },
-  saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot(isJavascriptOnly) {
+  saveReverseSelectionSnapshot: function ProfileTreeManager_saveReverseSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getReverseSelectionSnapshot(isJavascriptOnly);
+  },
+  serializeCurrentSelectionSnapshot: function ProfileTreeManager_serializeCurrentSelectionSnapshot() {
+    return JSON.stringify(this.treeView.getSelectionSnapshot());
+  },
+  restoreSerializedSelectionSnapshot: function ProfileTreeManager_restoreSerializedSelectionSnapshot(selection) {
+    this._savedSnapshot = JSON.parse(selection);
   },
   _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot, allowNonContigous) {
     return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
@@ -251,8 +257,9 @@ ProfileTreeManager.prototype = {
   display: function ProfileTreeManager_display(tree, symbols, functions, resources, useFunctions, filterByName) {
     this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), resources, filterByName);
     if (this._savedSnapshot) {
+      var old = this._savedSnapshot.clone();
       this._restoreSelectionSnapshot(this._savedSnapshot, this._allowNonContigous);
-      this._savedSnapshot = null;
+      this._savedSnapshot = old;
       this._allowNonContigous = false;
     }
   },
@@ -478,7 +485,6 @@ HistogramView.prototype = {
   },
   display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
-    PROFILERTRACE("FRAME START: " + frameStart + "\n");
     this._frameStart = frameStart;
     this._widthSum = widthSum;
     this._widthMultiplier = this._calculateWidthMultiplier();
@@ -844,13 +850,17 @@ BreadcrumbTrail.prototype = {
     if (this._breadcrumbs.length-2 >= 0)
       this._enter(this._breadcrumbs.length-2);
   },
-  enterLastItem: function BreadcrumbTrail_enterLastItem() {
-    this._enter(this._breadcrumbs.length-1);
+  enterLastItem: function BreadcrumbTrail_enterLastItem(forceSelection) {
+    this._enter(this._breadcrumbs.length-1, forceSelection);
   },
-  _enter: function BreadcrumbTrail__select(index) {
+  _enter: function BreadcrumbTrail__select(index, forceSelection) {
     if (index == this._selectedBreadcrumbIndex)
       return;
-    gTreeManager.saveSelectionSnapshot();
+    if (forceSelection) {
+      gTreeManager.restoreSerializedSelectionSnapshot(forceSelection);
+    } else {
+      gTreeManager.saveSelectionSnapshot();
+    }
     var prevSelected = this._breadcrumbs[this._selectedBreadcrumbIndex];
     if (prevSelected)
       prevSelected.classList.remove("selected");
@@ -1249,6 +1259,7 @@ var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 var gAppendVideoCapture = null;
 var gQueryParamFilterName = null;
+var gRestoreSelection = null;
 
 function getTextData() {
   var data = [];
@@ -1704,21 +1715,26 @@ function enterFinishedProfileUI() {
   });
   for (var i = 0; i < currentBreadcrumb.length; i++) {
     var filter = currentBreadcrumb[i];
+    var forceSelection = null;
+    if (gRestoreSelection && i == currentBreadcrumb.length - 1) {
+      forceSelection = gRestoreSelection;
+    }
     switch (filter.type) {
       case "FocusedFrameSampleFilter":
         focusOnSymbol(filter.name, filter.symbolName);
-        gBreadcrumbTrail.enterLastItem();
+        gBreadcrumbTrail.enterLastItem(forceSelection);
       case "FocusedCallstackPrefixSampleFilter":
         focusOnCallstack(filter.focusedCallstack, filter.name, false);
-        gBreadcrumbTrail.enterLastItem();
+        gBreadcrumbTrail.enterLastItem(forceSelection);
       case "FocusedCallstackPostfixSampleFilter":
         focusOnCallstack(filter.focusedCallstack, filter.name, true);
-        gBreadcrumbTrail.enterLastItem();
+        gBreadcrumbTrail.enterLastItem(forceSelection);
       case "RangeSampleFilter":
         gHistogramView.selectRange(filter.start, filter.end);
-        gBreadcrumbTrail.enterLastItem();
+        gBreadcrumbTrail.enterLastItem(forceSelection);
     }
   }
+
 }
 
 function filtersChanged() {
@@ -1810,6 +1826,10 @@ function loadQueryData(queryData) {
     var filterChain = JSON.parse(queryData.filter);
     gSampleFilters = filterChain;
   }
+  if (queryData.selection) {
+    var selection = queryData.selection;
+    gRestoreSelection = selection;
+  }
 
   if (isFiltersChanged) {
     //filtersChanged();
@@ -1865,6 +1885,10 @@ function getDocumentHashString() {
       query += "&";
     query += "filter=" + queryEscape(JSON.stringify(gSampleFilters));
   }
+  if (query != "")
+    query += "&";
+  query += "selection=" + queryEscape(gTreeManager.serializeCurrentSelectionSnapshot());
+
   return query;
 }
 
