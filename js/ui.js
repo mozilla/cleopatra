@@ -1065,7 +1065,8 @@ function uploadProfile(selected) {
       if (oXHR.status == 200) {  
         gReportID = oXHR.responseText;
         updateDocumentURL();
-        document.getElementById("upload_status").innerHTML = "Success! Use this <a href='" + document.URL.split('?')[0] + "?report=" + oXHR.responseText + "'>link</a>";
+        document.getElementById("upload_status").innerHTML = "Success! Use this <a id='linkElem'>link</a>";
+        document.getElementById("linkElem").href = document.URL;
       } else {  
         document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
       }  
