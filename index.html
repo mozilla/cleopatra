@@ -32,7 +32,13 @@
   <body>
     <script>
       enterMainUI();
-      var queryData = new QueryData();
+
+      var queryData;
+      if (location.hash) {
+        queryData = new QueryData(location.hash.substring(1));
+      } else {
+        queryData = new QueryData();
+      }
 
       if (queryData.videoCapture) {
         appendVideoCapture(queryData.videoCapture);
@@ -63,6 +69,7 @@
         // Fetch a compressed eideticker profile
         loadZippedProfileURL(queryData.zippedProfile);
       }
+      loadQueryData(queryData);
     </script>
   </body>
 </html>

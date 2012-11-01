@@ -1204,6 +1204,8 @@ InfoBar.prototype = {
     if (filterNameInputOld != null && filterNameInputNew != null) {
       filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
       //filterNameInputNew.value = filterNameInputOld.value;
+    } else if (gQueryParamFilterName != null) {
+      filterNameInputNew.value = gQueryParamFilterName;
     }
     document.getElementById('upload').onclick = function() {
       promptUploadProfile(false);
@@ -1238,6 +1240,7 @@ var gMainArea = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 var gAppendVideoCapture = null;
+var gQueryParamFilterName = null;
 
 function getTextData() {
   var data = [];
@@ -1688,13 +1691,14 @@ function enterFinishedProfileUI() {
 }
 
 function filtersChanged() {
+  getDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
 
   gHistogramView.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
   var updateRequest = Parser.updateFilters({
     mergeFunctions: gMergeFunctions,
-    nameFilter: (filterNameInput && filterNameInput.value) || "",
+    nameFilter: (filterNameInput && filterNameInput.value) || gQueryParamFilterName || "",
     sampleFilters: gSampleFilters,
     jankOnly: gJankOnly,
     javascriptOnly: gJavascriptOnly
@@ -1745,3 +1749,82 @@ function viewOptionsChanged() {
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
   });
 }
+
+function loadQueryData(queryData) {
+  var isFiltersChanged = false;
+  if (queryData.filter) {
+    gQueryParamFilterName = queryData.filter;
+    isFiltersChanged = true;
+  }
+  if (queryData.jankOnly) {
+    gJankOnly = queryData.jankOnly;
+    isFiltersChanged = true;
+  }
+  if (queryData.javascriptOnly) {
+    gJavascriptOnly = queryData.javascriptOnly;
+    isFiltersChanged = true;
+  }
+  if (queryData.mergeUnbranched) {
+    gMergeUnbranched = queryData.mergeUnbranched;
+    isFiltersChanged = true;
+  }
+  if (queryData.invertCallback) {
+    gInvertCallstack = queryData.invertCallback;
+    isFiltersChanged = true;
+  }
+  if (queryData.report) {
+    gReportID = queryData.report;
+  }
+
+  if (isFiltersChanged) {
+    //filtersChanged();
+  }
+}
+
+function queryEscape(str) {
+  // TODO implement me
+  return str;
+}
+
+function getDocumentURL() {
+  location.hash = getDocumentHashString();
+  return document.location;
+}
+
+function getDocumentHashString() {
+  var query = "";
+  if (gReportID) {
+    if (query != "")
+      query += "&";
+    query += "report=" + queryEscape(gReportID);
+  }
+  if (document.getElementById("filterName") != null &&
+      document.getElementById("filterName").value != null &&
+      document.getElementById("filterName").value != "") {
+    if (query != "")
+      query += "&";
+    query += "filter=" + queryEscape(document.getElementById("filterName").value);
+  }
+  if (gJankOnly) {
+    if (query != "")
+      query += "&";
+    query += "jankOnly=" + queryEscape(gJankOnly);
+  }
+  if (gJavascriptOnly) {
+    if (query != "")
+      query += "&";
+    query += "javascriptOnly=" + queryEscape(gJavascriptOnly);
+  }
+  if (gMergeUnbranched) {
+    if (query != "")
+      query += "&";
+    query += "mergeUnbranched=" + queryEscape(gMergeUnbranched);
+  }
+  if (gInvertCallstack) {
+    if (query != "")
+      query += "&";
+    query += "invertCallback=" + queryEscape(gInvertCallstack);
+  }
+  return query;
+}
+
