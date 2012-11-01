@@ -1265,6 +1265,7 @@ var gSkipSymbols = ["test2", "test1"];
 var gAppendVideoCapture = null;
 var gQueryParamFilterName = null;
 var gRestoreSelection = null;
+var gReportID = null;
 
 function getTextData() {
   var data = [];
