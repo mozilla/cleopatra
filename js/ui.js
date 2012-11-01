@@ -433,6 +433,9 @@ HistogramView.prototype = {
   getContainer: function HistogramView_getContainer() {
     return this._container;
   },
+  selectRange: function HistogramView_selectRange(start, end) {
+    this._rangeSelector._finishSelection(start, end);
+  },
   showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
     if (!this._frameStart || !this._frameStart[frame])
       return;
@@ -764,6 +767,7 @@ function videoPaneTimeChange(video) {
 
 
 window.onpopstate = function(ev) {
+  return; // Conflicts with document url
   if (!gBreadcrumbTrail)
     return;
   console.log("pop: " + JSON.stringify(ev.state));
@@ -839,6 +843,9 @@ BreadcrumbTrail.prototype = {
   pop : function BreadcrumbTrail_pop() {
     if (this._breadcrumbs.length-2 >= 0)
       this._enter(this._breadcrumbs.length-2);
+  },
+  enterLastItem: function BreadcrumbTrail_enterLastItem() {
+    this._enter(this._breadcrumbs.length-1);
   },
   _enter: function BreadcrumbTrail__select(index) {
     if (index == this._selectedBreadcrumbIndex)
@@ -1480,7 +1487,7 @@ function toggleJavascriptOnly() {
 
 var gSampleFilters = [];
 function focusOnSymbol(focusSymbol, name) {
-  var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", focusedSymbol: focusSymbol}]);
+  var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", name: name, focusedSymbol: focusSymbol}]);
   gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
@@ -1490,9 +1497,14 @@ function focusOnSymbol(focusSymbol, name) {
   });
 }
 
-function focusOnCallstack(focusedCallstack, name) {
+function focusOnCallstack(focusedCallstack, name, overwriteCallstack) {
+  var invertCallback =  gInvertCallstack;
+  if (overwriteCallstack != null) {
+    invertCallstack = overwriteCallstack;
+  }
   var filter = {
-    type: gInvertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    type: invertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    name: name,
     focusedCallstack: focusedCallstack,
     appliesToJS: gJavascriptOnly
   };
@@ -1682,6 +1694,7 @@ function enterFinishedProfileUI() {
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
 
+  var currentBreadcrumb = gSampleFilters;
   gBreadcrumbTrail.add({
     title: "Complete Profile",
     enterCallback: function () {
@@ -1689,6 +1702,23 @@ function enterFinishedProfileUI() {
       filtersChanged();
     }
   });
+  for (var i = 0; i < currentBreadcrumb.length; i++) {
+    var filter = currentBreadcrumb[i];
+    switch (filter.type) {
+      case "FocusedFrameSampleFilter":
+        focusOnSymbol(filter.name, filter.symbolName);
+        gBreadcrumbTrail.enterLastItem();
+      case "FocusedCallstackPrefixSampleFilter":
+        focusOnCallstack(filter.focusedCallstack, filter.name, false);
+        gBreadcrumbTrail.enterLastItem();
+      case "FocusedCallstackPostfixSampleFilter":
+        focusOnCallstack(filter.focusedCallstack, filter.name, true);
+        gBreadcrumbTrail.enterLastItem();
+      case "RangeSampleFilter":
+        gHistogramView.selectRange(filter.start, filter.end);
+        gBreadcrumbTrail.enterLastItem();
+    }
+  }
 }
 
 function filtersChanged() {
@@ -1753,8 +1783,8 @@ function viewOptionsChanged() {
 
 function loadQueryData(queryData) {
   var isFiltersChanged = false;
-  if (queryData.filter) {
-    gQueryParamFilterName = queryData.filter;
+  if (queryData.search) {
+    gQueryParamFilterName = queryData.search;
     isFiltersChanged = true;
   }
   if (queryData.jankOnly) {
@@ -1776,6 +1806,10 @@ function loadQueryData(queryData) {
   if (queryData.report) {
     gReportID = queryData.report;
   }
+  if (queryData.filter) {
+    var filterChain = JSON.parse(queryData.filter);
+    gSampleFilters = filterChain;
+  }
 
   if (isFiltersChanged) {
     //filtersChanged();
@@ -1784,7 +1818,7 @@ function loadQueryData(queryData) {
 
 function queryEscape(str) {
   // TODO implement me
-  return str;
+  return encodeURIComponent(str);
 }
 
 function getDocumentURL() {
@@ -1804,7 +1838,7 @@ function getDocumentHashString() {
       document.getElementById("filterName").value != "") {
     if (query != "")
       query += "&";
-    query += "filter=" + queryEscape(document.getElementById("filterName").value);
+    query += "search=" + queryEscape(document.getElementById("filterName").value);
   }
   if (gJankOnly) {
     if (query != "")
@@ -1825,6 +1859,11 @@ function getDocumentHashString() {
     if (query != "")
       query += "&";
     query += "invertCallback=" + queryEscape(gInvertCallstack);
+  }
+  if (gSampleFilters && gSampleFilters.length != 0) {
+    if (query != "")
+      query += "&";
+    query += "filter=" + queryEscape(JSON.stringify(gSampleFilters));
   }
   return query;
 }
