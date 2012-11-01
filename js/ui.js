@@ -1206,6 +1206,7 @@ InfoBar.prototype = {
       //filterNameInputNew.value = filterNameInputOld.value;
     } else if (gQueryParamFilterName != null) {
       filterNameInputNew.value = gQueryParamFilterName;
+      gQueryParamFilterName = null;
     }
     document.getElementById('upload').onclick = function() {
       promptUploadProfile(false);
