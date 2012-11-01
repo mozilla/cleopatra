@@ -1897,6 +1897,9 @@ function getDocumentHashString() {
       query += "&";
     query += "selection=" + queryEscape(gTreeManager.serializeCurrentSelectionSnapshot());
   }
+  if (!gReportID) {
+    query = "uploadProfileFirst!";
+  }
 
   return query;
 }
