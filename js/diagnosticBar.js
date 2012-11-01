@@ -15,8 +15,7 @@ DiagnosticBar.prototype = {
     var self = this;
     x = x * 100;
     width = width * 100;
-    if (width < 1)
-      return false;
+
     var diagnosticGradient = document.createElement("a");
     if (this._colorCode % 2 == 0) {
       diagnosticGradient.className = "diagnosticItemEven";
