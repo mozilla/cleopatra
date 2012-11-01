@@ -188,6 +188,9 @@ ProfileTreeManager.prototype = {
   saveReverseSelectionSnapshot: function ProfileTreeManager_saveReverseSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getReverseSelectionSnapshot(isJavascriptOnly);
   },
+  hasNonTrivialSelection: function ProfileTreeManager_hasNonTrivialSelection() {
+    return this.treeView.getSelectionSnapshot().length > 1;
+  },
   serializeCurrentSelectionSnapshot: function ProfileTreeManager_serializeCurrentSelectionSnapshot() {
     return JSON.stringify(this.treeView.getSelectionSnapshot());
   },
@@ -1060,6 +1063,8 @@ function uploadProfile(selected) {
     oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.onload = function (oEvent) {
       if (oXHR.status == 200) {  
+        gReportID = oXHR.responseText;
+        updateDocumentURL();
         document.getElementById("upload_status").innerHTML = "Success! Use this <a href='" + document.URL.split('?')[0] + "?report=" + oXHR.responseText + "'>link</a>";
       } else {  
         document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
@@ -1738,7 +1743,7 @@ function enterFinishedProfileUI() {
 }
 
 function filtersChanged() {
-  getDocumentURL();
+  updateDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
 
   gHistogramView.dataIsOutdated();
@@ -1841,7 +1846,7 @@ function queryEscape(str) {
   return encodeURIComponent(str);
 }
 
-function getDocumentURL() {
+function updateDocumentURL() {
   location.hash = getDocumentHashString();
   return document.location;
 }
@@ -1885,9 +1890,11 @@ function getDocumentHashString() {
       query += "&";
     query += "filter=" + queryEscape(JSON.stringify(gSampleFilters));
   }
-  if (query != "")
-    query += "&";
-  query += "selection=" + queryEscape(gTreeManager.serializeCurrentSelectionSnapshot());
+  if (gTreeManager.hasNonTrivialSelection()) {
+    if (query != "")
+      query += "&";
+    query += "selection=" + queryEscape(gTreeManager.serializeCurrentSelectionSnapshot());
+  }
 
   return query;
 }

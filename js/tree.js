@@ -570,6 +570,7 @@ TreeView.prototype = {
       this._scrollIntoView(functionName, 400);
       this._fireEvent("select", li.data);
     }
+    updateDocumentURL();
   },
   _isCollapsed: function TreeView__isCollapsed(div) {
     return div.classList.contains("collapsed");
