@@ -1720,10 +1720,14 @@ function enterFinishedProfileUI() {
       filtersChanged();
     }
   });
+  if (currentBreadcrumb == null || currentBreadcrumb.length == 0) {
+    gTreeManager.restoreSerializedSelectionSnapshot(gRestoreSelection);
+    viewOptionsChanged();
+  }
   for (var i = 0; i < currentBreadcrumb.length; i++) {
     var filter = currentBreadcrumb[i];
     var forceSelection = null;
-    if (gRestoreSelection && i == currentBreadcrumb.length - 1) {
+    if (gRestoreSelection != null && i == currentBreadcrumb.length - 1) {
       forceSelection = gRestoreSelection;
     }
     switch (filter.type) {
@@ -1806,6 +1810,11 @@ function viewOptionsChanged() {
 
 function loadQueryData(queryData) {
   var isFiltersChanged = false;
+  var queryDataOriginal = queryData;
+  var queryData = {};
+  for (var i in queryDataOriginal) {
+    queryData[i] = unQueryEscape(queryDataOriginal[i]);
+  }
   if (queryData.search) {
     gQueryParamFilterName = queryData.search;
     isFiltersChanged = true;
@@ -1843,9 +1852,12 @@ function loadQueryData(queryData) {
   }
 }
 
+function unQueryEscape(str) {
+  return decodeURIComponent(str);
+}
+
 function queryEscape(str) {
-  // TODO implement me
-  return encodeURIComponent(str);
+  return encodeURIComponent(encodeURIComponent(str));
 }
 
 function updateDocumentURL() {
