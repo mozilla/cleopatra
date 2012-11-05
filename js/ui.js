@@ -1521,7 +1521,7 @@ function focusOnCallstack(focusedCallstack, name, overwriteCallstack) {
     invertCallstack = overwriteCallstack;
   }
   var filter = {
-    type: invertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    type: !invertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
     name: name,
     focusedCallstack: focusedCallstack,
     appliesToJS: gJavascriptOnly
