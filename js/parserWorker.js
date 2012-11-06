@@ -1220,6 +1220,16 @@ var diagnosticList = [
     },
   },
   {
+    image: "snapshot.png",
+    title: "Bug 720575 - Make thumbnailing faster and/or asynchronous",
+    bugNumber: "720575",
+    check: function(frames, symbols, meta) {
+      return stepContains('Thumbnails_capture()', frames, symbols)
+          ;
+    },
+  },
+
+  {
     image: "js.png",
     title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
     bugNumber: "789185",
