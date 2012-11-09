@@ -1372,7 +1372,7 @@ function loadProfileURL(url) {
   xhr.open("GET", url, true);
   xhr.responseType = "text";
   xhr.onreadystatechange = function (e) {
-    if (xhr.readyState === 4 && xhr.status === 200) {
+    if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
       subreporters.fileLoading.finish();
       PROFILERLOG("Got profile from '" + url + "'.");
       loadRawProfile(subreporters.parsing, xhr.responseText, url);
