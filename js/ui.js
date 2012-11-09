@@ -1251,6 +1251,7 @@ var gSymbols = {};
 var gFunctions = {};
 var gResources = {};
 var gHighlightedCallstack = [];
+var gFrameView = null;
 var gTreeManager = null;
 var gSampleBar = null;
 var gBreadcrumbTrail = null;
@@ -1663,6 +1664,13 @@ function enterFinishedProfileUI() {
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gHistogramView.getContainer());
 
+  if (gLocation.indexOf("file:") == 0) {
+    // Local testing for frameView
+    gFrameView = new FrameView();
+    currRow = finishedProfilePane.insertRow(rowIndex++);
+    currRow.insertCell(0).appendChild(gFrameView.getContainer());
+  }
+
   gDiagnosticBar = new DiagnosticBar();
   gDiagnosticBar.setDetailsListener(function(details) {
     if (details.indexOf("bug ") == 0) {
@@ -1781,6 +1789,7 @@ function filtersChanged() {
   histogramRequest.addEventListener("finished", function (data) {
     start = Date.now();
     gHistogramView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+    gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
 
