@@ -7,7 +7,10 @@ function FrameView() {
   this._container.appendChild(this._busyCover);
 
   this._svg = this._createSvg();
-  this._container.appendChild(this._svg);
+  this.display();
+  document.body.innerHTML ="";
+  document.body.appendChild(this._svg);
+  document.blah = sdf;
 }
 
 FrameView.prototype = {
@@ -15,12 +18,8 @@ FrameView.prototype = {
     return this._container;
   },
   _createSvg: function SourceView__createSvg() {
-    var svg = document.createElement("svg");
-    svg.setAttribute("width", 300);
-    svg.setAttribute("height", 100);
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("version", "2.0");
-    svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    svg.setAttribute("view-box", "0 0 300 100");
     return svg;
   },
   dataIsOutdated: function HistogramView_dataIsOutdated() {
@@ -35,7 +34,7 @@ FrameView.prototype = {
       var time = end - start;
       path += (i * 10) + "," + (50 - time) + " "; 
     }
-    var pathElem = document.createElement("path");
+    var pathElem = document.createElementNS("http://www.w3.org/2000/svg", "path");
     pathElem.setAttribute("d", path);
     pathElem.setAttribute("stroke", "black");
     pathElem.setAttribute("stroke-width", "5");

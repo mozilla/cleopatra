@@ -1664,7 +1664,7 @@ function enterFinishedProfileUI() {
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gHistogramView.getContainer());
 
-  if (gLocation.indexOf("file:") == 0) {
+  if (false && gLocation.indexOf("file:") == 0) {
     // Local testing for frameView
     gFrameView = new FrameView();
     currRow = finishedProfilePane.insertRow(rowIndex++);
