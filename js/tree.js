@@ -22,7 +22,7 @@ var requestAnimationFrame = window.webkitRequestAnimationFrame ||
                             window.oRequestAnimationFrame ||
                             window.msRequestAnimationFrame ||
                             function(callback, element) {
-                              window.setTimeout(callback, 1000 / 60);
+                              requestAnimationFrame_timeout = window.setTimeout(callback, 1000 / 60);
                             };
 
 var cancelAnimationFrame = window.webkitCancelAnimationFrame ||
