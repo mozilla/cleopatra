@@ -532,29 +532,33 @@ HistogramView.prototype = {
   _isStepSelected: function HistogramView__isStepSelected(step, highlightedCallstack) {
     if ("marker" in step)
       return false;
-    return step.frames.some(function isCallstackSelected(frames) {
+
+    search_frames: for (var i = 0; i < step.frames.length; i++) {
+      var frames = step.frames[i];
+
       if (frames.length < highlightedCallstack.length ||
           highlightedCallstack.length <= (gInvertCallstack ? 0 : 1))
-        return false;
+        continue;
 
       var compareFrames = frames;
       if (gInvertCallstack) {
         for (var j = 0; j < highlightedCallstack.length; j++) {
           var compareFrameIndex = compareFrames.length - 1 - j;
           if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
-            return false;
+            continue search_frames;
           }
         }
       } else {
         for (var j = 0; j < highlightedCallstack.length; j++) {
           var compareFrameIndex = j;
           if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
-            return false;
+            continue search_frames;
           }
         }
       }
       return true;
-    });
+    };
+    return false;
   },
   getHistogramData: function HistogramView__getHistogramData() {
     return this._histogramData;
