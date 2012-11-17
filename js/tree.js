@@ -522,6 +522,19 @@ TreeView.prototype = {
       return this._getNextSib(div.treeParent);
     return div.treeParent.treeChildren[nodeIndex+1];
   },
+  _scheduleScrollIntoView: function TreeView__scheduleScrollIntoView(element, maxImportantWidth) {
+    // Schedule this on the animation frame otherwise we may run this more then once per frames
+    // causing more work then needed.
+    var self = this;
+    if (self._pendingAnimationFrame != null) {
+      return;
+    }
+    self._pendingAnimationFrame = requestAnimationFrame(function anim_frame() {
+      cancelAnimationFrame(self._pendingAnimationFrame);
+      self._pendingAnimationFrame = null;
+      self._scrollIntoView(element, maxImportantWidth);
+    });
+  },
   _scrollIntoView: function TreeView__scrollIntoView(element, maxImportantWidth) {
     // Make sure that element is inside the visible part of our scrollbox by
     // adjusting the scroll positions. If element is wider or
@@ -563,7 +576,7 @@ TreeView.prototype = {
       li.treeLine.classList.add("selected");
       this._selectedNode = li;
       var functionName = li.treeLine.querySelector(".functionName");
-      this._scrollIntoView(functionName, 400);
+      this._scheduleScrollIntoView(functionName, 400);
       this._fireEvent("select", li.data);
     }
     updateDocumentURL();

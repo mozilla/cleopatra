@@ -495,6 +495,17 @@ HistogramView.prototype = {
     this._render(highlightedCallstack);
     this._busyCover.classList.remove("busy");
   },
+  _scheduleRender: function HistogramView__scheduleRender(highlightedCallstack) {
+    var self = this;
+    if (self._pendingAnimationFrame != null) {
+      return;
+    }
+    self._pendingAnimationFrame = requestAnimationFrame(function anim_frame() {
+      cancelAnimationFrame(self._pendingAnimationFrame);
+      self._pendingAnimationFrame = null;
+      self._render(highlightedCallstack);
+    });
+  },
   _render: function HistogramView__render(highlightedCallstack) {
     var ctx = this._canvas.getContext("2d");
     var height = this._canvas.height;
@@ -524,7 +535,7 @@ HistogramView.prototype = {
     this._finishedRendering = true;
   },
   highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
-    this._render(highlightedCallstack);
+    this._scheduleRender(highlightedCallstack);
   },
   _isInRangeSelector: function HistogramView_isInRangeSelector(index) {
     return false;
