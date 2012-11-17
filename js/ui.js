@@ -1060,7 +1060,6 @@ function promptUploadProfile(selected) {
 function uploadProfile(selected) {
   Parser.getSerializedProfile(!selected, function (dataToUpload) {
     var oXHR = new XMLHttpRequest();
-    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.onload = function (oEvent) {
       if (oXHR.status == 200) {  
         gReportID = oXHR.responseText;
@@ -1074,11 +1073,16 @@ function uploadProfile(selected) {
     oXHR.onerror = function (oEvent) {
       document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
     }
-    oXHR.onprogress = function (oEvent) {
+    oXHR.upload.onprogress = function(oEvent) {
       if (oEvent.lengthComputable) {
-        document.getElementById("upload_status").innerHTML = "Uploading: " + ((oEvent.loaded / oEvent.total)*100) + "%";
+        var progress = Math.round((oEvent.loaded / oEvent.total)*100);
+        if (progress == 100) {
+          document.getElementById("upload_status").innerHTML = "Uploading: Waiting for server side compression";
+        } else {
+          document.getElementById("upload_status").innerHTML = "Uploading: " + Math.round((oEvent.loaded / oEvent.total)*100) + "%";
+        }
       }
-    }
+    };
 
     var dataSize;
     if (dataToUpload.length > 1024*1024) {
@@ -1090,6 +1094,7 @@ function uploadProfile(selected) {
     var formData = new FormData();
     formData.append("file", dataToUpload);
     document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
+    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.send(formData);
   });
 }
