@@ -16,24 +16,20 @@ RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
-var requestAnimationFrame_timeout = null;
 var requestAnimationFrame = window.webkitRequestAnimationFrame ||
                             window.mozRequestAnimationFrame ||
                             window.oRequestAnimationFrame ||
                             window.msRequestAnimationFrame ||
                             function(callback, element) {
-                              requestAnimationFrame_timeout = window.setTimeout(callback, 1000 / 60);
+                              return window.setTimeout(callback, 1000 / 60);
                             };
 
 var cancelAnimationFrame = window.webkitCancelAnimationFrame ||
                            window.mozCancelAnimationFrame ||
                            window.oCancelAnimationFrame ||
                            window.msCancelAnimationFrame ||
-                           function(callback, element) {
-                             if (requestAnimationFrame_timeout) {
-                               window.clearTimeout(requestAnimationFrame_timeout);
-                               requestAnimationFrame_timeout = null;
-                             }
+                           function(req) {
+                             window.clearTimeout(req);
                            };
 
 function TreeView() {
