@@ -928,6 +928,25 @@ function effectiveInterval() {
   return (effectiveInterval).toFixed(2) + " ms ±" + biggestDiff.toFixed(2);
 }
 
+function duration() {
+  var data = gCurrentlyShownSampleData;
+  var startTime = null;
+  var endTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["time"])
+      continue;
+    startTime = data[i].extraInfo["time"];
+    break;
+  }
+  for (i = data.length - 1; i >= 0; --i) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["time"])
+      continue;
+    endTime = data[i].extraInfo["time"];
+    break;
+  }
+  return endTime - startTime;
+}
+
 function numberOfCurrentlyShownSamples() {
   var data = gCurrentlyShownSampleData;
   var num = 0;
@@ -1166,6 +1185,7 @@ InfoBar.prototype = {
       infoText += "<dt>Interval:</dt><dd>" + gMeta.interval + " ms</dd></dl>";
     }
     infoText += "<h2>Selection Info</h2>\n<dl>\n";
+    infoText += "  <dt>Duration:</dt><dd>" + duration().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Avg. Responsiveness:</dt><dd>" + avgResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Max Responsiveness:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Real Interval:</dt><dd>" + effectiveInterval() + "</dd>";
