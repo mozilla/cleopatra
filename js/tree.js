@@ -145,8 +145,8 @@ TreeView.prototype = {
         snapshot.push(curr.name);
         //dump(JSON.stringify(curr.name) + "\n");
       }
-      if (curr.children && curr.children.length >= 1) {
-        curr = curr.children[0].getData();
+      if (curr.treeChildren && curr.treeChildren.length >= 1) {
+        curr = curr.treeChildren[0].getData();
       } else {
         break;
       }
@@ -198,10 +198,10 @@ TreeView.prototype = {
         while (pendingSearch.length > 0) {
           var node = pendingSearch.shift();
           //console.log("searching: " + node.name + " for: " + snapshot[0] + "\n");
-          if (!node.children)
+          if (!node.treeChildren)
             continue;
-          for (var i = 0; i < node.children.length; i++) {
-            var childNode = node.children[i].getData();
+          for (var i = 0; i < node.treeChildren.length; i++) {
+            var childNode = node.treeChildren[i].getData();
             if (childNode.name == snapshot[0]) {
               //dump("found: " + childNode.name + "\n");
               snapshot.shift();
@@ -338,10 +338,15 @@ TreeView.prototype = {
     var treeLine = document.createElement("div");
     treeLine.className = "treeLine";
     treeLine.innerHTML = this._HTMLForFunction(data);
+    div.depth = parentNode ? parentNode.depth + 1 : 0;
+    div.style.marginLeft = div.depth + "em";
     // When this item is toggled we will expand its children
     div.pendingExpand = [];
     div.treeLine = treeLine;
     div.data = data;
+    // Useful for debugging
+    //this.uniqueID = this.uniqueID || 0;
+    //div.id = "Node" + this.uniqueID++;
     div.appendChild(treeLine);
     div.treeChildren = [];
     div.treeParent = parentNode;
@@ -349,14 +354,24 @@ TreeView.prototype = {
       var parent = document.createElement("div");
       parent.className = "treeViewNodeList";
       for (var i = 0; i < data.children.length; ++i) {
-        div.pendingExpand.push({parentElement: parent, parentNode: div, data: data.children[i].getData() });
+        div.pendingExpand.push({parentElement: this._horizontalScrollbox, parentNode: div, data: data.children[i].getData() });
       }
       div.appendChild(parent);
     }
     if (parentNode) {
       parentNode.treeChildren.push(div);
     }
-    parentElement.appendChild(div);
+    if (parentNode != null) {
+      var nextTo;
+      if (parentNode.treeChildren.length > 1) {
+        nextTo = parentNode.treeChildren[parentNode.treeChildren.length-2].nextSibling;
+      } else {
+        nextTo = parentNode.nextSibling;
+      }
+      parentElement.insertBefore(div, nextTo);
+    } else {
+      parentElement.appendChild(div);
+    }
     return div;
   },
   _addResourceIconStyles: function TreeView__addResourceIconStyles() {
