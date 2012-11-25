@@ -351,12 +351,9 @@ TreeView.prototype = {
     div.treeChildren = [];
     div.treeParent = parentNode;
     if (hasChildren) {
-      var parent = document.createElement("div");
-      parent.className = "treeViewNodeList";
       for (var i = 0; i < data.children.length; ++i) {
         div.pendingExpand.push({parentElement: this._horizontalScrollbox, parentNode: div, data: data.children[i].getData() });
       }
-      div.appendChild(parent);
     }
     if (parentNode) {
       parentNode.treeChildren.push(div);
