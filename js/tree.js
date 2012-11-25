@@ -468,15 +468,26 @@ TreeView.prototype = {
       this._schedulePendingActionProcessing();
     }
   },
+  _showChild: function TreeView__showChild(div, isVisible) {
+    for (var i = 0; i < div.treeChildren.length; i++) {
+      div.treeChildren[i].style.display = isVisible?"":"none";
+      if (!isVisible) {
+        div.treeChildren[i].classList.add("collapsed");
+        this._showChild(div.treeChildren[i], isVisible);
+      }
+    }
+  },
   _toggle: function TreeView__toggle(div, /* optional */ newCollapsedValue, /* optional */ suppressScrollHeightNotification) {
     var currentCollapsedValue = this._isCollapsed(div);
     if (newCollapsedValue === undefined)
       newCollapsedValue = !currentCollapsedValue;
     if (newCollapsedValue) {
       div.classList.add("collapsed");
+      this._showChild(div, false);
     } else {
       this._resolveChildren(div, true);
       div.classList.remove("collapsed");
+      this._showChild(div, true);
     }
     if (!suppressScrollHeightNotification)
       this._scrollHeightChanged();
