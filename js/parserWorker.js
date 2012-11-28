@@ -1355,7 +1355,7 @@ var diagnosticList = [
     image: "cc.png",
     title: "Cycle Collect",
     check: function(frames, symbols, meta) {
-      return stepContains('nsCycleCollect::Collect', frames, symbols)
+      return stepContains('nsCycleCollector::Collect', frames, symbols)
           || stepContains('CycleCollect__', frames, symbols) // Label
           ;
     },
