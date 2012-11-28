@@ -1352,6 +1352,15 @@ var diagnosticList = [
     },
   },
   {
+    image: "cc.png",
+    title: "Cycle Collect",
+    check: function(frames, symbols, meta) {
+      return stepContains('nsCycleCollect::Collect', frames, symbols)
+          || stepContains('CycleCollect__', frames, symbols) // Label
+          ;
+    },
+  },
+  {
     image: "plugin.png",
     title: "Sync Plugin Constructor",
     check: function(frames, symbols, meta) {
