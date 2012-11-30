@@ -201,9 +201,6 @@ ProfileTreeManager.prototype = {
     return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
   },
   setSelection: function ProfileTreeManager_setSelection(frames) {
-    if (window.comparator_setSelection) {
-      window.comparator_setSelection(frames);
-    }
     return this.treeView.setSelection(frames);
   },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
@@ -1781,10 +1778,16 @@ function enterFinishedProfileUI() {
         gBreadcrumbTrail.enterLastItem(forceSelection);
     }
   }
+}
 
+function comparator_receiveSelection(snapshot) {
+  gTreeManager.restoreSerializedSelectionSnapshot(snapshot); 
 }
 
 function filtersChanged() {
+  if (window.comparator_setSelection) {
+    window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot());
+  }
   updateDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
 
