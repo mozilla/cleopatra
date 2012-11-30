@@ -201,6 +201,9 @@ ProfileTreeManager.prototype = {
     return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
   },
   setSelection: function ProfileTreeManager_setSelection(frames) {
+    if (window.comparator_setSelection) {
+      window.comparator_setSelection(frames);
+    }
     return this.treeView.setSelection(frames);
   },
   _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
@@ -1814,7 +1817,8 @@ function filtersChanged() {
   histogramRequest.addEventListener("finished", function (data) {
     start = Date.now();
     gHistogramView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
-    gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+    if (gFrameView)
+      gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
   });
 
