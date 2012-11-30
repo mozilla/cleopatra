@@ -6,8 +6,12 @@ function ProfileComparator(topLevelDiv) {
   this._container.className = "profileComparatorDiv";
 
   this._side1 = document.createElement("div");
+  this._side1.id = "side1";
+  this._side1.className = "profileComparatorSide1";
   this._side2 = document.createElement("div");
-  this._side = [side1, side2];
+  this._side2.id = "side2";
+  this._side2.className = "profileComparatorSide2";
+  this._side = [this._side1, this._side2];
   this._container.appendChild(this._side1);
   this._container.appendChild(this._side2);
 
@@ -18,9 +22,11 @@ function ProfileComparator(topLevelDiv) {
     topLevelDiv.removeChild(elemToMove);
     this._side1.appendChild(elemToMove);
   }
+  topLevelDiv.appendChild(this._container);
 
   // create an iframe for side2
   this._side2iFrame = document.createElement("iframe");
+  this._side2iFrame.src = "file:///Volumes/Guest OS/Users/bgirard/ben/sps/cleopatra/index.html";
   this._side2.appendChild(this._side2iFrame);
 
   return this;

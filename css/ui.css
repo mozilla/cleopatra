@@ -404,3 +404,25 @@ label {
   margin-left: auto;
   margin-right: auto;
 }
+.profileComparatorDiv {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.profileComparatorSide1 {
+  position: absolute;
+  float: left;
+  width: 50%;
+  height: 100%;
+}
+.profileComparatorSide2 {
+  position: absolute;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+}
+iframe {
+  width: 100%;
+  height: 100%;
+}
+
