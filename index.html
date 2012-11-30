@@ -56,6 +56,8 @@
         } else {
           loadProfileURL('http://profile-logs.appspot.com/serve/' + queryData.report);
         }
+      } else if (queryData.customProfile !== undefined) {
+        loadProfileURL(queryData.customProfile);
       } else if (queryData.usesample !== undefined) {
         var filename;
         if (filename == "pseudo") {
