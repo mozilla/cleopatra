@@ -674,6 +674,7 @@ TreeView.prototype = {
       var isCollapsed = this._isCollapsed(selected);
       if (isCollapsed) {
         this._toggle(selected);
+        this._syncProcessPendingActionProcessing();
       } else {
         // Do KEY_DOWN
         var nextSib = this._getNextSib(selected);
