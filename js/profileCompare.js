@@ -28,7 +28,7 @@ function ProfileComparator(topLevelDiv) {
 
   // create an iframe for side2
   this._side2iFrame = document.createElement("iframe");
-  this._side2iFrame.src = "file:///Volumes/Guest OS/Users/bgirard/ben/sps/cleopatra/index.html";
+  this._side2iFrame.src = "file:///Volumes/Guest OS/Users/bgirard/ben/sps/cleopatra/index.html?";
   this._side2iFrame.onload = function() {
     //self._side2iFrame.contentWindow.enterProgressUI();
   }
@@ -36,11 +36,11 @@ function ProfileComparator(topLevelDiv) {
   this._side1.window = window;
   this._side2.window = self._side2iFrame.contentWindow;
 
-  this._side1.window.comparator_setSelection = function(frames) {
-    self._setSelection(self._side1, self._side2, frames);
+  this._side1.window.comparator_setSelection = function(frames, frameData) {
+    self._setSelection(self._side1, self._side2, frames, frameData);
   }
-  this._side2.window.comparator_setSelection = function(frames) {
-    self._setSelection(self._side2, self._side1, frames);
+  this._side2.window.comparator_setSelection = function(frames, frameData) {
+    self._setSelection(self._side2, self._side1, frames, frameData);
   }
 
   return this;
@@ -50,7 +50,20 @@ ProfileComparator.prototype = {
   getContainer: function ProfileComparator_getContainer() {
     return this._container;
   },
-  _setSelection: function ProfileComparator__setSelection(divSrc, divDest, frames) {
-    dump("Set selection " + divSrc.id + " -> " + divDest.id + "\n\n\n\n\n\n\n");
+  _setSelection: function ProfileComparator__setSelection(divSrc, divDest, frames, frameData) {
+    var focus = document.activeElement;
+    var isSrcSelected = false;
+    while (focus != null) {
+      if (focus == divSrc) {
+        isSrcSelected = true;
+        break;
+      }
+      focus = focus.parentNode;
+    }
+    if (!isSrcSelected)
+      return;
+
+    //dump("DIV: " + divDest.id + " has focus " + divDest.hasFocus() + "\n\n\n\n\n");
+    divDest.window.comparator_receiveSelection(frames, frameData);
   },
 };

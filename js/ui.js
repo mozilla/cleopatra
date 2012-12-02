@@ -157,6 +157,9 @@ function ProfileTreeManager() {
   var self = this;
   this.treeView.addEventListener("select", function (frameData) {
     self.highlightFrame(frameData);
+    if (window.comparator_setSelection) {
+      window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot(), frameData);
+    }
   });
   this.treeView.addEventListener("contextMenuClick", function (e) {
     self._onContextMenuClick(e);
@@ -1780,13 +1783,16 @@ function enterFinishedProfileUI() {
   }
 }
 
-function comparator_receiveSelection(snapshot) {
+function comparator_receiveSelection(snapshot, frameData) {
   gTreeManager.restoreSerializedSelectionSnapshot(snapshot); 
+  if (frameData)
+    gTreeManager.highlightFrame(frameData);
+  viewOptionsChanged();
 }
 
 function filtersChanged() {
   if (window.comparator_setSelection) {
-    window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot());
+  //  window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot(), null);
   }
   updateDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
