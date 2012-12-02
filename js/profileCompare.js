@@ -36,6 +36,12 @@ function ProfileComparator(topLevelDiv) {
   this._side1.window = window;
   this._side2.window = self._side2iFrame.contentWindow;
 
+  this._side1.window.comparator_changeFocus = function(elem) {
+    self._changeFocus(self._side1, self._side2, elem);
+  }
+  this._side2.window.comparator_changeFocus = function(elem) {
+    self._changeFocus(self._side2, self._side1, elem);
+  }
   this._side1.window.comparator_setSelection = function(frames, frameData) {
     self._setSelection(self._side1, self._side2, frames, frameData);
   }
@@ -50,17 +56,24 @@ ProfileComparator.prototype = {
   getContainer: function ProfileComparator_getContainer() {
     return this._container;
   },
-  _setSelection: function ProfileComparator__setSelection(divSrc, divDest, frames, frameData) {
+  _isActive: function ProfileComparator__isActive(div) {
     var focus = document.activeElement;
-    var isSrcSelected = false;
     while (focus != null) {
-      if (focus == divSrc) {
-        isSrcSelected = true;
-        break;
+      if (focus == div) {
+        return true;
       }
       focus = focus.parentNode;
     }
-    if (!isSrcSelected)
+    return false;
+  },
+  _changeFocus: function ProfileComparator__changeFocus(divSrc, divDest, elem) {
+    if (!this._isActive(divSrc))
+      return;
+
+    elem.focus(); 
+  },
+  _setSelection: function ProfileComparator__setSelection(divSrc, divDest, frames, frameData) {
+    if (!this._isActive(divSrc))
       return;
 
     //dump("DIV: " + divDest.id + " has focus " + divDest.hasFocus() + "\n\n\n\n\n");

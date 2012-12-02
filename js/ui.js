@@ -1154,7 +1154,7 @@ function filterUpdate() {
 
   var filterNameInput = document.getElementById("filterName");
   if (filterNameInput != null) {
-    filterNameInput.focus();
+    changeFocus(filterNameInput);
   } 
 }
 
@@ -1680,7 +1680,7 @@ function enterFinishedProfileUI() {
     // until some actions happen such as focusing this box
     var filterNameInput = document.getElementById("filterName");
     if (filterNameInput != null) {
-      filterNameInput.focus();
+      changeFocus(filterNameInput);
      }
   }, 100);
 
@@ -1780,6 +1780,20 @@ function enterFinishedProfileUI() {
         gHistogramView.selectRange(filter.start, filter.end);
         gBreadcrumbTrail.enterLastItem(forceSelection);
     }
+  }
+}
+
+// Make all focus change events go through this function.
+// This function will mediate the focus changes in case
+// that we're in a compare view. In a compare view an inactive
+// instance of cleopatra should not steal focus from the active
+// cleopatra instance.
+function changeFocus(elem) {
+  if (window.comparator_changeFocus) {
+    window.comparator_changeFocus(elem);
+  } else {
+    dump("FOCUS\n\n\n\n\n\n\n\n\n");
+    elem.focus();
   }
 }
 

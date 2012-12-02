@@ -131,7 +131,7 @@ TreeView.prototype = {
     this._processPendingActionsChunk();
     this._select(this._horizontalScrollbox.firstChild);
     this._toggle(this._horizontalScrollbox.firstChild);
-    this._container.focus();
+    changeFocus(this._container);
   },
   // Provide a snapshot of the reverse selection to restore with 'invert callback'
   getReverseSelectionSnapshot: function TreeView__getReverseSelectionSnapshot(isJavascriptOnly) {
