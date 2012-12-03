@@ -1232,8 +1232,10 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
     // Not yet ready
-    //infoText += "<h2>Compare</h2>\n";
-    //infoText += "<input type='button' id='compare' value='Compare'>\n";
+    if (gLocation.indexOf("file:") == 0) {
+      infoText += "<h2>Compare</h2>\n";
+      infoText += "<input type='button' id='compare' value='Compare'>\n";
+    }
 
     infoText += "<h2>Share</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
