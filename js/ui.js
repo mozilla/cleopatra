@@ -1231,17 +1231,14 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
 
-    // Not yet ready
-    if (gLocation.indexOf("file:") == 0) {
-      infoText += "<h2>Compare</h2>\n";
-      infoText += "<input type='button' id='compare' value='Compare'>\n";
-    }
-
     infoText += "<h2>Share</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
     infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
     infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
     infoText += "<input type='button' id='download' value='Download full profile'>\n";
+
+    infoText += "<h2>Compare</h2>\n";
+    infoText += "<input type='button' id='compare' value='Compare'>\n";
 
     //infoText += "<br>\n";
     //infoText += "Skip functions:<br>\n";
@@ -1260,10 +1257,8 @@ InfoBar.prototype = {
       filterNameInputNew.value = gQueryParamFilterName;
       gQueryParamFilterName = null;
     }
-    if (gLocation.indexOf("file:") == 0) {
-      document.getElementById('compare').onclick = function() {
-        openProfileCompare();
-      }
+    document.getElementById('compare').onclick = function() {
+      openProfileCompare();
     }
     document.getElementById('upload').onclick = function() {
       promptUploadProfile(false);
