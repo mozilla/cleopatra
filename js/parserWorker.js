@@ -1210,6 +1210,16 @@ var diagnosticList = [
     },
   },
   {
+    image: "cache.png",
+    title: "Bug 717761 - Main thread can be blocked by IO on the cache thread",
+    bugNumber: "717761",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('nsCacheEntryDescriptor::GetStoragePolicy', frames, symbols)
+          ;
+    },
+  },
+  {
     image: "js.png",
     title: "Bug 789193 - AMI_startup() takes 200ms on startup",
     bugNumber: "789193",
