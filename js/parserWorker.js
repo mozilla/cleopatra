@@ -1230,6 +1230,24 @@ var diagnosticList = [
     },
   },
   {
+    image: "js.png",
+    title: "Bug 818274 - [Shutdown] Telemetry takes ~10ms on shutdown",
+    bugNumber: "818274",
+    check: function(frames, symbols, meta) {
+      return stepContains('TelemertyPing.js', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "plugin.png",
+    title: "Bug 818265 - [Shutdown] Plug-in shutdown takes ~90ms on shutdown",
+    bugNumber: "818265",
+    check: function(frames, symbols, meta) {
+      return stepContains('PluginInstanceParent::Destroy', frames, symbols)
+          ;
+    },
+  },
+  {
     image: "snapshot.png",
     title: "Bug 720575 - Make thumbnailing faster and/or asynchronous",
     bugNumber: "720575",
