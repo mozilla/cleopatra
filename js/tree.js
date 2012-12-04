@@ -70,6 +70,7 @@ function TreeView() {
   this._busyCover.className = "busyCover";
   this._container.appendChild(this._busyCover);
   this._abortToggleAll = false;
+  this.initSelection = true;
 
   var self = this;
   this._container.onkeydown = function (e) {
@@ -129,8 +130,11 @@ TreeView.prototype = {
       data: data[0].getData()
     });
     this._processPendingActionsChunk();
-    this._select(this._horizontalScrollbox.firstChild);
-    this._toggle(this._horizontalScrollbox.firstChild);
+    if (this._initSelection === true) {
+      this._initSelection = false;
+      this._select(this._horizontalScrollbox.firstChild);
+      this._toggle(this._horizontalScrollbox.firstChild);
+    }
     changeFocus(this._container);
   },
   // Provide a snapshot of the reverse selection to restore with 'invert callback'
