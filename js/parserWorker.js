@@ -1234,7 +1234,7 @@ var diagnosticList = [
     title: "Bug 818274 - [Shutdown] Telemetry takes ~10ms on shutdown",
     bugNumber: "818274",
     check: function(frames, symbols, meta) {
-      return stepContains('TelemertyPing.js', frames, symbols)
+      return stepContains('TelemetryPing.js', frames, symbols)
           ;
     },
   },
