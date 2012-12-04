@@ -1231,6 +1231,16 @@ var diagnosticList = [
   },
   {
     image: "js.png",
+    title: "Bug 818296 - [Shutdown] js::NukeCrossCompartmentWrappers takes up 300ms on shutdown",
+    bugNumber: "818296",
+    check: function(frames, symbols, meta) {
+      return stepContains('js::NukeCrossCompartmentWrappers', frames, symbols)
+          && (stepContains('WindowDestroyedEvent', frames, symbols) || stepContains('DoShutdown', frames, symbols))
+          ;
+    },
+  },
+  {
+    image: "js.png",
     title: "Bug 818274 - [Shutdown] Telemetry takes ~10ms on shutdown",
     bugNumber: "818274",
     check: function(frames, symbols, meta) {
