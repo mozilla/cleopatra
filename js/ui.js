@@ -1221,8 +1221,8 @@ InfoBar.prototype = {
     //infoText += "<label><input type='checkbox' id='mergeFunctions' " + (gMergeFunctions ?" checked='true' ":" ") + " onchange='toggleMergeFunctions()'/>Functions, not lines</label><br>\n";
 
     var filterNameInputOld = document.getElementById("filterName");
-    infoText += "<label>Filter:\n";
-    infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></label>\n";
+    infoText += "<a>Filter:\n";
+    infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></a>\n";
 
     infoText += "<h2>Post Filtering</h2>\n";
     infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label>\n";
