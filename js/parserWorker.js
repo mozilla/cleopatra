@@ -701,18 +701,14 @@ function parseRawProfile(requestID, params, rawProfile) {
 function getSerializedProfile(requestID, profileID, complete) {
   var profile = gProfiles[profileID];
   var symbolicationTable = {};
-  var samples = complete ? profile.allSamples : profile.filteredSamples;
   if (complete || !profile.filterSettings.mergeFunctions) {
-    for (var i = 0; i < samples.length; i++) {
-      for (var symbolIndex in samples[i].frames) {
-        symbolicationTable[symbolIndex] = profile.symbols[symbolIndex].symbolName;  
-      }
+    for (var symbolIndex in profile.symbols) {
+      symbolicationTable[symbolIndex] = profile.symbols[symbolIndex].symbolName;
     }
   } else {
-    for (var i = 0; i < samples.length; i++) {
-      for (var functionIndex in samples[i].frames) {
-        symbolicationTable[functionIndex] = profile.functions[functionIndex].symbol;  
-      }
+    for (var functionIndex in profile.functions) {
+      var f = profile.functions[functionIndex];
+      symbolicationTable[functionIndex] = f.symbol;
     }
   }
   var serializedProfile = JSON.stringify({
