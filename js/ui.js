@@ -1260,8 +1260,10 @@ InfoBar.prototype = {
       filterNameInputNew.value = gQueryParamFilterName;
       gQueryParamFilterName = null;
     }
-    document.getElementById('compare').onclick = function() {
-      openProfileCompare();
+    if (gLocation.indexOf("file:") == 0) {
+      document.getElementById('compare').onclick = function() {
+        openProfileCompare();
+      }
     }
     document.getElementById('upload').onclick = function() {
       promptUploadProfile(false);
