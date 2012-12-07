@@ -1923,7 +1923,7 @@ function queryEscape(str) {
 }
 
 function updateDocumentURL() {
-  location.hash = getDocumentHashString();
+  //location.hash = getDocumentHashString();
   return document.location;
 }
 
