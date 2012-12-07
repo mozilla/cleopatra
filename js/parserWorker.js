@@ -1395,6 +1395,7 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContainsRegEx(/.*Collect.*Runtime.*Invocation.*/, frames, symbols)
           || stepContains('GarbageCollectNow', frames, symbols) // Label
+          || stepContains('JS_GC(', frames, symbols) // Label
           || stepContains('CycleCollect__', frames, symbols) // Label
           ;
     },
