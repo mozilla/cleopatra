@@ -1931,7 +1931,7 @@ function queryEscape(str) {
 }
 
 function updateDocumentURL() {
-  //location.hash = getDocumentHashString();
+  location.hash = getDocumentHashString();
   return document.location;
 }
 
@@ -1949,6 +1949,8 @@ function getDocumentHashString() {
       query += "&";
     query += "search=" + queryEscape(document.getElementById("filterName").value);
   }
+  // For now don't restore the view rest
+  return query;
   if (gJankOnly) {
     if (query != "")
       query += "&";
