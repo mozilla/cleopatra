@@ -517,6 +517,7 @@ HistogramView.prototype = {
     ctx.clearRect(0, 0, this._widthSum, height);
 
     var self = this;
+    var markerCount = 0;
     for (var i = 0; i < this._histogramData.length; i++) {
       var step = this._histogramData[i];
       var isSelected = self._isStepSelected(step, highlightedCallstack);
@@ -531,7 +532,14 @@ HistogramView.prototype = {
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
       if (step.marker) {
-        ctx.fillText(step.marker, step.x + step.width + 2, 15);
+        var x = step.x + step.width + 2;
+        var endPoint = x + ctx.measureText(step.marker).width;
+        var lastDataPoint = this._histogramData[this._histogramData.length-1];
+        if (endPoint >= lastDataPoint.x + lastDataPoint.width) {
+          x -= endPoint - (lastDataPoint.x + lastDataPoint.width) - 1;
+        }
+        ctx.fillText(step.marker, x, 15 + ((markerCount % 2) == 0 ? 0 : 20));
+        markerCount++;
       }
     }
 
