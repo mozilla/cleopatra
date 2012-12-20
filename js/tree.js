@@ -78,7 +78,8 @@ function TreeView() {
   };
   this._container.onkeypress = function (e) {
     // on key down gives us '8' and mapping shift+8='*' may not be portable.
-    if (String.fromCharCode(e.charCode) == '*')
+    if (String.fromCharCode(e.charCode) == '*' ||
+        String.fromCharCode(e.charCode) == '!')
       self._onkeypress(e);
   };
   this._container.onclick = function (e) {
@@ -496,22 +497,32 @@ TreeView.prototype = {
     if (!suppressScrollHeightNotification)
       this._scrollHeightChanged();
   },
-  _toggleAll: function TreeView__toggleAll(subtreeRoot, /* optional */ newCollapsedValue, /* optional */ suppressScrollHeightNotification) {
-
+  _toggleAll: function TreeView__toggleAll(subtreeRoot, /* optional */ collapsedFilter, /* optional */ suppressScrollHeightNotification) {
     // Reset abort
     this._abortToggleAll = false;
 
-    // Expands / collapses all child nodes, too.
-
-    if (newCollapsedValue === undefined)
-      newCollapsedValue = !this._isCollapsed(subtreeRoot);
-    if (!newCollapsedValue) {
-      // expanding
-      this._resolveChildren(subtreeRoot, newCollapsedValue);
+    // Expands / collapses all child nodes, too.  collapsedFilter can be either
+    // null or a simple boolean, or a function which will get passed the tree line's data
+    var toCollapse = !!collapsedFilter;
+    if (collapsedFilter === undefined) {
+      toCollapse = !this._isCollapsed(subtreeRoot);
+    } else if (typeof(collapsedFilter) == "function") {
+      if (this._isCollapsed(subtreeRoot)) {
+        toCollapse = collapsedFilter.apply(null, [subtreeRoot.data]);
+      } else {
+        toCollapse = true;
+      }
     }
-    this._toggle(subtreeRoot, newCollapsedValue, true);
+
+    if (!toCollapse) {
+      // expanding
+      this._resolveChildren(subtreeRoot, collapsedFilter);
+    }
+
+    this._toggle(subtreeRoot, toCollapse, true);
+
     for (var i = 0; i < subtreeRoot.treeChildren.length; ++i) {
-      this._toggleAll(subtreeRoot.treeChildren[i], newCollapsedValue, true);
+      this._toggleAll(subtreeRoot.treeChildren[i], collapsedFilter, true);
     }
     if (!suppressScrollHeightNotification)
       this._scrollHeightChanged();
@@ -648,7 +659,9 @@ TreeView.prototype = {
     var selected = this._selectedNode;
     if (event.keyCode < 37 || event.keyCode > 40) {
       if (event.keyCode != 0 ||
-          String.fromCharCode(event.charCode) != '*') {
+          (String.fromCharCode(event.charCode) != '*' &&
+           String.fromCharCode(event.charCode) != '!'))
+      {
         return;
       }
     }
@@ -699,6 +712,10 @@ TreeView.prototype = {
       }
     } else if (String.fromCharCode(event.charCode) == '*') {
       this._toggleAll(selected);
+    } else if (String.fromCharCode(event.charCode) == '!') {
+      this._toggleAll(selected, function (d) {
+        return d.ratio < 0.05;
+      });
     }
   },
 };
