@@ -1434,6 +1434,7 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+          || stepContains('NtFlushBuffersFile', frames, symbols) 
           || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
           || stepContains('__unlink', frames, symbols) 
           || stepContains('fsync', frames, symbols) 
