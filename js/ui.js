@@ -1413,11 +1413,15 @@ function loadProfileURL(url) {
     if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
       subreporters.fileLoading.finish();
       PROFILERLOG("Got profile from '" + url + "'.");
+      if (xhr.responseText == null || xhr.responseText === "") {
+        subreporters.fileLoading.begin("Profile '" + url + "' is empty. Did you set the CORS headers?");
+        return;
+      }
       loadRawProfile(subreporters.parsing, xhr.responseText, url);
     }
   };
   xhr.onerror = function (e) { 
-    subreporters.fileLoading.begin("Error fetching profile :(. URL:  " + url);
+    subreporters.fileLoading.begin("Error fetching profile :(. URL: '" + url + "'. Did you set the CORS headers?");
   }
   xhr.onprogress = function (e) {
     if (e.lengthComputable && (e.loaded <= e.total)) {
@@ -1440,6 +1444,10 @@ function loadProfile(rawProfile) {
 function loadRawProfile(reporter, rawProfile, profileId) {
   PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
+  if (rawProfile == null || rawProfile.length === 0) {
+    reporter.begin("Profile is null or empty");
+    return;
+  }
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile, {
     appendVideoCapture : gAppendVideoCapture,  

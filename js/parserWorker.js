@@ -242,10 +242,18 @@ function parseRawProfile(requestID, params, rawProfile) {
   var meta = {};
   var armIncludePCIndex = {};
 
+  if (rawProfile == null) {
+    throw "rawProfile is null";
+  }
+
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
     rawProfile = JSON.parse(rawProfile);
+    if (rawProfile === null) {
+      throw "rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.";
+    }
   }
+
 
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
