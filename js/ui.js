@@ -1203,7 +1203,7 @@ InfoBar.prototype = {
   display: function InfoBar_display() {
     function getMetaFeatureString() {
       features = "<dt>Stackwalk:</dt><dd>" + (gMeta.stackwalk ? "True" : "False") + "</dd>";
-      features += "<dt>Jank:</dt><dd>" + (gMeta.stackwalk ? "True" : "False") + "</dd>";
+      features += "<dt>Jank:</dt><dd>" + (gMeta.jank ? "True" : "False") + "</dd>";
       return features;
     }
     function getPlatformInfo() {
