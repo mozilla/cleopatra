@@ -531,6 +531,10 @@ HistogramView.prototype = {
       }
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
+      if (step.frameNumber && gShowFrames) {
+        ctx.fillStyle = "blue";
+        ctx.fillRect(step.x, 0, 1, height);
+      }
       if (step.marker) {
         var x = step.x + step.width + 2;
         var endPoint = x + ctx.measureText(step.marker).width;
@@ -1171,6 +1175,7 @@ var tooltip = {
   "mergeFunctions" : "Ignore line information and merge samples based on function names.",
   "showJank" : "Show only samples with >50ms responsiveness.",
   "showJS" : "Show only samples which involve running chrome or content Javascript code.",
+  "showFrames" : "Show the frame boundary in the timeline as blue lines. Profile must be recorded with pref 'layers.acceleration.frame-counter'",
   "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
@@ -1204,6 +1209,7 @@ InfoBar.prototype = {
     function getMetaFeatureString() {
       features = "<dt>Stackwalk:</dt><dd>" + (gMeta.stackwalk ? "True" : "False") + "</dd>";
       features += "<dt>Jank:</dt><dd>" + (gMeta.jank ? "True" : "False") + "</dd>";
+      features += "<dt>Frames:</dt><dd>" + (gMeta.frameStart && Object.keys(gMeta.frameStart).length > 0 ? "True" : "False") + "</dd>";
       return features;
     }
     function getPlatformInfo() {
@@ -1238,6 +1244,7 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
     infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
+    infoText += "<label><input type='checkbox' id='showFrames' " + (gShowFrames ?" checked='true' ":" ") + " onchange='toggleShowFrames()'/>Show Frames</label><br>\n";
 
     infoText += "<h2>Share</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
@@ -1501,6 +1508,12 @@ window.addEventListener("message", function messageFromAddon(msg) {
 function importFromAddonFinish(rawProfile) {
   gImportFromAddonSubreporters.import.finish();
   loadRawProfile(gImportFromAddonSubreporters.parsing, rawProfile);
+}
+
+var gShowFrames = false;
+function toggleShowFrames() {
+  gShowFrames = !gShowFrames;
+  filtersChanged(); 
 }
 
 var gInvertCallstack = false;
