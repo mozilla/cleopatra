@@ -1822,7 +1822,6 @@ function changeFocus(elem) {
   if (window.comparator_changeFocus) {
     window.comparator_changeFocus(elem);
   } else {
-    dump("FOCUS\n\n\n\n\n\n\n\n\n");
     elem.focus();
   }
 }
