@@ -1246,7 +1246,7 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
     infoText += "<label><input type='checkbox' id='showFrames' " + (gShowFrames ?" checked='true' ":" ") + " onchange='toggleShowFrames()'/>Show Frames Boundaries</label><br>\n";
 
-    infoText += "<h2>Share</h2>\n";
+    infoText += "<h2>Share With URL</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
     infoText += "<input type='button' id='upload' value='Share'>\n";
     // For now upload view is disabled because it's rarely what users want to do
