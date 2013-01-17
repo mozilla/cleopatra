@@ -1179,7 +1179,7 @@ var tooltip = {
   "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
-  "upload" : "Upload the full profile to public cloud storage to share with others.",
+  "upload" : "Upload the full performance profile to public cloud storage to share with others.",
   "upload_select" : "Upload only the selected view.",
   "download" : "Initiate a download of the full profile.",
 }
@@ -1248,9 +1248,10 @@ InfoBar.prototype = {
 
     infoText += "<h2>Share</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
-    infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
-    infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
-    infoText += "<input type='button' id='download' value='Download full profile'>\n";
+    infoText += "<input type='button' id='upload' value='Share'>\n";
+    // For now upload view is disabled because it's rarely what users want to do
+    //infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
+    infoText += "<input type='button' id='download' value='Save to Local File'>\n";
 
     infoText += "<h2>Compare</h2>\n";
     infoText += "<input type='button' id='compare' value='Compare'>\n";
