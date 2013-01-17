@@ -1226,8 +1226,8 @@ InfoBar.prototype = {
       infoText += "<dt>Interval:</dt><dd>" + gMeta.interval + " ms</dd></dl>";
     }
     infoText += "<h2>Selection Info</h2>\n<dl>\n";
-    infoText += "  <dt>Avg. Responsiveness:</dt><dd>" + avgResponsiveness().toFixed(2) + " ms</dd>\n";
-    infoText += "  <dt>Max Responsiveness:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
+    infoText += "  <dt>Avg. Event Lag:</dt><dd>" + avgResponsiveness().toFixed(2) + " ms</dd>\n";
+    infoText += "  <dt>Max Event Lag:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Real Interval:</dt><dd>" + effectiveInterval() + "</dd>";
     infoText += "</dl>\n";
     infoText += "<h2>Pre Filtering</h2>\n";
