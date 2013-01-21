@@ -423,6 +423,10 @@ TreeView.prototype = {
     var menu = [];
     if (node.library && (
       node.library.toLowerCase() == "lib_xul" ||
+      node.library.toLowerCase() == "lib_mozjs" ||
+      node.library.toLowerCase() == "lib_mozjs.pdb" ||
+      node.library.toLowerCase() == "lib_mozjs.dll" ||
+      node.library.toLowerCase() == "lib_xul.pdb" ||
       node.library.toLowerCase() == "lib_xul.dll"
       )) {
       menu.push("View Source");
