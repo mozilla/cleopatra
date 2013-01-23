@@ -1451,6 +1451,9 @@ var diagnosticList = [
           || stepContains('__unlink', frames, symbols) 
           || stepContains('fsync', frames, symbols) 
           || stepContains('stat$INODE64', frames, symbols)
+          || stepEquals('read', frames, symbols) 
+          || stepEquals('write', frames, symbols) 
+          || stepEquals('fsync', frames, symbols) 
           ;
     },
   },
