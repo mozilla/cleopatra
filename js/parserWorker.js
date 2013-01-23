@@ -1201,6 +1201,10 @@ var diagnosticList = [
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__read', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+          || stepContains('__unlink', frames, symbols) 
+          || stepEquals('read', frames, symbols) 
+          || stepEquals('write', frames, symbols) 
+          || stepEquals('fsync', frames, symbols) 
           || stepContains('stat$INODE64', frames, symbols)
           ;
     },
@@ -1515,6 +1519,17 @@ function findGCSlice(frames, symbols, meta, step) {
   }
 
   return null;
+}
+function stepEquals(string, frames, symbols) {
+  for (var i = 0; frames && i < frames.length; i++) {
+    if (!(frames[i] in symbols))
+      continue;
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (frameSym == string) {
+      return true;
+    }
+  }
+  return false;
 }
 function stepContains(substring, frames, symbols) {
   for (var i = 0; frames && i < frames.length; i++) {
