@@ -117,7 +117,7 @@ self.onmessage = function (msg) {
         parseRawProfile(requestID, msg.data.params, taskData);
         break;
       case "updateFilters":
-        updateFilters(requestID, taskData.profileID, taskData.filters);
+        updateFilters(requestID, taskData.profileID, taskData.filters, taskData.threadId);
         break;
       case "updateViewOptions":
         updateViewOptions(requestID, taskData.profileID, taskData.options);
@@ -238,7 +238,7 @@ function parseRawProfile(requestID, params, rawProfile) {
   var resources = {};
   var functions = [];
   var functionIndices = {};
-  var samples = [];
+  var threads = {};
   var meta = {};
   var armIncludePCIndex = {};
 
@@ -536,6 +536,7 @@ function parseRawProfile(requestID, params, rawProfile) {
     var extraInfo = {};
     var lines = data.split("\n");
     var sample = null;
+    var samples = [];
     for (var i = 0; i < lines.length; ++i) {
       var line = lines[i];
       if (line.length < 2 || line[1] != '-') {
@@ -598,6 +599,10 @@ function parseRawProfile(requestID, params, rawProfile) {
       }
       progressReporter.setProgress((i + 1) / lines.length);
     }
+    threads[0] = {
+      name: "Main (Text Prof)",
+      samples: samples,
+    };
   }
 
   function parseProfileJSON(profile) {
@@ -611,74 +616,94 @@ function parseRawProfile(requestID, params, rawProfile) {
       };
     }
     // Support older format that aren't thread aware
-    if (profile.threads != null) {
-      profileSamples = profile.threads[0].samples;
-    } else {
-      profileSamples = profile;
-    }
     var rootSymbol = null;
     var insertCommonRoot = false;
     var frameStart = {};
     meta.frameStart = frameStart;
-    for (var j = 0; j < profileSamples.length; j++) {
-      var sample = profileSamples[j];
-      var indicedFrames = [];
-      if (!sample) {
-        // This sample was filtered before saving
-        samples.push(null);
-        progressReporter.setProgress((j + 1) / profileSamples.length);
-        continue;
-      }
-      for (var k = 0; sample.frames && k < sample.frames.length; k++) {
-        var frame = sample.frames[k];
-        var pcIndex;
-        if (frame.location !== undefined) {
-          pcIndex = indexForSymbol(frame.location);
-        } else {
-          pcIndex = indexForSymbol(frame);
-        }
 
-        if (frame.lr !== undefined && shouldIncludeARMLRForPC(pcIndex)) {
-          indicedFrames.push(indexForSymbol(frame.lr));
-        }
-
-        indicedFrames.push(pcIndex);
+    if (profile.threads != null) {
+      for (var tid = 0; tid < profile.threads.length; tid++) {
+         var threadSamples = parseJSONSamples(profile.threads[tid].samples);
+         if (tid == 0) {
+           // TODO Remove 'samples' and use thread[0].samples for the main thread
+           samples = threadSamples;
+         }
+         threads[tid] = {
+           name: profile.threads[tid].name || "No name",
+           samples: samples,
+         };
       }
-      if (indicedFrames.length >= 1) {
-        if (rootSymbol && rootSymbol != indicedFrames[0]) {
-          insertCommonRoot = true;
-        }
-        rootSymbol = rootSymbol || indicedFrames[0];
-      }
-      if (sample.extraInfo == null) {
-        sample.extraInfo = {};
-      }
-      if (sample.responsiveness) {
-        sample.extraInfo["responsiveness"] = sample.responsiveness;
-      }
-      if (sample.marker) {
-        sample.extraInfo["marker"] = sample.marker;
-      }
-      if (sample.time) {
-        sample.extraInfo["time"] = sample.time;
-      }
-      if (sample.frameNumber) {
-        sample.extraInfo["frameNumber"] = sample.frameNumber;
-        //dump("Got frame number: " + sample.frameNumber + "\n");
-        frameStart[sample.frameNumber] = samples.length;
-      }
-      samples.push(makeSample(indicedFrames, sample.extraInfo));
-      progressReporter.setProgress((j + 1) / profileSamples.length);
+    } else {
+      samples = parseJSONSamples(profile);
+      threads[0] = {
+        name: "Main",
+        samples: samples,
+      };
     }
-    if (insertCommonRoot) {
-      var rootIndex = indexForSymbol("(root)");
-      for (var i = 0; i < samples.length; i++) {
-        var sample = samples[i];
-        if (!sample) continue;
-        // If length == 0 then the sample was filtered when saving the profile
-        if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
-          sample.frames.unshift(rootIndex)
+
+    function parseJSONSamples(profileSamples) {
+      var samples = [];
+      for (var j = 0; j < profileSamples.length; j++) {
+        var sample = profileSamples[j];
+        var indicedFrames = [];
+        if (!sample) {
+          // This sample was filtered before saving
+          samples.push(null);
+          progressReporter.setProgress((j + 1) / profileSamples.length);
+          continue;
+        }
+        for (var k = 0; sample.frames && k < sample.frames.length; k++) {
+          var frame = sample.frames[k];
+          var pcIndex;
+          if (frame.location !== undefined) {
+            pcIndex = indexForSymbol(frame.location);
+          } else {
+            pcIndex = indexForSymbol(frame);
+          }
+
+          if (frame.lr !== undefined && shouldIncludeARMLRForPC(pcIndex)) {
+            indicedFrames.push(indexForSymbol(frame.lr));
+          }
+
+          indicedFrames.push(pcIndex);
+        }
+        if (indicedFrames.length >= 1) {
+          if (rootSymbol && rootSymbol != indicedFrames[0]) {
+            insertCommonRoot = true;
+          }
+          rootSymbol = rootSymbol || indicedFrames[0];
+        }
+        if (sample.extraInfo == null) {
+          sample.extraInfo = {};
+        }
+        if (sample.responsiveness) {
+          sample.extraInfo["responsiveness"] = sample.responsiveness;
+        }
+        if (sample.marker) {
+          sample.extraInfo["marker"] = sample.marker;
+        }
+        if (sample.time) {
+          sample.extraInfo["time"] = sample.time;
+        }
+        if (sample.frameNumber) {
+          sample.extraInfo["frameNumber"] = sample.frameNumber;
+          //dump("Got frame number: " + sample.frameNumber + "\n");
+          frameStart[sample.frameNumber] = samples.length;
+        }
+        samples.push(makeSample(indicedFrames, sample.extraInfo));
+        progressReporter.setProgress((j + 1) / profileSamples.length);
       }
+      if (insertCommonRoot) {
+        var rootIndex = indexForSymbol("(root)");
+        for (var i = 0; i < samples.length; i++) {
+          var sample = samples[i];
+          if (!sample) continue;
+          // If length == 0 then the sample was filtered when saving the profile
+          if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
+            sample.frames.unshift(rootIndex)
+        }
+      }
+      return samples;
     }
   }
 
@@ -693,12 +718,12 @@ function parseRawProfile(requestID, params, rawProfile) {
     symbols: symbols,
     functions: functions,
     resources: resources,
-    allSamples: samples
+    threads: threads
   }));
   clearRegExpLastMatch();
   sendFinished(requestID, {
     meta: meta,
-    numSamples: samples.length,
+    numSamples: threads[0].samples.length,
     profileID: profileID,
     symbols: symbols,
     functions: functions,
@@ -722,7 +747,7 @@ function getSerializedProfile(requestID, profileID, complete) {
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
     meta: profile.meta,
-    profileJSON: complete ? profile.allSamples : profile.filteredSamples,
+    profileJSON: complete ? { threads: profile.threads } : profile.filteredSamples,
     symbolicationTable: symbolicationTable
   });
   sendFinished(requestID, serializedProfile);
@@ -1049,9 +1074,10 @@ function unserializeSampleFilters(filters) {
 
 var gJankThreshold = 50 /* ms */;
 
-function updateFilters(requestID, profileID, filters) {
+function updateFilters(requestID, profileID, filters, threadId) {
+  threadId = threadId || 0;
   var profile = gProfiles[profileID];
-  var samples = profile.allSamples;
+  var samples = profile.threads[threadId].samples;
   var symbols = profile.symbols;
   var functions = profile.functions;
 
