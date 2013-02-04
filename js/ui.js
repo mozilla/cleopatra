@@ -442,13 +442,7 @@ HistogramContainer.prototype = {
       thread.threadHistogramView = new HistogramView();
       threadHistogramContainer.appendChild(thread.threadHistogramView.getContainer());
 
-      console.log("ID: " + threadId);
       if (threadId == 0) {
-        console.log("ADDED BAR");
-        console.log("ADDED BAR");
-        console.log("ADDED BAR");
-        console.log("ADDED BAR");
-        console.log("ADDED BAR");
         thread.diagnosticBar = new DiagnosticBar();
         thread.diagnosticBar.setDetailsListener(function(details) {
           if (details.indexOf("bug ") == 0) {
