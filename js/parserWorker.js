@@ -117,7 +117,7 @@ self.onmessage = function (msg) {
         parseRawProfile(requestID, msg.data.params, taskData);
         break;
       case "updateFilters":
-        updateFilters(requestID, taskData.profileID, taskData.filters);
+        updateFilters(requestID, taskData.profileID, taskData.filters, taskData.threadId);
         break;
       case "updateViewOptions":
         updateViewOptions(requestID, taskData.profileID, taskData.options);
@@ -1085,8 +1085,8 @@ function unserializeSampleFilters(filters) {
 
 var gJankThreshold = 50 /* ms */;
 
-function updateFilters(requestID, profileID, filters) {
-  var threadId = 0;
+function updateFilters(requestID, profileID, filters, threadId) {
+  var threadId = threadId || 0;
   var profile = gProfiles[profileID];
   var samples = profile.threads[threadId].samples;
   var symbols = profile.symbols;
@@ -1115,6 +1115,7 @@ function updateFilters(requestID, profileID, filters) {
 
   gProfiles[profileID].filterSettings = filters;
   gProfiles[profileID].filteredSamples = samples;
+  gProfiles[profileID].selectedThread = threadId;
   sendFinishedInChunks(requestID, samples, 40000,
                        function (sample) { return sample ? sample.frames.length : 1; });
 }
@@ -1149,7 +1150,7 @@ function calculateHistogramData(requestID, profileID, threadId) {
 
   var profile = gProfiles[profileID];
   var data;
-  if (threadId == 0) {
+  if (threadId == profile.selectedThread) {
     data = profile.filteredSamples;
   } else {
     // Histogram filtering not yet support for MT

@@ -216,11 +216,12 @@ var Parser = {
     return request;
   },
 
-  updateFilters: function Parser_updateFilters(filters) {
+  updateFilters: function Parser_updateFilters(filters, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("updateFilters", {
       filters: filters,
       profileID: 0,
+      threadId: threadId,
     });
     return request;
   },

@@ -440,6 +440,7 @@ HistogramContainer.prototype = {
       threadHistogramContainer.appendChild(threadHistogramDescriptionContainer);
 
       thread.threadHistogramView = new HistogramView();
+      thread.threadHistogramView.threadId = threadId;
       threadHistogramContainer.appendChild(thread.threadHistogramView.getContainer());
 
       if (threadId == 0) {
@@ -489,6 +490,12 @@ HistogramContainer.prototype = {
   },
   updateInfoBar: function HistogramContainer_updateInfoBar() {
     thread.infoBar.display(); 
+  },
+  histogramSelected: function HistogramContainer_histogramSelected(view) {
+    if (gSelectedThreadId != view.threadId) {
+      gSelectedThreadId = view.threadId;
+      filtersChanged();
+    }
   },
 };
 
@@ -563,6 +570,7 @@ HistogramView.prototype = {
     var sample = this._histogramData[index]; 
     var frames = sample.frames;
     var list = gSampleBar.setSample(frames[0]);
+    gHistogramContainer.histogramSelected(this);
     gTreeManager.setSelection(list);
     setHighlightedCallstack(frames[0], frames[0]);
   },
@@ -1375,6 +1383,7 @@ var gSymbols = {};
 var gFunctions = {};
 var gResources = {};
 var gThreadsDesc = {};
+var gSelectedThreadId = 0;
 var gHighlightedCallstack = [];
 var gFrameView = null;
 var gTreeManager = null;
@@ -1917,7 +1926,7 @@ function filtersChanged() {
     sampleFilters: gSampleFilters,
     jankOnly: gJankOnly,
     javascriptOnly: gJavascriptOnly
-  });
+  }, gSelectedThreadId);
   var start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
