@@ -1149,7 +1149,7 @@ function calculateHistogramData(requestID, profileID, threadId) {
 
   var profile = gProfiles[profileID];
   var data;
-  if (threadId === 0) {
+  if (threadId == 0) {
     data = profile.filteredSamples;
   } else {
     // Histogram filtering not yet support for MT
