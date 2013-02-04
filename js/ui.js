@@ -441,8 +441,32 @@ HistogramContainer.prototype = {
 
       thread.threadHistogramView = new HistogramView();
       threadHistogramContainer.appendChild(thread.threadHistogramView.getContainer());
+
+      console.log("ID: " + threadId);
+      if (threadId == 0) {
+        console.log("ADDED BAR");
+        console.log("ADDED BAR");
+        console.log("ADDED BAR");
+        console.log("ADDED BAR");
+        console.log("ADDED BAR");
+        thread.diagnosticBar = new DiagnosticBar();
+        thread.diagnosticBar.setDetailsListener(function(details) {
+          if (details.indexOf("bug ") == 0) {
+            window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
+          } else {
+            var sourceView = new SourceView();
+            sourceView.setText("Diagnostic", js_beautify(details));
+            gMainArea.appendChild(sourceView.getContainer());
+          }
+        });
+        threadHistogramContainer.appendChild(thread.diagnosticBar.getContainer());
+      }
     }
     this._threadsDesc = threadsDesc;
+  },
+  displayDiagnostics: function HistogramContainer_displayDiagnostics(diagnosticItems) {
+    // Only supported on the main thread ATM
+    this._threadsDesc[0].diagnosticBar.display(diagnosticItems); 
   },
   dataIsOutdated: function HistogramContainer_dataIsOutdated() {
     for (var threadId in this._threadsDesc) {
@@ -468,7 +492,10 @@ HistogramContainer.prototype = {
   },
   display: function HistogramContainer_display(threadId, histogramData, frameStart, widthSum, highlightedCallstack) {
     this._threadsDesc[threadId].threadHistogramView.display(histogramData, frameStart, widthSum, highlightedCallstack);
-  }
+  },
+  updateInfoBar: function HistogramContainer_updateInfoBar() {
+    thread.infoBar.display(); 
+  },
 };
 
 function HistogramView() {
@@ -1336,9 +1363,11 @@ InfoBar.prototype = {
       promptUploadProfile(false);
     };
     document.getElementById('download').onclick = downloadProfile;
-    document.getElementById('upload_select').onclick = function() {
-      promptUploadProfile(true);
-    };
+    if (document.getElementById('upload_select') != null) {
+      document.getElementById('upload_select').onclick = function() {
+        promptUploadProfile(true);
+      };
+    }
     //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
     //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
 
@@ -1358,7 +1387,6 @@ var gTreeManager = null;
 var gSampleBar = null;
 var gBreadcrumbTrail = null;
 var gHistogramContainer = null;
-var gDiagnosticBar = null;
 var gVideoPane = null;
 var gPluginView = null;
 var gFileList = null;
@@ -1789,19 +1817,6 @@ function enterFinishedProfileUI() {
     currRow.insertCell(0).appendChild(gFrameView.getContainer());
   }
 
-  gDiagnosticBar = new DiagnosticBar();
-  gDiagnosticBar.setDetailsListener(function(details) {
-    if (details.indexOf("bug ") == 0) {
-      window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
-    } else {
-      var sourceView = new SourceView();
-      sourceView.setText("Diagnostic", js_beautify(details));
-      gMainArea.appendChild(sourceView.getContainer());
-    }
-  });
-  currRow = finishedProfilePane.insertRow(rowIndex++);
-  currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
-
   // For testing:
   //gMeta.videoCapture = {
   //  src: "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm",
@@ -1939,7 +1954,7 @@ function filtersChanged() {
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
     start = Date.now();
-    gDiagnosticBar.display(diagnosticItems);
+    gHistogramContainer.displayDiagnostics(diagnosticItems);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
   });
 
