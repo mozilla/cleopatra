@@ -126,7 +126,7 @@ self.onmessage = function (msg) {
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
       case "calculateHistogramData":
-        calculateHistogramData(requestID, taskData.profileID);
+        calculateHistogramData(requestID, taskData.profileID, taskData.threadId);
         break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta);
@@ -631,7 +631,7 @@ function parseRawProfile(requestID, params, rawProfile) {
          var defaultThreadName = (tid == 0) ? "GeckoMain" : "NoName";
          threads[tid] = {
            name: profile.threads[tid].name || defaultThreadName,
-           samples: samples,
+           samples: threadSamples,
          };
       }
     } else {
@@ -1135,7 +1135,7 @@ function updateViewOptions(requestID, profileID, options) {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function calculateHistogramData(requestID, profileID) {
+function calculateHistogramData(requestID, profileID, threadId) {
 
   function getStepColor(step) {
     if (step.extraInfo && "responsiveness" in step.extraInfo) {
@@ -1148,7 +1148,13 @@ function calculateHistogramData(requestID, profileID) {
   }
 
   var profile = gProfiles[profileID];
-  var data = profile.filteredSamples;
+  var data;
+  if (threadId === 0) {
+    data = profile.filteredSamples;
+  } else {
+    // Histogram filtering not yet support for MT
+    data = profile.threads[threadId].samples;
+  }
   var histogramData = [];
   var maxHeight = 0;
   for (var i = 0; i < data.length; ++i) {
@@ -1222,7 +1228,7 @@ function calculateHistogramData(requestID, profileID) {
       nextX += 1;
     }
   }
-  sendFinished(requestID, { histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
+  sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
 }
 
 var diagnosticList = [

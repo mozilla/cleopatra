@@ -1925,14 +1925,16 @@ function filtersChanged() {
     }
   });
 
-  var histogramRequest = Parser.calculateHistogramData();
-  histogramRequest.addEventListener("finished", function (data) {
-    start = Date.now();
-    gHistogramContainer.display(0, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
-    if (gFrameView)
-      gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
-    console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-  });
+  for (var threadId in gThreadsDesc) {
+    var histogramRequest = Parser.calculateHistogramData(threadId);
+    histogramRequest.addEventListener("finished", function (data) {
+      start = Date.now();
+      gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+      if (gFrameView)
+        gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+      console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+    });
+  }
 
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
