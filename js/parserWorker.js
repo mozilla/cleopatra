@@ -117,7 +117,7 @@ self.onmessage = function (msg) {
         parseRawProfile(requestID, msg.data.params, taskData);
         break;
       case "updateFilters":
-        updateFilters(requestID, taskData.profileID, taskData.filters, taskData.threadId);
+        updateFilters(requestID, taskData.profileID, taskData.filters);
         break;
       case "updateViewOptions":
         updateViewOptions(requestID, taskData.profileID, taskData.options);
@@ -622,14 +622,15 @@ function parseRawProfile(requestID, params, rawProfile) {
     meta.frameStart = frameStart;
 
     if (profile.threads != null) {
-      for (var tid = 0; tid < profile.threads.length; tid++) {
+      for (var tid in profile.threads) {
          var threadSamples = parseJSONSamples(profile.threads[tid].samples);
          if (tid == 0) {
            // TODO Remove 'samples' and use thread[0].samples for the main thread
            samples = threadSamples;
          }
+         var defaultThreadName = (tid == 0) ? "GeckoMain" : "NoName";
          threads[tid] = {
-           name: profile.threads[tid].name || "No name",
+           name: profile.threads[tid].name || defaultThreadName,
            samples: samples,
          };
       }
@@ -707,6 +708,15 @@ function parseRawProfile(requestID, params, rawProfile) {
     }
   }
 
+  var threadsDesc = {};
+
+  for (var tid in threads) {
+    var thread = threads[tid];
+    threadsDesc[tid] = {
+      name: thread.name,
+    };
+  }
+
   progressReporter.finish();
   // Don't increment the profile ID now because (1) it's buggy
   // and (2) for now there's no point in storing each profile
@@ -727,7 +737,8 @@ function parseRawProfile(requestID, params, rawProfile) {
     profileID: profileID,
     symbols: symbols,
     functions: functions,
-    resources: resources
+    resources: resources,
+    threadsDesc: threadsDesc,
   });
 }
 
@@ -1074,8 +1085,8 @@ function unserializeSampleFilters(filters) {
 
 var gJankThreshold = 50 /* ms */;
 
-function updateFilters(requestID, profileID, filters, threadId) {
-  threadId = threadId || 0;
+function updateFilters(requestID, profileID, filters) {
+  var threadId = 0;
   var profile = gProfiles[profileID];
   var samples = profile.threads[threadId].samples;
   var symbols = profile.symbols;

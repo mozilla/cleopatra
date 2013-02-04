@@ -415,6 +415,62 @@ PluginView.prototype = {
   },
 }
 
+function HistogramContainer() {
+  this._container = document.createElement("div");
+  this._container.className = "histogramContainer";
+
+  this._threadsDesc = null;
+}
+HistogramContainer.prototype = {
+  getContainer: function HistogramContainer_getContainer() {
+    return this._container;
+  },
+  updateThreadsDesc: function HistogramContainer_updateThreadsDesc(threadsDesc) {
+    this._container.innerHTML = "";
+    for (var threadId in threadsDesc) {
+      var thread = threadsDesc[threadId];
+
+      var threadHistogramContainer = document.createElement("div");
+      threadHistogramContainer.className = "threadHistogramContainer";
+      this._container.appendChild(threadHistogramContainer);
+
+      var threadHistogramDescriptionContainer = document.createElement("div");
+      threadHistogramDescriptionContainer.className = "threadHistogramDescription";
+      threadHistogramDescriptionContainer.innerHTML = "Thread: " + thread.name;
+      threadHistogramContainer.appendChild(threadHistogramDescriptionContainer);
+
+      thread.threadHistogramView = new HistogramView();
+      threadHistogramContainer.appendChild(thread.threadHistogramView.getContainer());
+    }
+    this._threadsDesc = threadsDesc;
+  },
+  dataIsOutdated: function HistogramContainer_dataIsOutdated() {
+    for (var threadId in this._threadsDesc) {
+      var thread = this._threadsDesc[threadId];
+
+      thread.threadHistogramView.dataIsOutdated();
+    }
+  },
+  showVideoFramePosition: function HistogramContainer_showVideoFramePosition(frame) {
+    // Only supported on the main thread ATM
+    this._threadsDesc[0].threadHistogramView.showVideoFramePosition(frame); 
+  },
+  highlightedCallstackChanged: function HistogramContainer_highlightedCallstackChanged(highlightedCallstack) {
+    for (var threadId in this._threadsDesc) {
+      var thread = this._threadsDesc[threadId];
+
+      thread.threadHistogramView.highlightedCallstackChanged(highlightedCallstack);
+    }
+  },
+  selectRange: function HistogramView_selectRange(start, end) {
+    // Only supported on the main thread ATM
+    this._threadsDesc[0].threadHistogramView.selectRange(start, end);
+  },
+  display: function HistogramContainer_display(threadId, histogramData, frameStart, widthSum, highlightedCallstack) {
+    this._threadsDesc[threadId].threadHistogramView.display(histogramData, frameStart, widthSum, highlightedCallstack);
+  }
+};
+
 function HistogramView() {
   this._container = document.createElement("div");
   this._container.className = "histogram";
@@ -801,7 +857,7 @@ function videoPaneTimeChange(video) {
   //var frameStart = gMeta.frameStart[frame];
   //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
 
-  gHistogramView.showVideoFramePosition(frame); 
+  gHistogramContainer.showVideoFramePosition(frame); 
 }
 
 
@@ -1295,12 +1351,13 @@ var gMeta = null;
 var gSymbols = {};
 var gFunctions = {};
 var gResources = {};
+var gThreadsDesc = {};
 var gHighlightedCallstack = [];
 var gFrameView = null;
 var gTreeManager = null;
 var gSampleBar = null;
 var gBreadcrumbTrail = null;
-var gHistogramView = null;
+var gHistogramContainer = null;
 var gDiagnosticBar = null;
 var gVideoPane = null;
 var gPluginView = null;
@@ -1475,6 +1532,7 @@ function loadRawProfile(reporter, rawProfile, profileId) {
     gSymbols = result.symbols;
     gFunctions = result.functions;
     gResources = result.resources;
+    gThreadsDesc = result.threadsDesc;
     enterFinishedProfileUI();
     gFileList.profileParsingFinished();
   });
@@ -1623,7 +1681,7 @@ function viewJSSource(sample) {
 function setHighlightedCallstack(samples, heaviestSample) {
   PROFILERTRACE("highlight: " + samples);
   gHighlightedCallstack = samples;
-  gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
+  gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack);
   if (!gInvertCallstack) {
     // Always show heavy
     heaviestSample = heaviestSample.clone().reverse();
@@ -1719,9 +1777,10 @@ function enterFinishedProfileUI() {
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
 
-  gHistogramView = new HistogramView();
+  gHistogramContainer = new HistogramContainer();
+  gHistogramContainer.updateThreadsDesc(gThreadsDesc);
   currRow = finishedProfilePane.insertRow(rowIndex++);
-  currRow.insertCell(0).appendChild(gHistogramView.getContainer());
+  currRow.insertCell(0).appendChild(gHistogramContainer.getContainer());
 
   if (false && gLocation.indexOf("file:") == 0) {
     // Local testing for frameView
@@ -1808,7 +1867,7 @@ function enterFinishedProfileUI() {
         focusOnCallstack(filter.focusedCallstack, filter.name, true);
         gBreadcrumbTrail.enterLastItem(forceSelection);
       case "RangeSampleFilter":
-        gHistogramView.selectRange(filter.start, filter.end);
+        gHistogramContainer.selectRange(filter.start, filter.end);
         gBreadcrumbTrail.enterLastItem(forceSelection);
     }
   }
@@ -1841,7 +1900,7 @@ function filtersChanged() {
   updateDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
 
-  gHistogramView.dataIsOutdated();
+  gHistogramContainer.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
   var updateRequest = Parser.updateFilters({
     mergeFunctions: gMergeFunctions,
@@ -1869,7 +1928,7 @@ function filtersChanged() {
   var histogramRequest = Parser.calculateHistogramData();
   histogramRequest.addEventListener("finished", function (data) {
     start = Date.now();
-    gHistogramView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+    gHistogramContainer.display(0, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
     if (gFrameView)
       gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
     console.log("histogram displaying: " + (Date.now() - start) + "ms.");
