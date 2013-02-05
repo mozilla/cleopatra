@@ -416,8 +416,14 @@ PluginView.prototype = {
 }
 
 function HistogramContainer() {
-  this._container = document.createElement("div");
+  this._container = document.createElement("table");
   this._container.className = "histogramContainer";
+  this._container.style.width = "100%";
+  this._container.style.height = "100%";
+  this._container.border = "0";
+  this._container.cellPadding = "0";
+  this._container.cellSpacing = "0";
+  this._container.borderCollapse = "collapse";
 
   this._threadsDesc = null;
 }
@@ -427,21 +433,21 @@ HistogramContainer.prototype = {
   },
   updateThreadsDesc: function HistogramContainer_updateThreadsDesc(threadsDesc) {
     this._container.innerHTML = "";
+
+    var currRow;
+    var rowIndex = 0;
     for (var threadId in threadsDesc) {
       var thread = threadsDesc[threadId];
 
-      var threadHistogramContainer = document.createElement("div");
-      threadHistogramContainer.className = "threadHistogramContainer";
-      this._container.appendChild(threadHistogramContainer);
-
-      var threadHistogramDescriptionContainer = document.createElement("div");
+      currRow = this._container.insertRow(rowIndex++);
+      var threadHistogramDescriptionContainer = currRow.insertCell(0);
       threadHistogramDescriptionContainer.className = "threadHistogramDescription";
-      threadHistogramDescriptionContainer.innerHTML = "Thread: " + thread.name;
-      threadHistogramContainer.appendChild(threadHistogramDescriptionContainer);
+      threadHistogramDescriptionContainer.innerHTML = thread.name;
 
       thread.threadHistogramView = new HistogramView();
       thread.threadHistogramView.threadId = threadId;
-      threadHistogramContainer.appendChild(thread.threadHistogramView.getContainer());
+      var currCell = currRow.insertCell(1);
+      currCell.appendChild(thread.threadHistogramView.getContainer());
 
       if (threadId == 0) {
         thread.diagnosticBar = new DiagnosticBar();
@@ -454,7 +460,7 @@ HistogramContainer.prototype = {
             gMainArea.appendChild(sourceView.getContainer());
           }
         });
-        threadHistogramContainer.appendChild(thread.diagnosticBar.getContainer());
+        currCell.appendChild(thread.diagnosticBar.getContainer());
       }
     }
     this._threadsDesc = threadsDesc;
@@ -699,15 +705,15 @@ function RangeSelector(graph, histogram) {
 
   this._mouseMarker = document.createElement("div");
   this._mouseMarker.className = "histogramMouseMarker";
+  this._mouseMarker.style.left = "-500px";
   this.container.appendChild(this._mouseMarker);
 }
 RangeSelector.prototype = {
   getContainer: function RangeSelector_getContainer() {
     return this.container;
   },
-  // echo the location off the mouse on the histogram
+  // echo the location of the mouse on the histogram
   drawMouseMarker: function RangeSelector_drawMouseMarker(x) {
-    console.log("Draw");
     var mouseMarker = this._mouseMarker;
     mouseMarker.style.left = x + "px";
   },
