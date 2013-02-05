@@ -443,6 +443,7 @@ HistogramContainer.prototype = {
       var threadHistogramDescriptionContainer = currRow.insertCell(0);
       threadHistogramDescriptionContainer.className = "threadHistogramDescription";
       threadHistogramDescriptionContainer.innerHTML = thread.name;
+      threadHistogramDescriptionContainer.title = "Thread Name";
 
       thread.threadHistogramView = new HistogramView();
       thread.threadHistogramView.threadId = threadId;

@@ -628,7 +628,7 @@ function parseRawProfile(requestID, params, rawProfile) {
            // TODO Remove 'samples' and use thread[0].samples for the main thread
            samples = threadSamples;
          }
-         var defaultThreadName = (tid == 0) ? "GeckoMain" : "NoName";
+         var defaultThreadName = (tid == 0) ? "Gecko Main Thread" : "NoName";
          threads[tid] = {
            name: profile.threads[tid].name || defaultThreadName,
            samples: threadSamples,
