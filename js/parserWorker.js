@@ -1156,6 +1156,10 @@ function calculateHistogramData(requestID, profileID, threadId) {
     // Histogram filtering not yet support for MT
     data = profile.threads[threadId].samples;
   }
+  var expectedInterval = 1;
+  if (profile.meta && profile.meta.interval) {
+    expectedInterval = profile.meta.interval; 
+  }
   var histogramData = [];
   var maxHeight = 0;
   for (var i = 0; i < data.length; ++i) {
@@ -1179,6 +1183,12 @@ function calculateHistogramData(requestID, profileID, threadId) {
       // Add a gap for the sample that was filtered out.
       nextX += 1 / samplesPerStep;
       continue;
+    }
+    if (expectedInterval != null && i > 0 && data[i-1] != null &&
+        data[i-1].extraInfo.time != null && step.extraInfo.time != null &&
+        step.extraInfo.time > data[i-1].extraInfo.time + expectedInterval) {
+      var samplesSkipped = Math.floor((step.extraInfo.time - data[i-1].extraInfo.time) / expectedInterval) - 1;
+      nextX += 1 * samplesSkipped / samplesPerStep;
     }
     nextX = Math.ceil(nextX);
     var value = step.frames.length / maxHeight;
