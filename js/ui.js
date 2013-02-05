@@ -1268,6 +1268,7 @@ var tooltip = {
   "showJank" : "Show only samples with >50ms responsiveness.",
   "showJS" : "Show only samples which involve running chrome or content Javascript code.",
   "showFrames" : "Show the frame boundary in the timeline as blue lines. Profile must be recorded with pref 'layers.acceleration.frame-counter'",
+  "showMissedSample" : "Leave a gap in the timeline if when a sample could not be collected in time.",
   "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
@@ -1337,6 +1338,7 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
     infoText += "<label><input type='checkbox' id='showFrames' " + (gShowFrames ?" checked='true' ":" ") + " onchange='toggleShowFrames()'/>Show Frames Boundaries</label><br>\n";
+    infoText += "<label><input type='checkbox' id='showMissedSample' " + (gShowMissedSample ?" checked='true' ":" ") + " onchange='toggleShowMissedSample()'/>Show Missed Sample</label>\n";
 
     infoText += "<h2>Share With URL</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
@@ -1646,6 +1648,12 @@ function toggleJank(/* optional */ threshold) {
   filtersChanged();
 }
 
+var gShowMissedSample = false;
+function toggleShowMissedSample() {
+  gShowMissedSample = !gShowMissedSample;
+  filtersChanged();
+}
+
 var gJavascriptOnly = false;
 function toggleJavascriptOnly() {
   if (gJavascriptOnly) {
@@ -1951,7 +1959,7 @@ function filtersChanged() {
   });
 
   for (var threadId in gThreadsDesc) {
-    var histogramRequest = Parser.calculateHistogramData(threadId);
+    var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, threadId);
     histogramRequest.addEventListener("finished", function (data) {
       start = Date.now();
       gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);

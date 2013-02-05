@@ -244,11 +244,12 @@ var Parser = {
     request.addEventListener("finished", callback);
   },
 
-  calculateHistogramData: function Parser_calculateHistogramData(threadId) {
+  calculateHistogramData: function Parser_calculateHistogramData(showMissedSample,threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("calculateHistogramData", {
       profileID: 0,
       threadId: threadId,
+      showMissedSample: showMissedSample,
     });
     return request;
   },

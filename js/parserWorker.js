@@ -126,7 +126,7 @@ self.onmessage = function (msg) {
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
       case "calculateHistogramData":
-        calculateHistogramData(requestID, taskData.profileID, taskData.threadId);
+        calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.threadId);
         break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta);
@@ -1136,7 +1136,7 @@ function updateViewOptions(requestID, profileID, options) {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function calculateHistogramData(requestID, profileID, threadId) {
+function calculateHistogramData(requestID, profileID, showMissedSample, threadId) {
 
   function getStepColor(step) {
     if (step.extraInfo && "responsiveness" in step.extraInfo) {
@@ -1156,8 +1156,8 @@ function calculateHistogramData(requestID, profileID, threadId) {
     // Histogram filtering not yet support for MT
     data = profile.threads[threadId].samples;
   }
-  var expectedInterval = 1;
-  if (profile.meta && profile.meta.interval) {
+  var expectedInterval = null;
+  if (showMissedSample === true && profile.meta && profile.meta.interval) {
     expectedInterval = profile.meta.interval; 
   }
   var histogramData = [];
