@@ -1978,13 +1978,15 @@ function filtersChanged() {
 
   gHistogramContainer.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
-  var updateRequest = Parser.updateFilters({
-    mergeFunctions: gMergeFunctions,
-    nameFilter: (filterNameInput && filterNameInput.value) || gQueryParamFilterName || "",
-    sampleFilters: gSampleFilters,
-    jankOnly: gJankOnly,
-    javascriptOnly: gJavascriptOnly
-  }, gSelectedThreadId);
+  for (var threadId in gThreadsDesc) {
+    var updateRequest = Parser.updateFilters({
+      mergeFunctions: gMergeFunctions,
+      nameFilter: (filterNameInput && filterNameInput.value) || gQueryParamFilterName || "",
+      sampleFilters: gSampleFilters,
+      jankOnly: gJankOnly,
+      javascriptOnly: gJavascriptOnly
+    }, threadId);
+  }
   var start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
@@ -2012,12 +2014,12 @@ function filtersChanged() {
     });
   }
 
-  var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
+  var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta, gSelectedThreadId);
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
     start = Date.now();
     gHistogramContainer.displayDiagnostics(diagnosticItems);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
-  });
+  }, gSelectedThreadId);
 
   viewOptionsChanged();
 }
@@ -2028,7 +2030,7 @@ function viewOptionsChanged() {
   var updateViewOptionsRequest = Parser.updateViewOptions({
     invertCallstack: gInvertCallstack,
     mergeUnbranched: gMergeUnbranched
-  });
+  }, gSelectedThreadId);
   updateViewOptionsRequest.addEventListener("finished", function (calltree) {
     var start = Date.now();
     gTreeManager.display(calltree, gSymbols, gFunctions, gResources, gMergeFunctions, filterNameInput && filterNameInput.value);

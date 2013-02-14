@@ -226,11 +226,12 @@ var Parser = {
     return request;
   },
 
-  updateViewOptions: function Parser_updateViewOptions(options) {
+  updateViewOptions: function Parser_updateViewOptions(options, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("updateViewOptions", {
       options: options,
-      profileID: 0
+      profileID: 0,
+      threadId: threadId,
     });
     return request;
   },
@@ -244,7 +245,7 @@ var Parser = {
     request.addEventListener("finished", callback);
   },
 
-  calculateHistogramData: function Parser_calculateHistogramData(showMissedSample,threadId) {
+  calculateHistogramData: function Parser_calculateHistogramData(showMissedSample, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("calculateHistogramData", {
       profileID: 0,
@@ -254,10 +255,11 @@ var Parser = {
     return request;
   },
 
-  calculateDiagnosticItems: function Parser_calculateDiagnosticItems(meta) {
+  calculateDiagnosticItems: function Parser_calculateDiagnosticItems(meta, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("calculateDiagnosticItems", {
       profileID: 0,
+      threadId: threadId,
       meta: meta
     });
     return request;

@@ -120,7 +120,7 @@ self.onmessage = function (msg) {
         updateFilters(requestID, taskData.profileID, taskData.filters, taskData.threadId);
         break;
       case "updateViewOptions":
-        updateViewOptions(requestID, taskData.profileID, taskData.options);
+        updateViewOptions(requestID, taskData.profileID, taskData.options, taskData.threadId);
         break;
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
@@ -129,7 +129,7 @@ self.onmessage = function (msg) {
         calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.threadId);
         break;
       case "calculateDiagnosticItems":
-        calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta);
+        calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
         break;
       default:
         sendError(requestID, "Unknown task " + task);
@@ -825,10 +825,13 @@ function getSerializedProfile(requestID, profileID, complete) {
       symbolicationTable[functionIndex] = f.symbol;
     }
   }
+  // Currently if you request to save the current selection only the main thread will be saved.
+  // Change the profileJSON value to handle the threads array.
+  var DEFAULT_SAVE_THREAD = 0;
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
     meta: profile.meta,
-    profileJSON: complete ? { threads: profile.threads } : profile.filteredSamples,
+    profileJSON: complete ? { threads: profile.threads } : profile.filteredThreadSamples[DEFAULT_SAVE_THREAD],
     symbolicationTable: symbolicationTable
   });
   sendFinished(requestID, serializedProfile);
@@ -1184,15 +1187,18 @@ function updateFilters(requestID, profileID, filters, threadId) {
   }
 
   gProfiles[profileID].filterSettings = filters;
-  gProfiles[profileID].filteredSamples = samples;
+  if (gProfiles[profileID].filteredThreadSamples == null) {
+    gProfiles[profileID].filteredThreadSamples = {};
+  }
+  gProfiles[profileID].filteredThreadSamples[threadId] = samples;
   gProfiles[profileID].selectedThread = threadId;
   sendFinishedInChunks(requestID, samples, 40000,
                        function (sample) { return sample ? sample.frames.length : 1; });
 }
 
-function updateViewOptions(requestID, profileID, options) {
+function updateViewOptions(requestID, profileID, options, threadId) {
   var profile = gProfiles[profileID];
-  var samples = profile.filteredSamples;
+  var samples = profile.filteredThreadSamples[threadId];
   var symbols = profile.symbols;
   var functions = profile.functions;
 
@@ -1219,13 +1225,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, threadId
   }
 
   var profile = gProfiles[profileID];
-  var data;
-  if (threadId == profile.selectedThread) {
-    data = profile.filteredSamples;
-  } else {
-    // Histogram filtering not yet support for MT
-    data = profile.threads[threadId].samples;
-  }
+  var data = profile.filteredThreadSamples[threadId];
   var expectedInterval = null;
   if (showMissedSample === true && profile.meta && profile.meta.interval) {
     expectedInterval = profile.meta.interval; 
@@ -1704,7 +1704,7 @@ function firstMatch(array, matchFunction) {
   return undefined;
 }
 
-function calculateDiagnosticItems(requestID, profileID, meta) {
+function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
   /*
   if (!histogramData || histogramData.length < 1) {
     sendFinished(requestID, []);
@@ -1714,7 +1714,7 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
   var profile = gProfiles[profileID];
   //var symbols = profile.symbols;
   var symbols = profile.functions;
-  var data = profile.filteredSamples;
+  var data = profile.filteredThreadSamples[threadId];
 
   var lastStep = data[data.length-1];
   var widthSum = data.length;
