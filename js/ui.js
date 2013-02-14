@@ -479,7 +479,7 @@ HistogramContainer.prototype = {
       threadHistogramDescriptionContainer.innerHTML = thread.name;
       threadHistogramDescriptionContainer.title = "Thread Name";
 
-      thread.threadHistogramView = new HistogramView();
+      thread.threadHistogramView = new HistogramView(thread.name);
       thread.threadHistogramView.threadId = threadId;
       var currCell = currRow.insertCell(1);
       currCell.appendChild(thread.threadHistogramView.getContainer());
@@ -540,9 +540,10 @@ HistogramContainer.prototype = {
   },
 };
 
-function HistogramView() {
+function HistogramView(debugName) {
   this._container = document.createElement("div");
   this._container.className = "histogram";
+  this._debugName = debugName || "NoName";
 
   this._canvas = this._createCanvas();
   this._container.appendChild(this._canvas);
