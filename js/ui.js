@@ -71,11 +71,16 @@ FileList.prototype = {
           //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
           var dateObj = new Date(profileInfo.date);
           var fileEntry = self.addFile(profileInfo, dateObj.toLocaleString(), function fileEntryClick() {
-            dump("open: " + profileInfo.profileKey + "\n");
             loadLocalStorageProfile(profileInfo.profileKey);
           },
           function fileRename(newName) {
             gLocalStorage.renameProfile(profileInfo.profileKey, newName);
+          },
+          function fileDelete() {
+            gLocalStorage.deleteLocalProfile(profileInfo.profileKey, function deletedProfileCallback() {
+              self.clearFiles();
+              gFileList.loadProfileListFromLocalStorage();
+            });
           });
         })();
       }
@@ -86,7 +91,7 @@ FileList.prototype = {
     });
   },
 
-  addFile: function FileList_addFile(profileInfo, description, onselect, onrename) {
+  addFile: function FileList_addFile(profileInfo, description, onselect, onrename, ondelete) {
     var li = document.createElement("li");
 
     var fileName;
@@ -124,12 +129,29 @@ FileList.prototype = {
         onrename(fileListItemTitleSpan.value);
       }
     };
+    fileListItemTitleSpan.onkeypress = function(event) {
+      var code = event.keyCode;
+      var ENTER_KEYCODE = 13;
+      if (code == ENTER_KEYCODE) {
+        fileListItemTitleSpan.blur();
+        onrename(fileListItemTitleSpan.value);
+      }
+    };
     li.appendChild(fileListItemTitleSpan);
 
     var fileListItemDescriptionSpan = document.createElement("span");
     fileListItemDescriptionSpan.className = "fileListItemDescription";
     fileListItemDescriptionSpan.textContent = li.description;
     li.appendChild(fileListItemDescriptionSpan);
+
+    var deleteProfileButton = document.createElement("div");
+    deleteProfileButton.className = "fileListItemDelete";
+    deleteProfileButton.title = "Delete the profile from your local cache";
+    deleteProfileButton.onclick = function(event) {
+      event.stopPropagation();
+      ondelete();
+    };
+    li.appendChild(deleteProfileButton);
 
     this._container.appendChild(li);
 

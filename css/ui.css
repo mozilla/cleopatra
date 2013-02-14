@@ -372,6 +372,24 @@ body {
   line-height: 15px;
   font-size: 9px;
 }
+.fileListItemDelete {
+  background-image: url(../images/error-16.png);
+  width: 16px;
+  height: 16px;
+  top: -24px;
+  right: 5px;
+  position: relative;
+  float: right;
+}
+.fileListItemDeleteDescription {
+  display: none;
+}
+.fileListItemDelete:hover + fileListItemDeleteDescription {
+  display: block;
+}
+.fileListItemDelete:hover {
+  border: solid 1px;
+}
 .busyCover {
   position: absolute;
   top: 0;
