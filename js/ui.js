@@ -535,7 +535,7 @@ HistogramContainer.prototype = {
   histogramSelected: function HistogramContainer_histogramSelected(view) {
     if (gSelectedThreadId != view.threadId) {
       gSelectedThreadId = view.threadId;
-      filtersChanged();
+      //filtersChanged();
     }
   },
 };
