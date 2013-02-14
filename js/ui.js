@@ -1535,7 +1535,12 @@ function loadProfileURL(url) {
       subreporters.fileLoading.setProgress(NaN);
     }
   };
-  xhr.send(null);
+  try {
+    xhr.send(null);
+  } catch (e) {
+    subreporters.fileLoading.begin("Error fetching profile :(. URL: '" + url + "':" + e.message);
+    return;
+  }
   subreporters.fileLoading.begin("Loading remote file...");
 }
 
@@ -1761,6 +1766,9 @@ function enterMainUI() {
     '<h1>Or, alternatively, enter your profile data here:</h1>' +
     '<textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>' +
     '<p><button onclick="loadProfile(document.getElementById(\'data\').value);">Parse</button></p>' +
+    '<h1>Or, provide a URL serving the profile that has <a href="https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS">CORS headers</a>:</h1>' +
+    '<input type="text" id="url">' +
+    '<input value="Open" type="button" id="url" onclick="loadProfileURL(document.getElementById(\'url\').value)">' +
     '';
 
   gMainArea.appendChild(profileEntryPane);
