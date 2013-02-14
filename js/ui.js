@@ -484,25 +484,28 @@ HistogramContainer.prototype = {
       var currCell = currRow.insertCell(1);
       currCell.appendChild(thread.threadHistogramView.getContainer());
 
-      if (threadId == 0) {
-        thread.diagnosticBar = new DiagnosticBar();
-        thread.diagnosticBar.setDetailsListener(function(details) {
-          if (details.indexOf("bug ") == 0) {
-            window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
-          } else {
-            var sourceView = new SourceView();
-            sourceView.setText("Diagnostic", js_beautify(details));
-            gMainArea.appendChild(sourceView.getContainer());
-          }
-        });
-        currCell.appendChild(thread.diagnosticBar.getContainer());
-      }
+      thread.diagnosticBar = new DiagnosticBar();
+      thread.diagnosticBar.hide();
+      thread.diagnosticBar.setDetailsListener(function(details) {
+        if (details.indexOf("bug ") == 0) {
+          window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
+        } else {
+          var sourceView = new SourceView();
+          sourceView.setText("Diagnostic", js_beautify(details));
+          gMainArea.appendChild(sourceView.getContainer());
+        }
+      });
+      currCell.appendChild(thread.diagnosticBar.getContainer());
     }
     this._threadsDesc = threadsDesc;
   },
-  displayDiagnostics: function HistogramContainer_displayDiagnostics(diagnosticItems) {
+  displayDiagnostics: function HistogramContainer_displayDiagnostics(diagnosticItems, diagnosticThreadId) {
     // Only supported on the main thread ATM
-    this._threadsDesc[0].diagnosticBar.display(diagnosticItems); 
+    for (var threadId in this._threadsDesc) {
+      var thread = this._threadsDesc[threadId];
+      thread.diagnosticBar.hide();
+    }
+    this._threadsDesc[diagnosticThreadId].diagnosticBar.display(diagnosticItems); 
   },
   dataIsOutdated: function HistogramContainer_dataIsOutdated() {
     for (var threadId in this._threadsDesc) {
@@ -522,7 +525,7 @@ HistogramContainer.prototype = {
       thread.threadHistogramView.highlightedCallstackChanged(highlightedCallstack);
     }
   },
-  selectRange: function HistogramView_selectRange(start, end) {
+  selectRange: function HistogramContainer_selectRange(start, end) {
     // Only supported on the main thread ATM
     this._threadsDesc[0].threadHistogramView.selectRange(start, end);
   },
@@ -2015,11 +2018,12 @@ function filtersChanged() {
   }
 
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta, gSelectedThreadId);
+  var diagnosticThreadId = gSelectedThreadId;
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
     start = Date.now();
-    gHistogramContainer.displayDiagnostics(diagnosticItems);
+    gHistogramContainer.displayDiagnostics(diagnosticItems, diagnosticThreadId);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
-  }, gSelectedThreadId);
+  }, diagnosticThreadId);
 
   viewOptionsChanged();
 }
