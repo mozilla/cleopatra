@@ -532,6 +532,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         endPoint = samples[samples.length-2].extraInfo["time"];
       }
     }
+    /*
     var rootId = indexForSymbol("(root)");
     for (var threadId in threads) {
       var thread = threads[threadId];
@@ -543,6 +544,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         }
       }
     }
+    */
     var sampleId = 0;
     for (var time = startPoint; time < endPoint; time+=10) {
       for (var threadId in threads) {
