@@ -358,7 +358,14 @@ body {
 .fileListItemTitle {
   display: block;
   padding-top: 6px;
+  margin-left: 6px;
   font-size: 12px;
+  background: none;
+  border: none;
+}
+.fileListItemTitle:focus, .fileListItemTitle:hover {
+  background: white;
+  border: 1px;
 }
 .fileListItemDescription {
   display: block;

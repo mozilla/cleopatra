@@ -125,10 +125,12 @@ ProfileLocalStorage.prototype = {
     });
   },
 
-  storeLocalProfile: function ProfileLocalStorage_storeLocalProfile(profile, profileKey, callback) {
+  storeLocalProfile: function ProfileLocalStorage_storeLocalProfile(profile, profileKey, callback, custom_info) {
     var self = this;
+    custom_info = custom_info || {};
     var date = new Date();
     var time = date.getTime();
+    var name = custom_info.name || "Local Profile";
     this.getProfileList(function got_profile(profileList) {
       profileKey = profileKey || "local_profile:" + time;
       for (var i = 0; i < profileList.length; i++) {
@@ -141,13 +143,27 @@ ProfileLocalStorage.prototype = {
         self.deleteLocalProfile(profileToRemove);
         profileList.shift();
       }
-      profileList.push( {profileKey: profileKey, key: profileKey, name: "Local Profile", date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
+      profileList.push( {profileKey: profileKey, key: profileKey, name: name, date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
       self._storage.setValue(profileKey, profile);
       self._storage.setValue("profileList", profileList);
       if (callback)
         callback();
       if (self._profileListChangeCallback) {
         self._profileListChangeCallback(profileList);
+      }
+    });
+  },
+
+  renameProfile: function ProfileLocalStorage_renameProfile(profileKey, name) {
+    var self = this;
+    this.getProfileList(function renameProfileWithList(profileList) {
+      for (var profileIndex in profileList) {
+        var profileInfo = profileList[profileIndex];
+        if (profileInfo.profileKey == profileKey) {
+          profileInfo.name = name;
+          self._storage.setValue("profileList", profileList);
+          return;
+        }
       }
     });
   },

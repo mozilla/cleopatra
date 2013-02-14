@@ -73,6 +73,9 @@ FileList.prototype = {
           var fileEntry = self.addFile(profileInfo, dateObj.toLocaleString(), function fileEntryClick() {
             dump("open: " + profileInfo.profileKey + "\n");
             loadLocalStorageProfile(profileInfo.profileKey);
+          },
+          function fileRename(newName) {
+            gLocalStorage.renameProfile(profileInfo.profileKey, newName);
           });
         })();
       }
@@ -83,7 +86,7 @@ FileList.prototype = {
     });
   },
 
-  addFile: function FileList_addFile(profileInfo, description, onselect) {
+  addFile: function FileList_addFile(profileInfo, description, onselect, onrename) {
     var li = document.createElement("li");
 
     var fileName;
@@ -109,9 +112,18 @@ FileList.prototype = {
         onselect();
     }
 
-    var fileListItemTitleSpan = document.createElement("span");
+    var fileListItemTitleSpan = document.createElement("input");
+    fileListItemTitleSpan.type = "input";
     fileListItemTitleSpan.className = "fileListItemTitle";
-    fileListItemTitleSpan.textContent = li.fileName;
+    fileListItemTitleSpan.value = li.fileName;
+    fileListItemTitleSpan.onclick = function(event) {
+      event.stopPropagation();
+    };
+    fileListItemTitleSpan.onblur = function() {
+      if (fileListItemTitleSpan.value != li.fileName) {
+        onrename(fileListItemTitleSpan.value);
+      }
+    };
     li.appendChild(fileListItemTitleSpan);
 
     var fileListItemDescriptionSpan = document.createElement("span");
