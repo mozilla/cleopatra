@@ -144,14 +144,14 @@ ProfileLocalStorage.prototype = {
       }
       var tempProfileCount = 0;
       for (profileIndex in profileList) {
-        var profile = profileIndex[profileList];
+        var profile = profileList[profileIndex];
         if (profile.retain == false) {
           tempProfileCount++; 
         }
       }
       var profilesToRemove = tempProfileCount - 5;
       for (profileIndex in profileList) {
-        var profile = profileIndex[profileList];
+        var profile = profileList[profileIndex];
         if (profile.retain == false && profilesToRemove > 0) {
           self._deleteLocalProfile(profileToRemove);
         }
