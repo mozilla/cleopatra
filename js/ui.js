@@ -721,8 +721,13 @@ HistogramView.prototype = {
   },
   _getStepColor: function HistogramView__getStepColor(step) {
       if ("responsiveness" in step.extraInfo) {
-        var res = step.extraInfo.responsiveness;
-        var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+        if (gShowPowerInfo) {
+          var res = step.extraInfo.power;
+          var redComponent = Math.round(255 * Math.min(1, res / 10));
+        } else {
+          var res = step.extraInfo.responsiveness;
+          var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+        }
         return "rgb(" + redComponent + ",0,0)";
       }
 
@@ -1118,6 +1123,43 @@ function numberOfCurrentlyShownSamples() {
   return num;
 }
 
+function totalPower() {
+  var data = gCurrentlyShownSampleData;
+  var totalPower = 0.0;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["power"])
+      continue;
+    totalPower += data[i].extraInfo["power"];
+  }
+  return totalPower.toFixed(2);
+}
+
+function peakPower() {
+  var data = gCurrentlyShownSampleData;
+  var peakPower = 0.0;
+  var lastTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["power"])
+      continue;
+    var deltaTime = null;
+    if (isNaN(data[i].extraInfo["time"])) {
+      lastTime = null;
+      continue;
+    }
+    if (lastTime != null) {
+      deltaTime = data[i].extraInfo["time"] - lastTime;
+      deltaTime /= 1000; // Convert to seconds
+    }
+    if (deltaTime != null) {
+      console.log(data[i].extraInfo["power"] +" -> " + deltaTime + ", lastTime: " + lastTime + " currTime: " + data[i].extraInfo["time"]);
+      var power = data[i].extraInfo["power"] / deltaTime;
+      peakPower = Math.max(peakPower, power);
+    }
+    lastTime = data[i].extraInfo["time"];
+  }
+  return peakPower.toFixed(2);
+}
+
 function avgResponsiveness() {
   var data = gCurrentlyShownSampleData;
   var totalRes = 0.0;
@@ -1360,6 +1402,10 @@ InfoBar.prototype = {
     infoText += "  <dt>Avg. Event Lag:</dt><dd>" + avgResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Max Event Lag:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Real Interval:</dt><dd>" + effectiveInterval() + "</dd>";
+    if (gMeta && gMeta.hasPowerInfo) {
+      infoText += "  <dt>Work:</dt><dd>" + totalPower() + " J</dd>";
+      infoText += "  <dt>Peak:</dt><dd>" + peakPower() + " Watt</dd>";
+    }
     infoText += "</dl>\n";
     infoText += "<h2>Pre Filtering</h2>\n";
     // Disable for now since it's buggy and not useful
@@ -1377,6 +1423,9 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
     infoText += "<label><input type='checkbox' id='showFrames' " + (gShowFrames ?" checked='true' ":" ") + " onchange='toggleShowFrames()'/>Show Frames Boundaries</label><br>\n";
     infoText += "<label><input type='checkbox' id='showMissedSample' " + (gShowMissedSample ?" checked='true' ":" ") + " onchange='toggleShowMissedSample()'/>Show Missed Sample</label>\n";
+    if (gMeta && gMeta.hasPowerInfo) {
+      infoText += "<br><label><input type='checkbox' id='showPowerInfo' " + (gShowPowerInfo ?" checked='true' ":" ") + " onchange='toggleShowPowerInfo()'/>Show Power</label>\n";
+    }
 
     infoText += "<h2>Share With URL</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
@@ -1697,6 +1746,12 @@ function toggleShowMissedSample() {
   filtersChanged();
 }
 
+var gShowPowerInfo = false;
+function toggleShowPowerInfo() {
+  gShowPowerInfo = !gShowPowerInfo;
+  filtersChanged();
+}
+
 var gJavascriptOnly = false;
 function toggleJavascriptOnly() {
   if (gJavascriptOnly) {
@@ -2007,7 +2062,10 @@ function filtersChanged() {
   });
 
   for (var threadId in gThreadsDesc) {
-    var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, threadId);
+    var options = {
+      showPowerInfo: gShowPowerInfo,
+    };
+    var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
     histogramRequest.addEventListener("finished", function (data) {
       start = Date.now();
       gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);

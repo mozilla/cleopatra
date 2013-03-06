@@ -126,7 +126,7 @@ self.onmessage = function (msg) {
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
       case "calculateHistogramData":
-        calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.threadId);
+        calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
@@ -1218,10 +1218,14 @@ function updateViewOptions(requestID, profileID, options, threadId) {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function calculateHistogramData(requestID, profileID, showMissedSample, threadId) {
+function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
 
   function getStepColor(step) {
-    if (step.extraInfo && "responsiveness" in step.extraInfo) {
+    if (options.showPowerInfo) {
+      var res = step.extraInfo.power;
+      var redComponent = Math.round(255 * Math.min(1, res / 0.1));
+      return "rgb(" + redComponent + ",0,0)";
+    } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
       var res = step.extraInfo.responsiveness;
       var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
       return "rgb(" + redComponent + ",0,0)";
