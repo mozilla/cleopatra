@@ -751,7 +751,7 @@ function parseRawProfile(requestID, params, rawProfile) {
           sample.extraInfo["responsiveness"] = sample.responsiveness;
         }
         if (sample.power) {
-          sample.extraInfo["power"] = sample.responsiveness;
+          sample.extraInfo["power"] = sample.power;
           meta.hasPowerInfo = true;
         }
         if (sample.marker) {
