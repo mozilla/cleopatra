@@ -28,7 +28,7 @@ function ProfileComparator(topLevelDiv) {
 
   // create an iframe for side2
   this._side2iFrame = document.createElement("iframe");
-  this._side2iFrame.src = window.location.toString().split("?")[0] + "?compare";
+  this._side2iFrame.src = window.location.toString().split("#")[0].split("?")[0] + "?compare";
   this._side2iFrame.onload = function() {
     //self._side2iFrame.contentWindow.enterProgressUI();
   }
