@@ -532,6 +532,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         endPoint = samples[samples.length-2].extraInfo["time"];
       }
     }
+
     /*
     var rootId = indexForSymbol("(root)");
     for (var threadId in threads) {
@@ -557,7 +558,7 @@ function parseRawProfile(requestID, params, rawProfile) {
 
         if (sampleId >= samples.length) {
           // This thread's doesn't have enough samples, insert one
-          samples.push(samples[0].frames[0], makeMissedSample(time));
+          samples.push(makeMissedSample(samples[0].frames[0], time));
         } else if (samples[sampleId].extraInfo["time"] > time) {
           samples.splice(sampleId, 0, makeMissedSample(samples[0].frames[0], time));
           //if (threadId == 1)
@@ -574,7 +575,7 @@ function parseRawProfile(requestID, params, rawProfile) {
 
   function makeMissedSample(parentIndex, time) {
     return makeSample(
-        [indexForSymbol("(root)"), indexForSymbol("Missed")],
+        [parentIndex, indexForSymbol("Missed")],
         {time:time}
     );
   }
