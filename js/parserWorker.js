@@ -693,6 +693,13 @@ function parseRawProfile(requestID, params, rawProfile) {
 
     if (profile.threads != null) {
       for (var tid in profile.threads) {
+         if (typeof profile.threads[tid] == "string") {
+           profile.threads[tid] = JSON.parse(profile.threads[tid]);
+           // If we parse the samples this may be a subprocess profile we need to merge in
+           if (profile.threads[tid].threads != null) {
+             profile.threads[tid] = profile.threads[tid].threads[0];
+           }
+         }
          var threadSamples = parseJSONSamples(profile.threads[tid].samples);
          if (tid == 0) {
            // TODO Remove 'samples' and use thread[0].samples for the main thread
