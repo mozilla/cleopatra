@@ -35,7 +35,12 @@ JSONStorage.prototype = {
       });
       return;
     }
-    this._db.transaction("profiles", "readwrite").objectStore("profiles").put( {storage_key: key, value: value} );
+    try {
+      this._db.transaction("profiles", "readwrite").objectStore("profiles").put( {storage_key: key, value: value} );
+    } catch (e) {
+      dump("localStorage error: " + e + "\n");
+      return;
+    }
     //PROFILERTRACE("JSONStorage['" + key + "'] set " + JSON.stringify(value));
     if (callback)
       callback();
