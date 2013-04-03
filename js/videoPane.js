@@ -10,6 +10,9 @@ function VideoPane(videoCapture) {
   this._video.crossOrigin = 'anonymous';
   this._video.crossorigin = 'anonymous';
   this._video.src = videoCapture.src;
+  this._video.addEventListener("play", function() {
+    this.playbackRate = 0.05;
+  });
   this._container.appendChild(this._video);
 
   this._canvas = document.createElement("canvas");

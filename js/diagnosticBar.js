@@ -15,8 +15,9 @@ DiagnosticBar.prototype = {
     var self = this;
     x = x * 100;
     width = width * 100;
-    if (width < 1)
-      return false;
+    if (width < 0.1)
+      width = 0.1;
+
     var diagnosticGradient = document.createElement("a");
     if (this._colorCode % 2 == 0) {
       diagnosticGradient.className = "diagnosticItemEven";
@@ -57,8 +58,12 @@ DiagnosticBar.prototype = {
 
     return true;
   },
+  hide: function HistogramContainer_hide() {
+    this._container.style.display = "none";
+  },
   display: function DiagnosticBar_display(diagnosticItems) {
     var self = this;
+    this._container.style.display = "none";
     this._container.innerHTML = "";
 
     var addedAnyDiagnosticItem = diagnosticItems.map(function addOneItem(item) {

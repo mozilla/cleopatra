@@ -71,8 +71,16 @@ FileList.prototype = {
           //PROFILERTRACE("Profile list from local storage: " + JSON.stringify(profileInfo));
           var dateObj = new Date(profileInfo.date);
           var fileEntry = self.addFile(profileInfo, dateObj.toLocaleString(), function fileEntryClick() {
-            dump("open: " + profileInfo.profileKey + "\n");
             loadLocalStorageProfile(profileInfo.profileKey);
+          },
+          function fileRename(newName) {
+            gLocalStorage.renameProfile(profileInfo.profileKey, newName);
+          },
+          function fileDelete() {
+            gLocalStorage.deleteLocalProfile(profileInfo.profileKey, function deletedProfileCallback() {
+              self.clearFiles();
+              gFileList.loadProfileListFromLocalStorage();
+            });
           });
         })();
       }
@@ -83,7 +91,7 @@ FileList.prototype = {
     });
   },
 
-  addFile: function FileList_addFile(profileInfo, description, onselect) {
+  addFile: function FileList_addFile(profileInfo, description, onselect, onrename, ondelete) {
     var li = document.createElement("li");
 
     var fileName;
@@ -109,15 +117,41 @@ FileList.prototype = {
         onselect();
     }
 
-    var fileListItemTitleSpan = document.createElement("span");
+    var fileListItemTitleSpan = document.createElement("input");
+    fileListItemTitleSpan.type = "input";
     fileListItemTitleSpan.className = "fileListItemTitle";
-    fileListItemTitleSpan.textContent = li.fileName;
+    fileListItemTitleSpan.value = li.fileName;
+    fileListItemTitleSpan.onclick = function(event) {
+      event.stopPropagation();
+    };
+    fileListItemTitleSpan.onblur = function() {
+      if (fileListItemTitleSpan.value != li.fileName) {
+        onrename(fileListItemTitleSpan.value);
+      }
+    };
+    fileListItemTitleSpan.onkeypress = function(event) {
+      var code = event.keyCode;
+      var ENTER_KEYCODE = 13;
+      if (code == ENTER_KEYCODE) {
+        fileListItemTitleSpan.blur();
+        onrename(fileListItemTitleSpan.value);
+      }
+    };
     li.appendChild(fileListItemTitleSpan);
 
     var fileListItemDescriptionSpan = document.createElement("span");
     fileListItemDescriptionSpan.className = "fileListItemDescription";
     fileListItemDescriptionSpan.textContent = li.description;
     li.appendChild(fileListItemDescriptionSpan);
+
+    var deleteProfileButton = document.createElement("div");
+    deleteProfileButton.className = "fileListItemDelete";
+    deleteProfileButton.title = "Delete the profile from your local cache";
+    deleteProfileButton.onclick = function(event) {
+      event.stopPropagation();
+      ondelete();
+    };
+    li.appendChild(deleteProfileButton);
 
     this._container.appendChild(li);
 
@@ -157,6 +191,9 @@ function ProfileTreeManager() {
   var self = this;
   this.treeView.addEventListener("select", function (frameData) {
     self.highlightFrame(frameData);
+    if (window.comparator_setSelection) {
+      window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot(), frameData);
+    }
   });
   this.treeView.addEventListener("contextMenuClick", function (e) {
     self._onContextMenuClick(e);
@@ -182,11 +219,20 @@ ProfileTreeManager.prototype = {
   dataIsOutdated: function ProfileTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();
   },
-  saveSelectionSnapshot: function ProfileTreeManager_getSelectionSnapshot(isJavascriptOnly) {
+  saveSelectionSnapshot: function ProfileTreeManager_saveSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getSelectionSnapshot(isJavascriptOnly);
   },
-  saveReverseSelectionSnapshot: function ProfileTreeManager_getReverseSelectionSnapshot(isJavascriptOnly) {
+  saveReverseSelectionSnapshot: function ProfileTreeManager_saveReverseSelectionSnapshot(isJavascriptOnly) {
     this._savedSnapshot = this.treeView.getReverseSelectionSnapshot(isJavascriptOnly);
+  },
+  hasNonTrivialSelection: function ProfileTreeManager_hasNonTrivialSelection() {
+    return this.treeView.getSelectionSnapshot().length > 1;
+  },
+  serializeCurrentSelectionSnapshot: function ProfileTreeManager_serializeCurrentSelectionSnapshot() {
+    return JSON.stringify(this.treeView.getSelectionSnapshot());
+  },
+  restoreSerializedSelectionSnapshot: function ProfileTreeManager_restoreSerializedSelectionSnapshot(selection) {
+    this._savedSnapshot = JSON.parse(selection);
   },
   _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot, allowNonContigous) {
     return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
@@ -251,8 +297,9 @@ ProfileTreeManager.prototype = {
   display: function ProfileTreeManager_display(tree, symbols, functions, resources, useFunctions, filterByName) {
     this.treeView.display(this.convertToJSTreeData(tree, symbols, functions, useFunctions), resources, filterByName);
     if (this._savedSnapshot) {
+      var old = this._savedSnapshot.clone();
       this._restoreSelectionSnapshot(this._savedSnapshot, this._allowNonContigous);
-      this._savedSnapshot = null;
+      this._savedSnapshot = old;
       this._allowNonContigous = false;
     }
   },
@@ -402,9 +449,104 @@ PluginView.prototype = {
   },
 }
 
-function HistogramView() {
+function HistogramContainer() {
+  this._container = document.createElement("table");
+  this._container.className = "histogramContainer";
+  this._container.style.width = "100%";
+  this._container.style.height = "100%";
+  this._container.border = "0";
+  this._container.cellPadding = "0";
+  this._container.cellSpacing = "0";
+  this._container.borderCollapse = "collapse";
+
+  this._threadsDesc = null;
+}
+HistogramContainer.prototype = {
+  getContainer: function HistogramContainer_getContainer() {
+    return this._container;
+  },
+  updateThreadsDesc: function HistogramContainer_updateThreadsDesc(threadsDesc) {
+    this._container.innerHTML = "";
+
+    var currRow;
+    var rowIndex = 0;
+    for (var threadId in threadsDesc) {
+      var thread = threadsDesc[threadId];
+
+      currRow = this._container.insertRow(rowIndex++);
+      var threadHistogramDescriptionContainer = currRow.insertCell(0);
+      threadHistogramDescriptionContainer.className = "threadHistogramDescription";
+      threadHistogramDescriptionContainer.innerHTML = thread.name;
+      threadHistogramDescriptionContainer.title = "Thread Name";
+
+      thread.threadHistogramView = new HistogramView(thread.name);
+      thread.threadHistogramView.threadId = threadId;
+      var currCell = currRow.insertCell(1);
+      currCell.appendChild(thread.threadHistogramView.getContainer());
+
+      thread.diagnosticBar = new DiagnosticBar();
+      thread.diagnosticBar.hide();
+      thread.diagnosticBar.setDetailsListener(function(details) {
+        if (details.indexOf("bug ") == 0) {
+          window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
+        } else {
+          var sourceView = new SourceView();
+          sourceView.setText("Diagnostic", js_beautify(details));
+          gMainArea.appendChild(sourceView.getContainer());
+        }
+      });
+      currCell.appendChild(thread.diagnosticBar.getContainer());
+    }
+    this._threadsDesc = threadsDesc;
+  },
+  displayDiagnostics: function HistogramContainer_displayDiagnostics(diagnosticItems, diagnosticThreadId) {
+    // Only supported on the main thread ATM
+    for (var threadId in this._threadsDesc) {
+      var thread = this._threadsDesc[threadId];
+      thread.diagnosticBar.hide();
+    }
+    this._threadsDesc[diagnosticThreadId].diagnosticBar.display(diagnosticItems); 
+  },
+  dataIsOutdated: function HistogramContainer_dataIsOutdated() {
+    for (var threadId in this._threadsDesc) {
+      var thread = this._threadsDesc[threadId];
+
+      thread.threadHistogramView.dataIsOutdated();
+    }
+  },
+  showVideoFramePosition: function HistogramContainer_showVideoFramePosition(frame) {
+    // Only supported on the main thread ATM
+    this._threadsDesc[0].threadHistogramView.showVideoFramePosition(frame); 
+  },
+  highlightedCallstackChanged: function HistogramContainer_highlightedCallstackChanged(highlightedCallstack) {
+    for (var threadId in this._threadsDesc) {
+      var thread = this._threadsDesc[threadId];
+
+      thread.threadHistogramView.highlightedCallstackChanged(highlightedCallstack);
+    }
+  },
+  selectRange: function HistogramContainer_selectRange(start, end) {
+    // Only supported on the main thread ATM
+    this._threadsDesc[0].threadHistogramView.selectRange(start, end);
+  },
+  display: function HistogramContainer_display(threadId, histogramData, frameStart, widthSum, highlightedCallstack) {
+    this._threadsDesc[threadId].threadHistogramView.display(histogramData, frameStart, widthSum, highlightedCallstack);
+  },
+  updateInfoBar: function HistogramContainer_updateInfoBar() {
+    thread.infoBar.display(); 
+  },
+  histogramSelected: function HistogramContainer_histogramSelected(view) {
+    if (gSelectedThreadId != view.threadId) {
+      gSelectedThreadId = view.threadId;
+      filtersChanged();
+    }
+  },
+};
+
+function HistogramView(debugName) {
   this._container = document.createElement("div");
   this._container.className = "histogram";
+  this._debugName = debugName || "NoName";
 
   this._canvas = this._createCanvas();
   this._container.appendChild(this._canvas);
@@ -432,6 +574,9 @@ HistogramView.prototype = {
   },
   getContainer: function HistogramView_getContainer() {
     return this._container;
+  },
+  selectRange: function HistogramView_selectRange(start, end) {
+    this._rangeSelector._finishSelection(start, end);
   },
   showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
     if (!this._frameStart || !this._frameStart[frame])
@@ -470,18 +615,29 @@ HistogramView.prototype = {
     var sample = this._histogramData[index]; 
     var frames = sample.frames;
     var list = gSampleBar.setSample(frames[0]);
+    gHistogramContainer.histogramSelected(this);
     gTreeManager.setSelection(list);
     setHighlightedCallstack(frames[0], frames[0]);
   },
   display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
     this._histogramData = histogramData;
-    PROFILERTRACE("FRAME START: " + frameStart + "\n");
     this._frameStart = frameStart;
     this._widthSum = widthSum;
     this._widthMultiplier = this._calculateWidthMultiplier();
     this._canvas.width = this._widthMultiplier * this._widthSum;
     this._render(highlightedCallstack);
     this._busyCover.classList.remove("busy");
+  },
+  _scheduleRender: function HistogramView__scheduleRender(highlightedCallstack) {
+    var self = this;
+    if (self._pendingAnimationFrame != null) {
+      return;
+    }
+    self._pendingAnimationFrame = requestAnimationFrame(function anim_frame() {
+      cancelAnimationFrame(self._pendingAnimationFrame);
+      self._pendingAnimationFrame = null;
+      self._render(highlightedCallstack);
+    });
   },
   _render: function HistogramView__render(highlightedCallstack) {
     var ctx = this._canvas.getContext("2d");
@@ -491,6 +647,7 @@ HistogramView.prototype = {
     ctx.clearRect(0, 0, this._widthSum, height);
 
     var self = this;
+    var markerCount = 0;
     for (var i = 0; i < this._histogramData.length; i++) {
       var step = this._histogramData[i];
       var isSelected = self._isStepSelected(step, highlightedCallstack);
@@ -504,15 +661,26 @@ HistogramView.prototype = {
       }
       var roundedHeight = Math.round(step.value * height);
       ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
+      if (step.frameNumber && gShowFrames) {
+        ctx.fillStyle = "blue";
+        ctx.fillRect(step.x, 0, 1, height);
+      }
       if (step.marker) {
-        ctx.fillText(step.marker, step.x + step.width + 2, 15);
+        var x = step.x + step.width + 2;
+        var endPoint = x + ctx.measureText(step.marker).width;
+        var lastDataPoint = this._histogramData[this._histogramData.length-1];
+        if (endPoint >= lastDataPoint.x + lastDataPoint.width) {
+          x -= endPoint - (lastDataPoint.x + lastDataPoint.width) - 1;
+        }
+        ctx.fillText(step.marker, x, 15 + ((markerCount % 2) == 0 ? 0 : 20));
+        markerCount++;
       }
     }
 
     this._finishedRendering = true;
   },
   highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
-    this._render(highlightedCallstack);
+    this._scheduleRender(highlightedCallstack);
   },
   _isInRangeSelector: function HistogramView_isInRangeSelector(index) {
     return false;
@@ -520,37 +688,46 @@ HistogramView.prototype = {
   _isStepSelected: function HistogramView__isStepSelected(step, highlightedCallstack) {
     if ("marker" in step)
       return false;
-    return step.frames.some(function isCallstackSelected(frames) {
+
+    search_frames: for (var i = 0; i < step.frames.length; i++) {
+      var frames = step.frames[i];
+
       if (frames.length < highlightedCallstack.length ||
           highlightedCallstack.length <= (gInvertCallstack ? 0 : 1))
-        return false;
+        continue;
 
       var compareFrames = frames;
       if (gInvertCallstack) {
         for (var j = 0; j < highlightedCallstack.length; j++) {
           var compareFrameIndex = compareFrames.length - 1 - j;
           if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
-            return false;
+            continue search_frames;
           }
         }
       } else {
         for (var j = 0; j < highlightedCallstack.length; j++) {
           var compareFrameIndex = j;
           if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
-            return false;
+            continue search_frames;
           }
         }
       }
       return true;
-    });
+    };
+    return false;
   },
   getHistogramData: function HistogramView__getHistogramData() {
     return this._histogramData;
   },
   _getStepColor: function HistogramView__getStepColor(step) {
       if ("responsiveness" in step.extraInfo) {
-        var res = step.extraInfo.responsiveness;
-        var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+        if (gShowPowerInfo) {
+          var res = step.extraInfo.power;
+          var redComponent = Math.round(255 * Math.min(1, res / 10));
+        } else {
+          var res = step.extraInfo.responsiveness;
+          var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+        }
         return "rgb(" + redComponent + ",0,0)";
       }
 
@@ -572,15 +749,15 @@ function RangeSelector(graph, histogram) {
 
   this._mouseMarker = document.createElement("div");
   this._mouseMarker.className = "histogramMouseMarker";
+  this._mouseMarker.style.left = "-500px";
   this.container.appendChild(this._mouseMarker);
 }
 RangeSelector.prototype = {
   getContainer: function RangeSelector_getContainer() {
     return this.container;
   },
-  // echo the location off the mouse on the histogram
+  // echo the location of the mouse on the histogram
   drawMouseMarker: function RangeSelector_drawMouseMarker(x) {
-    console.log("Draw");
     var mouseMarker = this._mouseMarker;
     mouseMarker.style.left = x + "px";
   },
@@ -759,11 +936,12 @@ function videoPaneTimeChange(video) {
   //var frameStart = gMeta.frameStart[frame];
   //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
 
-  gHistogramView.showVideoFramePosition(frame); 
+  gHistogramContainer.showVideoFramePosition(frame); 
 }
 
 
 window.onpopstate = function(ev) {
+  return; // Conflicts with document url
   if (!gBreadcrumbTrail)
     return;
   console.log("pop: " + JSON.stringify(ev.state));
@@ -840,10 +1018,17 @@ BreadcrumbTrail.prototype = {
     if (this._breadcrumbs.length-2 >= 0)
       this._enter(this._breadcrumbs.length-2);
   },
-  _enter: function BreadcrumbTrail__select(index) {
+  enterLastItem: function BreadcrumbTrail_enterLastItem(forceSelection) {
+    this._enter(this._breadcrumbs.length-1, forceSelection);
+  },
+  _enter: function BreadcrumbTrail__select(index, forceSelection) {
     if (index == this._selectedBreadcrumbIndex)
       return;
-    gTreeManager.saveSelectionSnapshot();
+    if (forceSelection) {
+      gTreeManager.restoreSerializedSelectionSnapshot(forceSelection);
+    } else {
+      gTreeManager.saveSelectionSnapshot();
+    }
     var prevSelected = this._breadcrumbs[this._selectedBreadcrumbIndex];
     if (prevSelected)
       prevSelected.classList.remove("selected");
@@ -957,6 +1142,43 @@ function numberOfCurrentlyShownSamples() {
   return num;
 }
 
+function totalPower() {
+  var data = gCurrentlyShownSampleData;
+  var totalPower = 0.0;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["power"])
+      continue;
+    totalPower += data[i].extraInfo["power"];
+  }
+  return totalPower.toFixed(2);
+}
+
+function peakPower() {
+  var data = gCurrentlyShownSampleData;
+  var peakPower = 0.0;
+  var lastTime = null;
+  for (var i = 0; i < data.length; ++i) {
+    if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["power"])
+      continue;
+    var deltaTime = null;
+    if (isNaN(data[i].extraInfo["time"])) {
+      lastTime = null;
+      continue;
+    }
+    if (lastTime != null) {
+      deltaTime = data[i].extraInfo["time"] - lastTime;
+      deltaTime /= 1000; // Convert to seconds
+    }
+    if (deltaTime != null) {
+      console.log(data[i].extraInfo["power"] +" -> " + deltaTime + ", lastTime: " + lastTime + " currTime: " + data[i].extraInfo["time"]);
+      var power = data[i].extraInfo["power"] / deltaTime;
+      peakPower = Math.max(peakPower, power);
+    }
+    lastTime = data[i].extraInfo["time"];
+  }
+  return peakPower.toFixed(2);
+}
+
 function avgResponsiveness() {
   var data = gCurrentlyShownSampleData;
   var totalRes = 0.0;
@@ -1059,10 +1281,12 @@ function promptUploadProfile(selected) {
 function uploadProfile(selected) {
   Parser.getSerializedProfile(!selected, function (dataToUpload) {
     var oXHR = new XMLHttpRequest();
-    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.onload = function (oEvent) {
       if (oXHR.status == 200) {  
-        document.getElementById("upload_status").innerHTML = "Success! Use this <a href='" + document.URL.split('?')[0] + "?report=" + oXHR.responseText + "'>link</a>";
+        gReportID = oXHR.responseText;
+        updateDocumentURL();
+        document.getElementById("upload_status").innerHTML = "Success! Use this <a id='linkElem'>link</a>";
+        document.getElementById("linkElem").href = document.URL;
       } else {  
         document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
       }  
@@ -1070,11 +1294,16 @@ function uploadProfile(selected) {
     oXHR.onerror = function (oEvent) {
       document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
     }
-    oXHR.onprogress = function (oEvent) {
+    oXHR.upload.onprogress = function(oEvent) {
       if (oEvent.lengthComputable) {
-        document.getElementById("upload_status").innerHTML = "Uploading: " + ((oEvent.loaded / oEvent.total)*100) + "%";
+        var progress = Math.round((oEvent.loaded / oEvent.total)*100);
+        if (progress == 100) {
+          document.getElementById("upload_status").innerHTML = "Uploading: Waiting for server side compression";
+        } else {
+          document.getElementById("upload_status").innerHTML = "Uploading: " + Math.round((oEvent.loaded / oEvent.total)*100) + "%";
+        }
       }
-    }
+    };
 
     var dataSize;
     if (dataToUpload.length > 1024*1024) {
@@ -1086,6 +1315,7 @@ function uploadProfile(selected) {
     var formData = new FormData();
     formData.append("file", dataToUpload);
     document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
+    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
     oXHR.send(formData);
   });
 }
@@ -1127,7 +1357,7 @@ function filterUpdate() {
 
   var filterNameInput = document.getElementById("filterName");
   if (filterNameInput != null) {
-    filterNameInput.focus();
+    changeFocus(filterNameInput);
   } 
 }
 
@@ -1136,10 +1366,12 @@ var tooltip = {
   "mergeFunctions" : "Ignore line information and merge samples based on function names.",
   "showJank" : "Show only samples with >50ms responsiveness.",
   "showJS" : "Show only samples which involve running chrome or content Javascript code.",
+  "showFrames" : "Show the frame boundary in the timeline as blue lines. Profile must be recorded with pref 'layers.acceleration.frame-counter'",
+  "showMissedSample" : "Leave a gap in the timeline if when a sample could not be collected in time.",
   "mergeUnbranched" : "Collapse unbranched call paths in the call tree into a single node.",
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
-  "upload" : "Upload the full profile to public cloud storage to share with others.",
+  "upload" : "Upload the full performance profile to public cloud storage to share with others.",
   "upload_select" : "Upload only the selected view.",
   "download" : "Initiate a download of the full profile.",
 }
@@ -1168,7 +1400,8 @@ InfoBar.prototype = {
   display: function InfoBar_display() {
     function getMetaFeatureString() {
       features = "<dt>Stackwalk:</dt><dd>" + (gMeta.stackwalk ? "True" : "False") + "</dd>";
-      features += "<dt>Jank:</dt><dd>" + (gMeta.stackwalk ? "True" : "False") + "</dd>";
+      features += "<dt>Jank:</dt><dd>" + (gMeta.jank ? "True" : "False") + "</dd>";
+      features += "<dt>Frames:</dt><dd>" + (gMeta.frameStart && Object.keys(gMeta.frameStart).length > 0 ? "True" : "False") + "</dd>";
       return features;
     }
     function getPlatformInfo() {
@@ -1186,9 +1419,13 @@ InfoBar.prototype = {
     }
     infoText += "<h2>Selection Info</h2>\n<dl>\n";
     infoText += "  <dt>Duration:</dt><dd>" + duration().toFixed(2) + " ms</dd>\n";
-    infoText += "  <dt>Avg. Responsiveness:</dt><dd>" + avgResponsiveness().toFixed(2) + " ms</dd>\n";
-    infoText += "  <dt>Max Responsiveness:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
+    infoText += "  <dt>Avg. Event Lag:</dt><dd>" + avgResponsiveness().toFixed(2) + " ms</dd>\n";
+    infoText += "  <dt>Max Event Lag:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Real Interval:</dt><dd>" + effectiveInterval() + "</dd>";
+    if (gMeta && gMeta.hasPowerInfo) {
+      infoText += "  <dt>Work:</dt><dd>" + totalPower() + " J</dd>";
+      infoText += "  <dt>Peak:</dt><dd>" + peakPower() + " Watt</dd>";
+    }
     infoText += "</dl>\n";
     // Disable for now since it's buggy and not useful
     //infoText += "<h2>Pre Filtering</h2>\n";
@@ -1196,20 +1433,30 @@ InfoBar.prototype = {
 
     infoText += "<h2>Filtering</h2>\n";
     var filterNameInputOld = document.getElementById("filterName");
-    infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Jank only</label><br>\n";
-    infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
-    infoText += "<label>Filter:\n";
-    infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></label><br>\n";
+    infoText += "<a>Filter:\n";
+    infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></a>\n";
 
+    infoText += "<h2>Post Filtering</h2>\n";
+    infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " onchange='toggleJank()'/>Show Jank only</label>\n";
     infoText += "<h2>View Options</h2>\n";
+    infoText += "<label><input type='checkbox' id='showJS' " + (gJavascriptOnly ?" checked='true' ":" ") + " onchange='toggleJavascriptOnly()'/>Javascript only</label><br>\n";
     infoText += "<label><input type='checkbox' id='mergeUnbranched' " + (gMergeUnbranched ?" checked='true' ":" ") + " onchange='toggleMergeUnbranched()'/>Merge unbranched call paths</label><br>\n";
     infoText += "<label><input type='checkbox' id='invertCallstack' " + (gInvertCallstack ?" checked='true' ":" ") + " onchange='toggleInvertCallStack()'/>Invert callstack</label><br>\n";
+    infoText += "<label><input type='checkbox' id='showFrames' " + (gShowFrames ?" checked='true' ":" ") + " onchange='toggleShowFrames()'/>Show Frames Boundaries</label><br>\n";
+    infoText += "<label><input type='checkbox' id='showMissedSample' " + (gShowMissedSample ?" checked='true' ":" ") + " onchange='toggleShowMissedSample()'/>Show Missed Sample</label>\n";
+    if (gMeta && gMeta.hasPowerInfo) {
+      infoText += "<br><label><input type='checkbox' id='showPowerInfo' " + (gShowPowerInfo ?" checked='true' ":" ") + " onchange='toggleShowPowerInfo()'/>Show Power</label>\n";
+    }
 
-    infoText += "<h2>Share</h2>\n";
+    infoText += "<h2>Share With URL</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
-    infoText += "<input type='button' id='upload' value='Upload full profile'>\n";
-    infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
-    infoText += "<input type='button' id='download' value='Download full profile'>\n";
+    infoText += "<input type='button' id='upload' value='Share'>\n";
+    // For now upload view is disabled because it's rarely what users want to do
+    //infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
+    infoText += "<input type='button' id='download' value='Save to Local File'>\n";
+
+    infoText += "<h2>Compare</h2>\n";
+    infoText += "<input type='button' id='compare' value='Compare'>\n";
 
     //infoText += "<br>\n";
     //infoText += "Skip functions:<br>\n";
@@ -1224,14 +1471,22 @@ InfoBar.prototype = {
     if (filterNameInputOld != null && filterNameInputNew != null) {
       filterNameInputNew.parentNode.replaceChild(filterNameInputOld, filterNameInputNew);
       //filterNameInputNew.value = filterNameInputOld.value;
+    } else if (gQueryParamFilterName != null) {
+      filterNameInputNew.value = gQueryParamFilterName;
+      gQueryParamFilterName = null;
+    }
+    document.getElementById('compare').onclick = function() {
+      openProfileCompare();
     }
     document.getElementById('upload').onclick = function() {
       promptUploadProfile(false);
     };
     document.getElementById('download').onclick = downloadProfile;
-    document.getElementById('upload_select').onclick = function() {
-      promptUploadProfile(true);
-    };
+    if (document.getElementById('upload_select') != null) {
+      document.getElementById('upload_select').onclick = function() {
+        promptUploadProfile(true);
+      };
+    }
     //document.getElementById('delete_skipsymbol').onclick = delete_skip_symbol;
     //document.getElementById('add_skipsymbol').onclick = add_skip_symbol;
 
@@ -1244,12 +1499,14 @@ var gMeta = null;
 var gSymbols = {};
 var gFunctions = {};
 var gResources = {};
+var gThreadsDesc = {};
+var gSelectedThreadId = 0;
 var gHighlightedCallstack = [];
+var gFrameView = null;
 var gTreeManager = null;
 var gSampleBar = null;
 var gBreadcrumbTrail = null;
-var gHistogramView = null;
-var gDiagnosticBar = null;
+var gHistogramContainer = null;
 var gVideoPane = null;
 var gPluginView = null;
 var gFileList = null;
@@ -1258,6 +1515,9 @@ var gMainArea = null;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 var gAppendVideoCapture = null;
+var gQueryParamFilterName = null;
+var gRestoreSelection = null;
+var gReportID = null;
 
 function getTextData() {
   var data = [];
@@ -1363,14 +1623,18 @@ function loadProfileURL(url) {
   xhr.open("GET", url, true);
   xhr.responseType = "text";
   xhr.onreadystatechange = function (e) {
-    if (xhr.readyState === 4 && xhr.status === 200) {
+    if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
       subreporters.fileLoading.finish();
       PROFILERLOG("Got profile from '" + url + "'.");
+      if (xhr.responseText == null || xhr.responseText === "") {
+        subreporters.fileLoading.begin("Profile '" + url + "' is empty. Did you set the CORS headers?");
+        return;
+      }
       loadRawProfile(subreporters.parsing, xhr.responseText, url);
     }
   };
   xhr.onerror = function (e) { 
-    subreporters.fileLoading.begin("Error fetching profile :(. URL:  " + url);
+    subreporters.fileLoading.begin("Error fetching profile :(. URL: '" + url + "'. Did you set the CORS headers?");
   }
   xhr.onprogress = function (e) {
     if (e.lengthComputable && (e.loaded <= e.total)) {
@@ -1379,7 +1643,12 @@ function loadProfileURL(url) {
       subreporters.fileLoading.setProgress(NaN);
     }
   };
-  xhr.send(null);
+  try {
+    xhr.send(null);
+  } catch (e) {
+    subreporters.fileLoading.begin("Error fetching profile :(. URL: '" + url + "':" + e.message);
+    return;
+  }
   subreporters.fileLoading.begin("Loading remote file...");
 }
 
@@ -1393,6 +1662,10 @@ function loadProfile(rawProfile) {
 function loadRawProfile(reporter, rawProfile, profileId) {
   PROFILERLOG("Parse raw profile: ~" + rawProfile.length + " bytes");
   reporter.begin("Parsing...");
+  if (rawProfile == null || rawProfile.length === 0) {
+    reporter.begin("Profile is null or empty");
+    return;
+  }
   var startTime = Date.now();
   var parseRequest = Parser.parse(rawProfile, {
     appendVideoCapture : gAppendVideoCapture,  
@@ -1412,6 +1685,7 @@ function loadRawProfile(reporter, rawProfile, profileId) {
     gSymbols = result.symbols;
     gFunctions = result.functions;
     gResources = result.resources;
+    gThreadsDesc = result.threadsDesc;
     enterFinishedProfileUI();
     gFileList.profileParsingFinished();
   });
@@ -1448,6 +1722,12 @@ function importFromAddonFinish(rawProfile) {
   loadRawProfile(gImportFromAddonSubreporters.parsing, rawProfile);
 }
 
+var gShowFrames = false;
+function toggleShowFrames() {
+  gShowFrames = !gShowFrames;
+  filtersChanged(); 
+}
+
 var gInvertCallstack = false;
 function toggleInvertCallStack() {
   gTreeManager.saveReverseSelectionSnapshot(gJavascriptOnly);
@@ -1481,6 +1761,18 @@ function toggleJank(/* optional */ threshold) {
   filtersChanged();
 }
 
+var gShowMissedSample = false;
+function toggleShowMissedSample() {
+  gShowMissedSample = !gShowMissedSample;
+  filtersChanged();
+}
+
+var gShowPowerInfo = false;
+function toggleShowPowerInfo() {
+  gShowPowerInfo = !gShowPowerInfo;
+  filtersChanged();
+}
+
 var gJavascriptOnly = false;
 function toggleJavascriptOnly() {
   if (gJavascriptOnly) {
@@ -1496,7 +1788,7 @@ function toggleJavascriptOnly() {
 
 var gSampleFilters = [];
 function focusOnSymbol(focusSymbol, name) {
-  var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", focusedSymbol: focusSymbol}]);
+  var newFilterChain = gSampleFilters.concat([{type: "FocusedFrameSampleFilter", name: name, focusedSymbol: focusSymbol}]);
   gBreadcrumbTrail.addAndEnter({
     title: name,
     enterCallback: function () {
@@ -1506,9 +1798,14 @@ function focusOnSymbol(focusSymbol, name) {
   });
 }
 
-function focusOnCallstack(focusedCallstack, name) {
+function focusOnCallstack(focusedCallstack, name, overwriteCallstack) {
+  var invertCallback =  gInvertCallstack;
+  if (overwriteCallstack != null) {
+    invertCallstack = overwriteCallstack;
+  }
   var filter = {
-    type: gInvertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    type: !invertCallstack ? "FocusedCallstackPostfixSampleFilter" : "FocusedCallstackPrefixSampleFilter",
+    name: name,
     focusedCallstack: focusedCallstack,
     appliesToJS: gJavascriptOnly
   };
@@ -1549,7 +1846,7 @@ function viewJSSource(sample) {
 function setHighlightedCallstack(samples, heaviestSample) {
   PROFILERTRACE("highlight: " + samples);
   gHighlightedCallstack = samples;
-  gHistogramView.highlightedCallstackChanged(gHighlightedCallstack);
+  gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack);
   if (!gInvertCallstack) {
     // Always show heavy
     heaviestSample = heaviestSample.clone().reverse();
@@ -1583,6 +1880,9 @@ function enterMainUI() {
     '<h1>Or, alternatively, enter your profile data here:</h1>' +
     '<textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>' +
     '<p><button onclick="loadProfile(document.getElementById(\'data\').value);">Parse</button></p>' +
+    '<h1>Or, provide a URL serving the profile that has <a href="https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS">CORS headers</a>:</h1>' +
+    '<input type="text" id="url">' +
+    '<input value="Open" type="button" id="url" onclick="loadProfileURL(document.getElementById(\'url\').value)">' +
     '';
 
   gMainArea.appendChild(profileEntryPane);
@@ -1637,7 +1937,7 @@ function enterFinishedProfileUI() {
     // until some actions happen such as focusing this box
     var filterNameInput = document.getElementById("filterName");
     if (filterNameInput != null) {
-      filterNameInput.focus();
+      changeFocus(filterNameInput);
      }
   }, 100);
 
@@ -1645,22 +1945,17 @@ function enterFinishedProfileUI() {
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
 
-  gHistogramView = new HistogramView();
+  gHistogramContainer = new HistogramContainer();
+  gHistogramContainer.updateThreadsDesc(gThreadsDesc);
   currRow = finishedProfilePane.insertRow(rowIndex++);
-  currRow.insertCell(0).appendChild(gHistogramView.getContainer());
+  currRow.insertCell(0).appendChild(gHistogramContainer.getContainer());
 
-  gDiagnosticBar = new DiagnosticBar();
-  gDiagnosticBar.setDetailsListener(function(details) {
-    if (details.indexOf("bug ") == 0) {
-      window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
-    } else {
-      var sourceView = new SourceView();
-      sourceView.setText("Diagnostic", js_beautify(details));
-      gMainArea.appendChild(sourceView.getContainer());
-    }
-  });
-  currRow = finishedProfilePane.insertRow(rowIndex++);
-  currRow.insertCell(0).appendChild(gDiagnosticBar.getContainer());
+  if (false && gLocation.indexOf("file:") == 0) {
+    // Local testing for frameView
+    gFrameView = new FrameView();
+    currRow = finishedProfilePane.insertRow(rowIndex++);
+    currRow.insertCell(0).appendChild(gFrameView.getContainer());
+  }
 
   // For testing:
   //gMeta.videoCapture = {
@@ -1698,6 +1993,7 @@ function enterFinishedProfileUI() {
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
 
+  var currentBreadcrumb = gSampleFilters;
   gBreadcrumbTrail.add({
     title: "Complete Profile",
     enterCallback: function () {
@@ -1705,20 +2001,71 @@ function enterFinishedProfileUI() {
       filtersChanged();
     }
   });
+  if (currentBreadcrumb == null || currentBreadcrumb.length == 0) {
+    gTreeManager.restoreSerializedSelectionSnapshot(gRestoreSelection);
+    viewOptionsChanged();
+  }
+  for (var i = 0; i < currentBreadcrumb.length; i++) {
+    var filter = currentBreadcrumb[i];
+    var forceSelection = null;
+    if (gRestoreSelection != null && i == currentBreadcrumb.length - 1) {
+      forceSelection = gRestoreSelection;
+    }
+    switch (filter.type) {
+      case "FocusedFrameSampleFilter":
+        focusOnSymbol(filter.name, filter.symbolName);
+        gBreadcrumbTrail.enterLastItem(forceSelection);
+      case "FocusedCallstackPrefixSampleFilter":
+        focusOnCallstack(filter.focusedCallstack, filter.name, false);
+        gBreadcrumbTrail.enterLastItem(forceSelection);
+      case "FocusedCallstackPostfixSampleFilter":
+        focusOnCallstack(filter.focusedCallstack, filter.name, true);
+        gBreadcrumbTrail.enterLastItem(forceSelection);
+      case "RangeSampleFilter":
+        gHistogramContainer.selectRange(filter.start, filter.end);
+        gBreadcrumbTrail.enterLastItem(forceSelection);
+    }
+  }
+}
+
+// Make all focus change events go through this function.
+// This function will mediate the focus changes in case
+// that we're in a compare view. In a compare view an inactive
+// instance of cleopatra should not steal focus from the active
+// cleopatra instance.
+function changeFocus(elem) {
+  if (window.comparator_changeFocus) {
+    window.comparator_changeFocus(elem);
+  } else {
+    elem.focus();
+  }
+}
+
+function comparator_receiveSelection(snapshot, frameData) {
+  gTreeManager.restoreSerializedSelectionSnapshot(snapshot); 
+  if (frameData)
+    gTreeManager.highlightFrame(frameData);
+  viewOptionsChanged();
 }
 
 function filtersChanged() {
+  if (window.comparator_setSelection) {
+  //  window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot(), null);
+  }
+  updateDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
 
-  gHistogramView.dataIsOutdated();
+  gHistogramContainer.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
-  var updateRequest = Parser.updateFilters({
-    mergeFunctions: gMergeFunctions,
-    nameFilter: (filterNameInput && filterNameInput.value) || "",
-    sampleFilters: gSampleFilters,
-    jankOnly: gJankOnly,
-    javascriptOnly: gJavascriptOnly
-  });
+  for (var threadId in gThreadsDesc) {
+    var updateRequest = Parser.updateFilters({
+      mergeFunctions: gMergeFunctions,
+      nameFilter: (filterNameInput && filterNameInput.value) || gQueryParamFilterName || "",
+      sampleFilters: gSampleFilters,
+      jankOnly: gJankOnly,
+      javascriptOnly: gJavascriptOnly
+    }, threadId);
+  }
   var start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
@@ -1735,21 +2082,39 @@ function filtersChanged() {
     }
   });
 
-  var histogramRequest = Parser.calculateHistogramData();
-  histogramRequest.addEventListener("finished", function (data) {
-    start = Date.now();
-    gHistogramView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
-    console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-  });
+  for (var threadId in gThreadsDesc) {
+    var options = {
+      showPowerInfo: gShowPowerInfo,
+    };
+    var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
+    histogramRequest.addEventListener("finished", function (data) {
+      start = Date.now();
+      gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+      if (gFrameView)
+        gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
+      console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+    });
+  }
 
+<<<<<<< HEAD
   viewOptionsChanged();
 
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
+=======
+  var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta, gSelectedThreadId);
+  var diagnosticThreadId = gSelectedThreadId;
+>>>>>>> upstream/master
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
     start = Date.now();
-    gDiagnosticBar.display(diagnosticItems);
+    gHistogramContainer.displayDiagnostics(diagnosticItems, diagnosticThreadId);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
+<<<<<<< HEAD
   });
+=======
+  }, diagnosticThreadId);
+
+  viewOptionsChanged();
+>>>>>>> upstream/master
 }
 
 function viewOptionsChanged() {
@@ -1758,10 +2123,121 @@ function viewOptionsChanged() {
   var updateViewOptionsRequest = Parser.updateViewOptions({
     invertCallstack: gInvertCallstack,
     mergeUnbranched: gMergeUnbranched
-  });
+  }, gSelectedThreadId);
   updateViewOptionsRequest.addEventListener("finished", function (calltree) {
     var start = Date.now();
     gTreeManager.display(calltree, gSymbols, gFunctions, gResources, gMergeFunctions, filterNameInput && filterNameInput.value);
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
   });
 }
+
+function loadQueryData(queryData) {
+  var isFiltersChanged = false;
+  var queryDataOriginal = queryData;
+  var queryData = {};
+  for (var i in queryDataOriginal) {
+    queryData[i] = unQueryEscape(queryDataOriginal[i]);
+  }
+  if (queryData.search) {
+    gQueryParamFilterName = queryData.search;
+    isFiltersChanged = true;
+  }
+  if (queryData.jankOnly) {
+    gJankOnly = queryData.jankOnly;
+    isFiltersChanged = true;
+  }
+  if (queryData.javascriptOnly) {
+    gJavascriptOnly = queryData.javascriptOnly;
+    isFiltersChanged = true;
+  }
+  if (queryData.mergeUnbranched) {
+    gMergeUnbranched = queryData.mergeUnbranched;
+    isFiltersChanged = true;
+  }
+  if (queryData.invertCallback) {
+    gInvertCallstack = queryData.invertCallback;
+    isFiltersChanged = true;
+  }
+  if (queryData.report) {
+    gReportID = queryData.report;
+  }
+  if (queryData.filter) {
+    var filterChain = JSON.parse(queryData.filter);
+    gSampleFilters = filterChain;
+  }
+  if (queryData.selection) {
+    var selection = queryData.selection;
+    gRestoreSelection = selection;
+  }
+
+  if (isFiltersChanged) {
+    //filtersChanged();
+  }
+}
+
+function unQueryEscape(str) {
+  return decodeURIComponent(str);
+}
+
+function queryEscape(str) {
+  return encodeURIComponent(encodeURIComponent(str));
+}
+
+function updateDocumentURL() {
+  location.hash = getDocumentHashString();
+  return document.location;
+}
+
+function getDocumentHashString() {
+  var query = "";
+  if (gReportID) {
+    if (query != "")
+      query += "&";
+    query += "report=" + queryEscape(gReportID);
+  }
+  if (document.getElementById("filterName") != null &&
+      document.getElementById("filterName").value != null &&
+      document.getElementById("filterName").value != "") {
+    if (query != "")
+      query += "&";
+    query += "search=" + queryEscape(document.getElementById("filterName").value);
+  }
+  // For now don't restore the view rest
+  return query;
+  if (gJankOnly) {
+    if (query != "")
+      query += "&";
+    query += "jankOnly=" + queryEscape(gJankOnly);
+  }
+  if (gJavascriptOnly) {
+    if (query != "")
+      query += "&";
+    query += "javascriptOnly=" + queryEscape(gJavascriptOnly);
+  }
+  if (gMergeUnbranched) {
+    if (query != "")
+      query += "&";
+    query += "mergeUnbranched=" + queryEscape(gMergeUnbranched);
+  }
+  if (gInvertCallstack) {
+    if (query != "")
+      query += "&";
+    query += "invertCallback=" + queryEscape(gInvertCallstack);
+  }
+  if (gSampleFilters && gSampleFilters.length != 0) {
+    if (query != "")
+      query += "&";
+    query += "filter=" + queryEscape(JSON.stringify(gSampleFilters));
+  }
+  if (gTreeManager.hasNonTrivialSelection()) {
+    if (query != "")
+      query += "&";
+    query += "selection=" + queryEscape(gTreeManager.serializeCurrentSelectionSnapshot());
+  }
+  if (!gReportID) {
+    query = "uploadProfileFirst!";
+  }
+
+  return query;
+}
+

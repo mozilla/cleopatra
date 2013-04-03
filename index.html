@@ -11,7 +11,9 @@
     <script src="js/parser.js"></script>
     <script src="js/tree.js"></script>
     <script src="js/sourceView.js"></script>
+    <script src="js/frameView.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/profileCompare.js"></script>
     <script src="js/QueryData.compressed.js"></script>
     <script src="js/ProgressReporter.js"></script>
     <script src="js/videoPane.js"></script>
@@ -32,7 +34,13 @@
   <body>
     <script>
       enterMainUI();
-      var queryData = new QueryData();
+
+      var queryData;
+      if (location.hash) {
+        queryData = new QueryData(location.hash.substring(1));
+      } else {
+        queryData = new QueryData();
+      }
 
       if (queryData.videoCapture) {
         appendVideoCapture(queryData.videoCapture);
@@ -49,6 +57,8 @@
         } else {
           loadProfileURL('http://profile-logs.appspot.com/serve/' + queryData.report);
         }
+      } else if (queryData.customProfile !== undefined) {
+        loadProfileURL(queryData.customProfile);
       } else if (queryData.usesample !== undefined) {
         var filename;
         if (filename == "pseudo") {
@@ -56,13 +66,14 @@
         } else if (queryData.usesample !== null) {
           filename = queryData.usesample;
         } else {
-          filename = "sample.log";
+          filename = "sample.big";
         }
         loadProfileURL(filename);
       } else if (queryData.zippedProfile) {
         // Fetch a compressed eideticker profile
         loadZippedProfileURL(queryData.zippedProfile);
       }
+      loadQueryData(queryData);
     </script>
   </body>
 </html>

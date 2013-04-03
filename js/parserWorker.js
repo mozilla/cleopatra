@@ -117,19 +117,19 @@ self.onmessage = function (msg) {
         parseRawProfile(requestID, msg.data.params, taskData);
         break;
       case "updateFilters":
-        updateFilters(requestID, taskData.profileID, taskData.filters);
+        updateFilters(requestID, taskData.profileID, taskData.filters, taskData.threadId);
         break;
       case "updateViewOptions":
-        updateViewOptions(requestID, taskData.profileID, taskData.options);
+        updateViewOptions(requestID, taskData.profileID, taskData.options, taskData.threadId);
         break;
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
       case "calculateHistogramData":
-        calculateHistogramData(requestID, taskData.profileID);
+        calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
       case "calculateDiagnosticItems":
-        calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta);
+        calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
         break;
       default:
         sendError(requestID, "Unknown task " + task);
@@ -238,14 +238,22 @@ function parseRawProfile(requestID, params, rawProfile) {
   var resources = {};
   var functions = [];
   var functionIndices = {};
-  var samples = [];
+  var threads = {};
   var meta = {};
   var armIncludePCIndex = {};
+
+  if (rawProfile == null) {
+    throw "rawProfile is null";
+  }
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
     rawProfile = JSON.parse(rawProfile);
+    if (rawProfile === null) {
+      throw "rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.";
+    }
   }
+
 
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
@@ -501,6 +509,77 @@ function parseRawProfile(requestID, params, rawProfile) {
     return symbolicationTable[symbol] || symbol;
   }
 
+  function syncThreads(threads) {
+
+    var threadCount = Object.keys(threads).length;
+    if (threadCount <= 1)
+      return;
+
+    var startPoint;
+    var endPoint;
+    for (var threadId in threads) {
+      var thread = threads[threadId];
+      var samples = thread.samples;
+
+      if (!samples || samples.length < 2) {
+        continue;
+      }
+
+      if (!startPoint || startPoint > samples[0].extraInfo["time"]) {
+        startPoint = samples[0].extraInfo["time"];
+      }
+      if (!endPoint || endPoint < samples[samples.length-2].extraInfo["time"]) {
+        endPoint = samples[samples.length-2].extraInfo["time"];
+      }
+    }
+
+    /*
+    var rootId = indexForSymbol("(root)");
+    for (var threadId in threads) {
+      var thread = threads[threadId];
+      var samples = thread.samples;
+      for (sampleId in samples) {
+        var sample = samples[sampleId];
+        if (sample.frames[0] != rootId) {
+          sample.frames.splice(0, 0, rootId);
+        }
+      }
+    }
+    */
+    var sampleId = 0;
+    for (var time = startPoint; time < endPoint; time+=10) {
+      for (var threadId in threads) {
+        var thread = threads[threadId];
+        var samples = thread.samples;
+
+        if (!samples || samples.length < 2) {
+          continue;
+        }
+
+        if (sampleId >= samples.length) {
+          // This thread's doesn't have enough samples, insert one
+          samples.push(makeMissedSample(samples[0].frames[0], time));
+        } else if (samples[sampleId].extraInfo["time"] > time) {
+          samples.splice(sampleId, 0, makeMissedSample(samples[0].frames[0], time));
+          //if (threadId == 1)
+          //  dump("inserting for: " + time + " @ " + sampleId + " next: " + samples[sampleId+1].extraInfo["time"] + "\n");
+        }
+      }
+      sampleId++;
+    }
+    //var jSamples = threads[1].samples;
+    //for (var sid in jSamples) {
+    //  dump("Sync: " + jSamples[sid].extraInfo["time"] + "\n");
+    //}
+  }
+
+  function makeMissedSample(parentIndex, time) {
+    return makeSample(
+        [parentIndex, indexForSymbol("Missed")],
+        {time:time}
+    );
+  }
+
   function indexForSymbol(symbol) {
     if (symbol in symbolIndices)
       return symbolIndices[symbol];
@@ -528,6 +607,7 @@ function parseRawProfile(requestID, params, rawProfile) {
     var extraInfo = {};
     var lines = data.split("\n");
     var sample = null;
+    var samples = [];
     for (var i = 0; i < lines.length; ++i) {
       var line = lines[i];
       if (line.length < 2 || line[1] != '-') {
@@ -590,6 +670,10 @@ function parseRawProfile(requestID, params, rawProfile) {
       }
       progressReporter.setProgress((i + 1) / lines.length);
     }
+    threads[0] = {
+      name: "Main (Text Prof)",
+      samples: samples,
+    };
   }
 
   function parseProfileJSON(profile) {
@@ -603,76 +687,119 @@ function parseRawProfile(requestID, params, rawProfile) {
       };
     }
     // Support older format that aren't thread aware
-    if (profile.threads != null) {
-      profileSamples = profile.threads[0].samples;
-    } else {
-      profileSamples = profile;
-    }
     var rootSymbol = null;
     var insertCommonRoot = false;
     var frameStart = {};
     meta.frameStart = frameStart;
-    for (var j = 0; j < profileSamples.length; j++) {
-      var sample = profileSamples[j];
-      var indicedFrames = [];
-      if (!sample) {
-        // This sample was filtered before saving
-        samples.push(null);
-        progressReporter.setProgress((j + 1) / profileSamples.length);
-        continue;
-      }
-      for (var k = 0; sample.frames && k < sample.frames.length; k++) {
-        var frame = sample.frames[k];
-        var pcIndex;
-        if (frame.location !== undefined) {
-          pcIndex = indexForSymbol(frame.location);
-        } else {
-          pcIndex = indexForSymbol(frame);
-        }
 
-        if (frame.lr !== undefined && shouldIncludeARMLRForPC(pcIndex)) {
-          indicedFrames.push(indexForSymbol(frame.lr));
-        }
-
-        indicedFrames.push(pcIndex);
+    if (profile.threads != null) {
+      for (var tid in profile.threads) {
+         if (typeof profile.threads[tid] == "string") {
+           profile.threads[tid] = JSON.parse(profile.threads[tid]);
+           // If we parse the samples this may be a subprocess profile we need to merge in
+           if (profile.threads[tid].threads != null) {
+             profile.threads[tid] = profile.threads[tid].threads[0];
+           }
+         }
+         var threadSamples = parseJSONSamples(profile.threads[tid].samples);
+         if (tid == 0) {
+           // TODO Remove 'samples' and use thread[0].samples for the main thread
+           samples = threadSamples;
+         }
+         var defaultThreadName = (tid == 0) ? "Gecko Main Thread" : "NoName";
+         threads[tid] = {
+           name: profile.threads[tid].name || defaultThreadName,
+           samples: threadSamples,
+         };
       }
-      if (indicedFrames.length >= 1) {
-        if (rootSymbol && rootSymbol != indicedFrames[0]) {
-          insertCommonRoot = true;
-        }
-        rootSymbol = rootSymbol || indicedFrames[0];
-      }
-      if (sample.extraInfo == null) {
-        sample.extraInfo = {};
-      }
-      if (sample.responsiveness) {
-        sample.extraInfo["responsiveness"] = sample.responsiveness;
-      }
-      if (sample.marker) {
-        sample.extraInfo["marker"] = sample.marker;
-      }
-      if (sample.time) {
-        sample.extraInfo["time"] = sample.time;
-      }
-      if (sample.frameNumber) {
-        sample.extraInfo["frameNumber"] = sample.frameNumber;
-        //dump("Got frame number: " + sample.frameNumber + "\n");
-        frameStart[sample.frameNumber] = samples.length;
-      }
-      samples.push(makeSample(indicedFrames, sample.extraInfo));
-      progressReporter.setProgress((j + 1) / profileSamples.length);
+    } else {
+      samples = parseJSONSamples(profile);
+      threads[0] = {
+        name: "Main",
+        samples: samples,
+      };
     }
-    if (insertCommonRoot) {
-      var rootIndex = indexForSymbol("(root)");
-      for (var i = 0; i < samples.length; i++) {
-        var sample = samples[i];
-        if (!sample) continue;
-        // If length == 0 then the sample was filtered when saving the profile
-        if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
-          sample.frames.unshift(rootIndex)
+
+    function parseJSONSamples(profileSamples) {
+      var samples = [];
+      for (var j = 0; j < profileSamples.length; j++) {
+        var sample = profileSamples[j];
+        var indicedFrames = [];
+        if (!sample) {
+          // This sample was filtered before saving
+          samples.push(null);
+          progressReporter.setProgress((j + 1) / profileSamples.length);
+          continue;
+        }
+        for (var k = 0; sample.frames && k < sample.frames.length; k++) {
+          var frame = sample.frames[k];
+          var pcIndex;
+          if (frame.location !== undefined) {
+            pcIndex = indexForSymbol(frame.location);
+          } else {
+            pcIndex = indexForSymbol(frame);
+          }
+
+          if (frame.lr !== undefined && shouldIncludeARMLRForPC(pcIndex)) {
+            indicedFrames.push(indexForSymbol(frame.lr));
+          }
+
+          indicedFrames.push(pcIndex);
+        }
+        if (indicedFrames.length >= 1) {
+          if (rootSymbol && rootSymbol != indicedFrames[0]) {
+            insertCommonRoot = true;
+          }
+          rootSymbol = rootSymbol || indicedFrames[0];
+        }
+        if (sample.extraInfo == null) {
+          sample.extraInfo = {};
+        }
+        if (sample.responsiveness) {
+          sample.extraInfo["responsiveness"] = sample.responsiveness;
+        }
+        if (sample.power) {
+          sample.extraInfo["power"] = sample.power;
+          meta.hasPowerInfo = true;
+        }
+        if (sample.marker) {
+          sample.extraInfo["marker"] = sample.marker;
+        }
+        if (sample.time) {
+          sample.extraInfo["time"] = sample.time;
+        }
+        if (sample.frameNumber) {
+          sample.extraInfo["frameNumber"] = sample.frameNumber;
+          //dump("Got frame number: " + sample.frameNumber + "\n");
+          frameStart[sample.frameNumber] = samples.length;
+        }
+        samples.push(makeSample(indicedFrames, sample.extraInfo));
+        progressReporter.setProgress((j + 1) / profileSamples.length);
       }
+      if (insertCommonRoot) {
+        var rootIndex = indexForSymbol("(root)");
+        for (var i = 0; i < samples.length; i++) {
+          var sample = samples[i];
+          if (!sample) continue;
+          // If length == 0 then the sample was filtered when saving the profile
+          if (sample.frames.length >= 1 && sample.frames[0] != rootIndex)
+            sample.frames.unshift(rootIndex)
+        }
+      }
+      return samples;
     }
   }
+
+  var threadsDesc = {};
+
+  for (var tid in threads) {
+    var thread = threads[tid];
+    threadsDesc[tid] = {
+      name: thread.name,
+    };
+  }
+
+  syncThreads(threads);
 
   progressReporter.finish();
   // Don't increment the profile ID now because (1) it's buggy
@@ -685,16 +812,17 @@ function parseRawProfile(requestID, params, rawProfile) {
     symbols: symbols,
     functions: functions,
     resources: resources,
-    allSamples: samples
+    threads: threads
   }));
   clearRegExpLastMatch();
   sendFinished(requestID, {
     meta: meta,
-    numSamples: samples.length,
+    numSamples: threads[0].samples.length,
     profileID: profileID,
     symbols: symbols,
     functions: functions,
-    resources: resources
+    resources: resources,
+    threadsDesc: threadsDesc,
   });
 }
 
@@ -711,10 +839,13 @@ function getSerializedProfile(requestID, profileID, complete) {
       symbolicationTable[functionIndex] = f.symbol;
     }
   }
+  // Currently if you request to save the current selection only the main thread will be saved.
+  // Change the profileJSON value to handle the threads array.
+  var DEFAULT_SAVE_THREAD = 0;
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
     meta: profile.meta,
-    profileJSON: complete ? profile.allSamples : profile.filteredSamples,
+    profileJSON: complete ? { threads: profile.threads } : profile.filteredThreadSamples[DEFAULT_SAVE_THREAD],
     symbolicationTable: symbolicationTable
   });
   sendFinished(requestID, serializedProfile);
@@ -1041,9 +1172,10 @@ function unserializeSampleFilters(filters) {
 
 var gJankThreshold = 50 /* ms */;
 
-function updateFilters(requestID, profileID, filters) {
+function updateFilters(requestID, profileID, filters, threadId) {
+  var threadId = threadId || 0;
   var profile = gProfiles[profileID];
-  var samples = profile.allSamples;
+  var samples = profile.threads[threadId].samples;
   var symbols = profile.symbols;
   var functions = profile.functions;
 
@@ -1071,14 +1203,18 @@ function updateFilters(requestID, profileID, filters) {
   }
 
   gProfiles[profileID].filterSettings = filters;
-  gProfiles[profileID].filteredSamples = samples;
+  if (gProfiles[profileID].filteredThreadSamples == null) {
+    gProfiles[profileID].filteredThreadSamples = {};
+  }
+  gProfiles[profileID].filteredThreadSamples[threadId] = samples;
+  gProfiles[profileID].selectedThread = threadId;
   sendFinishedInChunks(requestID, samples, 40000,
                        function (sample) { return sample ? sample.frames.length : 1; });
 }
 
-function updateViewOptions(requestID, profileID, options) {
+function updateViewOptions(requestID, profileID, options, threadId) {
   var profile = gProfiles[profileID];
-  var samples = profile.filteredSamples;
+  var samples = profile.filteredThreadSamples[threadId];
   var symbols = profile.symbols;
   var functions = profile.functions;
 
@@ -1092,10 +1228,14 @@ function updateViewOptions(requestID, profileID, options) {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function calculateHistogramData(requestID, profileID) {
+function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
 
   function getStepColor(step) {
-    if (step.extraInfo && "responsiveness" in step.extraInfo) {
+    if (options.showPowerInfo) {
+      var res = step.extraInfo.power;
+      var redComponent = Math.round(255 * Math.min(1, res / 0.1));
+      return "rgb(" + redComponent + ",0,0)";
+    } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
       var res = step.extraInfo.responsiveness;
       var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
       return "rgb(" + redComponent + ",0,0)";
@@ -1105,7 +1245,11 @@ function calculateHistogramData(requestID, profileID) {
   }
 
   var profile = gProfiles[profileID];
-  var data = profile.filteredSamples;
+  var data = profile.filteredThreadSamples[threadId];
+  var expectedInterval = null;
+  if (showMissedSample === true && profile.meta && profile.meta.interval) {
+    expectedInterval = profile.meta.interval; 
+  }
   var histogramData = [];
   var maxHeight = 0;
   for (var i = 0; i < data.length; ++i) {
@@ -1129,6 +1273,12 @@ function calculateHistogramData(requestID, profileID) {
       // Add a gap for the sample that was filtered out.
       nextX += 1 / samplesPerStep;
       continue;
+    }
+    if (expectedInterval != null && i > 0 && data[i-1] != null &&
+        data[i-1].extraInfo.time != null && step.extraInfo.time != null &&
+        step.extraInfo.time > data[i-1].extraInfo.time + expectedInterval) {
+      var samplesSkipped = Math.floor((step.extraInfo.time - data[i-1].extraInfo.time) / expectedInterval) - 1;
+      nextX += 1 * samplesSkipped / samplesPerStep;
     }
     nextX = Math.ceil(nextX);
     var value = step.frames.length / maxHeight;
@@ -1179,7 +1329,7 @@ function calculateHistogramData(requestID, profileID) {
       nextX += 1;
     }
   }
-  sendFinished(requestID, { histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
+  sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
 }
 
 var diagnosticList = [
@@ -1195,6 +1345,10 @@ var diagnosticList = [
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__read', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+          || stepContains('__unlink', frames, symbols) 
+          || stepEquals('read', frames, symbols) 
+          || stepEquals('write', frames, symbols) 
+          || stepEquals('fsync', frames, symbols) 
           || stepContains('stat$INODE64', frames, symbols)
           ;
     },
@@ -1212,6 +1366,26 @@ var diagnosticList = [
     },
   },
   {
+    image: "cache.png",
+    title: "Bug 717761 - Main thread can be blocked by IO on the cache thread",
+    bugNumber: "717761",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('nsCacheEntryDescriptor::GetStoragePolicy', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Web Content Shutdown Notification",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('nsAppStartup::Quit', frames, symbols)
+          && stepContains('nsDocShell::FirePageHideNotification', frames, symbols)
+          ;
+    },
+  },
+  {
     image: "js.png",
     title: "Bug 789193 - AMI_startup() takes 200ms on startup",
     bugNumber: "789193",
@@ -1221,6 +1395,44 @@ var diagnosticList = [
           ;
     },
   },
+  {
+    image: "js.png",
+    title: "Bug 818296 - [Shutdown] js::NukeCrossCompartmentWrappers takes up 300ms on shutdown",
+    bugNumber: "818296",
+    check: function(frames, symbols, meta) {
+      return stepContains('js::NukeCrossCompartmentWrappers', frames, symbols)
+          && (stepContains('WindowDestroyedEvent', frames, symbols) || stepContains('DoShutdown', frames, symbols))
+          ;
+    },
+  },
+  {
+    image: "js.png",
+    title: "Bug 818274 - [Shutdown] Telemetry takes ~10ms on shutdown",
+    bugNumber: "818274",
+    check: function(frames, symbols, meta) {
+      return stepContains('TelemetryPing.js', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "plugin.png",
+    title: "Bug 818265 - [Shutdown] Plug-in shutdown takes ~90ms on shutdown",
+    bugNumber: "818265",
+    check: function(frames, symbols, meta) {
+      return stepContains('PluginInstanceParent::Destroy', frames, symbols)
+          ;
+    },
+  },
+  {
+    image: "snapshot.png",
+    title: "Bug 720575 - Make thumbnailing faster and/or asynchronous",
+    bugNumber: "720575",
+    check: function(frames, symbols, meta) {
+      return stepContains('Thumbnails_capture()', frames, symbols)
+          ;
+    },
+  },
+
   {
     image: "js.png",
     title: "Bug 789185 - LoginManagerStorage_mozStorage.init() takes 300ms on startup ",
@@ -1339,7 +1551,18 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContainsRegEx(/.*Collect.*Runtime.*Invocation.*/, frames, symbols)
           || stepContains('GarbageCollectNow', frames, symbols) // Label
+          || stepContains('JS_GC(', frames, symbols) // Label
           || stepContains('CycleCollect__', frames, symbols) // Label
+          ;
+    },
+  },
+  {
+    image: "cc.png",
+    title: "Cycle Collect",
+    check: function(frames, symbols, meta) {
+      return stepContains('nsCycleCollector::Collect', frames, symbols)
+          || stepContains('CycleCollect__', frames, symbols) // Label
+          || stepContains('nsCycleCollectorRunner::Collect', frames, symbols) // Label
           ;
     },
   },
@@ -1367,10 +1590,14 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+          || stepContains('NtFlushBuffersFile', frames, symbols) 
           || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
           || stepContains('__unlink', frames, symbols) 
           || stepContains('fsync', frames, symbols) 
           || stepContains('stat$INODE64', frames, symbols)
+          || stepEquals('read', frames, symbols) 
+          || stepEquals('write', frames, symbols) 
+          || stepEquals('fsync', frames, symbols) 
           ;
     },
   },
@@ -1440,6 +1667,17 @@ function findGCSlice(frames, symbols, meta, step) {
 
   return null;
 }
+function stepEquals(string, frames, symbols) {
+  for (var i = 0; frames && i < frames.length; i++) {
+    if (!(frames[i] in symbols))
+      continue;
+    var frameSym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (frameSym == string) {
+      return true;
+    }
+  }
+  return false;
+}
 function stepContains(substring, frames, symbols) {
   for (var i = 0; frames && i < frames.length; i++) {
     if (!(frames[i] in symbols))
@@ -1486,7 +1724,7 @@ function firstMatch(array, matchFunction) {
   return undefined;
 }
 
-function calculateDiagnosticItems(requestID, profileID, meta) {
+function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
   /*
   if (!histogramData || histogramData.length < 1) {
     sendFinished(requestID, []);
@@ -1496,7 +1734,7 @@ function calculateDiagnosticItems(requestID, profileID, meta) {
   var profile = gProfiles[profileID];
   //var symbols = profile.symbols;
   var symbols = profile.functions;
-  var data = profile.filteredSamples;
+  var data = profile.filteredThreadSamples[threadId];
 
   var lastStep = data[data.length-1];
   var widthSum = data.length;

@@ -89,6 +89,7 @@ SourceView.prototype = {
   },
 
   setSource: function SourceView_setSource(source) {
+    source = source || "Script is not available";
     this._source = source;
     this._sourceLines = source.split('\n');
     this._sourceLinesObj = [];

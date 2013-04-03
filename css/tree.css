@@ -89,7 +89,8 @@
 
 .treeViewHorizontalScrollbox {
   padding-left: 171px;
-  overflow: hidden;
+  overflow-x: scroll;
+  overflow-y: hidden;
 }
 
 .treeViewVerticalScrollbox,

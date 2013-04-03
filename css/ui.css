@@ -295,6 +295,16 @@ body {
   width: 100%;
   height: 100%;
 }
+.frameViewContainer {
+  position: relative;
+  height: 60px;
+  right: 0;
+  left: 0;
+  border-bottom: 1px solid #CCC;
+  background: -moz-linear-gradient(#EEE, #CCC);
+  background: -webkit-linear-gradient(#EEE, #CCC);
+  background: linear-gradient(#EEE, #CCC);
+}
 .histogram {
   position: relative;
   height: 60px;
@@ -352,12 +362,37 @@ body {
 .fileListItemTitle {
   display: block;
   padding-top: 6px;
+  margin-left: 6px;
   font-size: 12px;
+  background: none;
+  border: none;
+}
+.fileListItemTitle:focus, .fileListItemTitle:hover {
+  background: white;
+  border: 1px;
 }
 .fileListItemDescription {
   display: block;
   line-height: 15px;
   font-size: 9px;
+}
+.fileListItemDelete {
+  background-image: url(../images/error-16.png);
+  width: 16px;
+  height: 16px;
+  top: -24px;
+  right: 5px;
+  position: relative;
+  float: right;
+}
+.fileListItemDeleteDescription {
+  display: none;
+}
+.fileListItemDelete:hover + fileListItemDeleteDescription {
+  display: block;
+}
+.fileListItemDelete:hover {
+  border: solid 1px;
 }
 .busyCover {
   position: absolute;
@@ -394,7 +429,38 @@ label {
   width: 100%;
 }
 .video {
+  max-width: 640px;
   display: block;
   margin-left: auto;
   margin-right: auto;
+}
+.profileComparatorDiv {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.profileComparatorSide1 {
+  position: absolute;
+  float: left;
+  width: 50%;
+  height: 100%;
+}
+.profileComparatorSide2 {
+  position: absolute;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+}
+iframe {
+  width: 100%;
+  height: 100%;
+}
+.threadHistogramDescription {
+  height: 60px;
+  width: 150px;
+  font-size: 16px;
+  font-family: "Lucida Grande",sans-serif;
+  border-bottom: 1px solid #CCC;
+  background: none repeat scroll 0% 0% rgb(219, 223, 231);
+  border-right: solid 1px white;
 }
