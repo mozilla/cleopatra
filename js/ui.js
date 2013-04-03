@@ -2096,25 +2096,15 @@ function filtersChanged() {
     });
   }
 
-<<<<<<< HEAD
   viewOptionsChanged();
 
-  var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta);
-=======
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta, gSelectedThreadId);
   var diagnosticThreadId = gSelectedThreadId;
->>>>>>> upstream/master
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
     start = Date.now();
     gHistogramContainer.displayDiagnostics(diagnosticItems, diagnosticThreadId);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
-<<<<<<< HEAD
-  });
-=======
   }, diagnosticThreadId);
-
-  viewOptionsChanged();
->>>>>>> upstream/master
 }
 
 function viewOptionsChanged() {
