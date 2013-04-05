@@ -1342,6 +1342,11 @@ function filterUpdate() {
   } 
 }
 
+function changeWorseResponsiveness(res) {
+  Parser.changeWorseResponsiveness(res);
+  filterUpdate();  
+}
+
 // Maps document id to a tooltip description
 var tooltip = {
   "mergeFunctions" : "Ignore line information and merge samples based on function names.",

@@ -131,6 +131,9 @@ self.onmessage = function (msg) {
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
         break;
+      case "changeWorseResponsiveness":
+        kDelayUntilWorstResponsiveness = taskData.res;
+        break;
       default:
         sendError(requestID, "Unknown task " + task);
         break;

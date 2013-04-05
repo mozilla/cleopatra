@@ -226,6 +226,14 @@ var Parser = {
     return request;
   },
 
+  changeWorseResponsiveness: function Parser_changeWorseResponsiveness(res) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("changeWorseResponsiveness", {
+      res: res
+    });
+    return request;
+  },
+
   updateViewOptions: function Parser_updateViewOptions(options, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("updateViewOptions", {
