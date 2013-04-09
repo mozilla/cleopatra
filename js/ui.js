@@ -1600,7 +1600,7 @@ function filtersChanged() {
   viewOptionsChanged();
 }
 
-function viewOptionsChanged() {
+function viewOptionsChanged(finished_cb) {
   gTreeManager.dataIsOutdated();
   var filterNameInput = document.getElementById("filterName");
   var updateViewOptionsRequest = Parser.updateViewOptions({
@@ -1611,6 +1611,9 @@ function viewOptionsChanged() {
     var start = Date.now();
     gTreeManager.display(calltree, gSymbols, gFunctions, gResources, gMergeFunctions, filterNameInput && filterNameInput.value);
     console.log("tree displaying: " + (Date.now() - start) + "ms.");
+    if (finished_cb) {
+      finished_cb();
+    }
   });
 }
 
