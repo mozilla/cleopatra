@@ -172,7 +172,7 @@ HistogramView.prototype = {
     gHistogramContainer.histogramSelected(this, function histogramSelected() {
       // If this is the current histogram this will run right away, otherwise
       // it will run when the selection is completed
-      //gTreeManager.setSelection(list);
+      gTreeManager.setSelection(list);
       setHighlightedCallstack(frames[0], frames[0]);
     });
   },
