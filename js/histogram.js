@@ -172,7 +172,8 @@ HistogramView.prototype = {
     gHistogramContainer.histogramSelected(this, function histogramSelected() {
       // If this is the current histogram this will run right away, otherwise
       // it will run when the selection is completed
-      gTreeManager.setSelection(list);
+      //gTreeManager.setSelection(list);
+      setHighlightedCallstack(frames[0], frames[0]);
     });
   },
   display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
@@ -187,15 +188,20 @@ HistogramView.prototype = {
   _scheduleRender: function HistogramView__scheduleRender(highlightedCallstack) {
     var self = this;
     if (self._pendingAnimationFrame != null) {
-      return;
+      // We have to cancel the old draw request because the
+      // highlightedCallstack is newer so this request overrules.
+      cancelAnimationFrame(this._pendingAnimationFrame);
     }
     self._pendingAnimationFrame = requestAnimationFrame(function anim_frame() {
-      cancelAnimationFrame(self._pendingAnimationFrame);
-      self._pendingAnimationFrame = null;
       self._render(highlightedCallstack);
     });
   },
   _render: function HistogramView__render(highlightedCallstack) {
+    if (this._pendingAnimationFrame != null) {
+      cancelAnimationFrame(this._pendingAnimationFrame);
+      this._pendingAnimationFrame = null;
+    }
+
     var ctx = this._canvas.getContext("2d");
     var height = this._canvas.height;
     ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
