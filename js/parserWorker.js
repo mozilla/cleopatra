@@ -1227,6 +1227,45 @@ function updateViewOptions(requestID, profileID, options, threadId) {
   sendFinished(requestID, treeData);
 }
 
+function findTimelineStart(profileID) {
+  var profile = gProfiles[profileID];
+  var min = null;
+  for (var threadID in profile.filteredThreadSamples) {
+    var thread = profile.filteredThreadSamples[threadID];
+    if (thread == null)
+      continue;
+    if (thread[0].extraInfo.time && 
+        (min == null || thread[0].extraInfo.time < min)) {
+      min = thread[0].extraInfo.time;
+    }
+  }
+
+  if (min == null) {
+    dump("Bad min\n");
+  }
+  return min;
+}
+
+function findTimelineEnd(profileID) {
+  var profile = gProfiles[profileID];
+  var max = null;
+  for (var threadID in profile.filteredThreadSamples) {
+    var thread = profile.filteredThreadSamples[threadID];
+    if (thread == null)
+      continue;
+    var len = thread.length;
+    if (thread[len-2].extraInfo.time && 
+        (max == null || thread[len-2].extraInfo.time > max)) {
+      max = thread[len-2].extraInfo.time;
+    }
+  }
+
+  if (max == null) {
+    dump("Bad max\n");
+  }
+  return max;
+}
+
 // The responsiveness threshold (in ms) after which the sample shuold become
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
@@ -1253,6 +1292,8 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   if (showMissedSample === true && profile.meta && profile.meta.interval) {
     expectedInterval = profile.meta.interval; 
   }
+  var start = findTimelineStart(profileID);
+  var end = findTimelineEnd(profileID);
   var histogramData = [];
   var maxHeight = 0;
   for (var i = 0; i < data.length; ++i) {
