@@ -89,6 +89,7 @@ HistogramContainer.prototype = {
     if (gSelectedThreadId != view.threadId) {
       gSelectedThreadId = view.threadId;
       viewOptionsChanged(selected_cb);
+      diagnosticChanged();
     } else {
       selected_cb();
     }

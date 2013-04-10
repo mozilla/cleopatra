@@ -149,8 +149,8 @@ TreeView.prototype = {
         snapshot.push(curr.name);
         //dump(JSON.stringify(curr.name) + "\n");
       }
-      if (curr.treeChildren && curr.treeChildren.length >= 1) {
-        curr = curr.treeChildren[0].getData();
+      if (curr.children && curr.children.length >= 1) {
+        curr = curr.children[0].getData();
       } else {
         break;
       }

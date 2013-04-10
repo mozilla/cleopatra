@@ -1589,6 +1589,12 @@ function filtersChanged() {
     });
   }
 
+  diagnosticChanged();
+
+  viewOptionsChanged();
+}
+
+function diagnosticChanged() {
   var diagnosticsRequest = Parser.calculateDiagnosticItems(gMeta, gSelectedThreadId);
   var diagnosticThreadId = gSelectedThreadId;
   diagnosticsRequest.addEventListener("finished", function (diagnosticItems) {
@@ -1596,8 +1602,6 @@ function filtersChanged() {
     gHistogramContainer.displayDiagnostics(diagnosticItems, diagnosticThreadId);
     console.log("diagnostic items displaying: " + (Date.now() - start) + "ms.");
   }, diagnosticThreadId);
-
-  viewOptionsChanged();
 }
 
 function viewOptionsChanged(finished_cb) {

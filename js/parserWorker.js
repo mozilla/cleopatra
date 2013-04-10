@@ -518,6 +518,8 @@ function parseRawProfile(requestID, params, rawProfile) {
     if (threadCount <= 1)
       return;
 
+    return;
+
     var startPoint;
     var endPoint;
     for (var threadId in threads) {
