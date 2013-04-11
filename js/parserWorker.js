@@ -518,8 +518,6 @@ function parseRawProfile(requestID, params, rawProfile) {
     if (threadCount <= 1)
       return;
 
-    return;
-
     var startPoint;
     var endPoint;
     for (var threadId in threads) {
@@ -725,6 +723,56 @@ function parseRawProfile(requestID, params, rawProfile) {
       };
     }
 
+    if (meta.timelines) {
+      for(var i in meta.timelines) {
+        var timeline = meta.timelines[i];
+        dump("Got timeline: " + timeline.name + "\n");
+        var fakeThread = {};
+        fakeThread.name = timeline.name;
+        fakeThread.samples = [];
+
+        function bytesToString(val) {
+          if (val > 1024 * 1024 * 1024) {
+            return Math.round(val / 1024 / 1024 / 1024) + " GB";
+          } else {
+            return Math.round(val / 1024 / 1024) + " MB";
+          }
+        }
+
+        for (var id in threads[0].samples) {
+          var sample = threads[0].samples[id];
+          var time = sample.extraInfo.time;
+
+          var reported = false;
+          for (var sampleID in timeline.samples) {
+            if (time < timeline.samples[sampleID].time && sampleID > 0) {
+              var timelineSample = timeline.samples[sampleID-1];
+              fakeThread.samples.push({
+                frames: [ "Main", bytesToString(timelineSample.data) ],
+                extraInfo: {
+                  time: time,
+                  height: timelineSample.data,
+                },
+              });
+              reported = true;
+              break;
+            }
+          }
+          if (!reported) {
+            fakeThread.samples.push({
+              frames: [ "Main", "Unknown" ],
+              extraInfo: {
+                time: time,
+                height: 0,
+              },
+            });
+          }
+        }
+        threads["timeline"+i] = fakeThread;
+        dump("Done timeline: " + timeline.name + "\n");
+      }
+    }
+
     function parseJSONSamples(profileSamples) {
       var samples = [];
       for (var j = 0; j < profileSamples.length; j++) {
@@ -804,7 +852,7 @@ function parseRawProfile(requestID, params, rawProfile) {
     };
   }
 
-  syncThreads(threads);
+  //syncThreads(threads);
 
   progressReporter.finish();
   // Don't increment the profile ID now because (1) it's buggy
@@ -1286,20 +1334,24 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     return "rgb(0,0,0)";
   }
 
+  function getHeight(step) {
+    return step.extraInfo.height || step.frames.length;
+  }
+
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
   var expectedInterval = null;
   if (showMissedSample === true && profile.meta && profile.meta.interval) {
     expectedInterval = profile.meta.interval; 
   }
-  var start = findTimelineStart(profileID);
-  var end = findTimelineEnd(profileID);
+  //var start = findTimelineStart(profileID);
+  //var end = findTimelineEnd(profileID);
   var histogramData = [];
   var maxHeight = 0;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i])
       continue;
-    var value = data[i].frames.length;
+    var value = getHeight(data[i]);
     if (maxHeight < value)
       maxHeight = value;
   }
@@ -1325,7 +1377,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
       nextX += 1 * samplesSkipped / samplesPerStep;
     }
     nextX = Math.ceil(nextX);
-    var value = step.frames.length / maxHeight;
+    var value = getHeight(step) / maxHeight;
     var frames = step.frames;
     var currHistogramData = histogramData[histogramData.length-1];
     if (step.extraInfo && "marker" in step.extraInfo) {
