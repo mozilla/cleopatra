@@ -86,6 +86,9 @@ function WorkerRequest(worker) {
           self._fireEvent("finished", partialResult);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
+        case "log":
+          console.log.apply(console, data.params);
+          break;
       }
       // dump log if present
       if (data.log) {

@@ -177,6 +177,13 @@ function sendFinished(requestID, result) {
   });
 }
 
+function sendLog() {
+  self.postMessage({
+    type: "log",
+    params: Array.slice.call(null, arguments)
+  });
+}
+
 function bucketsBySplittingArray(array, maxCostPerBucket, costOfElementCallback) {
   var buckets = [];
   var currentBucket = [];
@@ -256,7 +263,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       throw "rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.";
     }
   }
-
 
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
