@@ -1325,7 +1325,6 @@ function findTimelineEnd(profileID) {
 var kDelayUntilWorstResponsiveness = 1000;
 
 function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
-
   function getStepColor(step) {
     if (options.showPowerInfo) {
       var res = step.extraInfo.power;
@@ -1350,25 +1349,27 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   if (showMissedSample === true && profile.meta && profile.meta.interval) {
     expectedInterval = profile.meta.interval; 
   }
-  //var start = findTimelineStart(profileID);
-  //var end = findTimelineEnd(profileID);
+
   var histogramData = [];
   var maxHeight = 0;
-  for (var i = 0; i < data.length; ++i) {
-    if (!data[i])
-      continue;
-    var value = getHeight(data[i]);
-    if (maxHeight < value)
-      maxHeight = value;
-  }
+
+  data.forEach(function (datum) {
+    if (datum)
+      maxHeight = maxHeight < getHeight(datum) ? getHeight(datum) : maxHeight;
+  });
+
   maxHeight += 1;
-  var nextX = 0;
+  var nextX = 0; // Q: What is this?
+
   // The number of data items per histogramData rects.
   // Except when seperated by a marker.
   // This is used to cut down the number of rects, since
   // there's no point in having more rects then pixels
   var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
   var frameStart = {};
+
+  sendLog("Times:", data.map((datum) => datum.extraInfo.time || -1 ).join(":"));
+
   for (var i = 0; i < data.length; i++) {
     var step = data[i];
     if (!step) {
@@ -1376,6 +1377,8 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
       nextX += 1 / samplesPerStep;
       continue;
     }
+
+    // Q: What is this?
     if (expectedInterval != null && i > 0 && data[i-1] != null &&
         data[i-1].extraInfo.time != null && step.extraInfo.time != null &&
         step.extraInfo.time > data[i-1].extraInfo.time + expectedInterval) {
@@ -1383,9 +1386,12 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
       nextX += 1 * samplesSkipped / samplesPerStep;
     }
     nextX = Math.ceil(nextX);
+
     var value = getHeight(step) / maxHeight;
     var frames = step.frames;
     var currHistogramData = histogramData[histogramData.length-1];
+
+    // Q: What is 'marker'?
     if (step.extraInfo && "marker" in step.extraInfo) {
       // A new marker boundary has been discovered.
       histogramData.push({
@@ -1431,6 +1437,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
       nextX += 1;
     }
   }
+  sendLog(histogramData);
   sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
 }
 
