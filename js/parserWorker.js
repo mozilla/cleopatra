@@ -1370,30 +1370,61 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 
   sendLog("Times:", data.map((datum) => datum.extraInfo.time || -1 ).join(":"));
 
-  for (var i = 0; i < data.length; i++) {
-    var step = data[i];
+  data.forEach(function (step, i) {
+    // Add a gap for the sample that was filtered out.
     if (!step) {
-      // Add a gap for the sample that was filtered out.
       nextX += 1 / samplesPerStep;
-      continue;
+      return;
     }
 
-    // Q: What is this?
-    if (expectedInterval != null && i > 0 && data[i-1] != null &&
-        data[i-1].extraInfo.time != null && step.extraInfo.time != null &&
-        step.extraInfo.time > data[i-1].extraInfo.time + expectedInterval) {
-      var samplesSkipped = Math.floor((step.extraInfo.time - data[i-1].extraInfo.time) / expectedInterval) - 1;
-      nextX += 1 * samplesSkipped / samplesPerStep;
+    var currTime = step.extraInfo.time;
+    var prevStep = data[i - 1];
+    var prevTime = prevStep ? prevStep.extraInfo.time : null;
+
+    // If the interval between the last step and the current one
+    // is bigger than we expected, calculate how many samples were
+    // skipped and record that.
+    //
+    // We calculate that simply by taking an interval value between
+    // two steps and dividing that by the expected interval value.
+
+    if (expectedInterval != null) {
+      if (i > 0 && prevTime != null && currTime != null) {
+        if (currTime > prevTime + expectedInterval) {
+          nextX += 1 * (Math.floor((currTime - prevTime) / expectedInterval) - 1) /
+            samplesPerStep;
+        }
+      }
     }
-    nextX = Math.ceil(nextX);
 
     var value = getHeight(step) / maxHeight;
     var frames = step.frames;
-    var currHistogramData = histogramData[histogramData.length-1];
+    var currHistogramData = histogramData[histogramData.length - 1];
+    var extraInfo = step.extraInfo || {};
 
-    // Q: What is 'marker'?
+    function addFrames(extra) {
+      var data = {
+        frames: [step.frames],
+        x: nextX,
+        width: 1,
+        value: value,
+        color: getStepColor(step)
+      };
+
+      extra = extra || {};
+      Object.keys(extra).map(function (key) {
+        data[key] = extra[key];
+      });
+
+      histogramData.push(data);
+      nextX += 1;
+    }
+
+    // A marker denotes that something interesting happen prior to
+    // this sample being collected. When we encounter it, in addition
+    // to adding samples, add information about the marker.
+
     if (step.extraInfo && "marker" in step.extraInfo) {
-      // A new marker boundary has been discovered.
       histogramData.push({
         frames: "marker",
         x: nextX,
@@ -1402,42 +1433,37 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
         marker: step.extraInfo.marker,
         color: "fuchsia"
       });
+
       nextX += 2;
-      histogramData.push({
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
-        color: getStepColor(step),
-      });
-      nextX += 1;
-    } else if (currHistogramData != null &&
-      currHistogramData.frames.length < samplesPerStep &&
-      !(step.extraInfo && "frameNumber" in step.extraInfo)) {
-      currHistogramData.frames.push(step.frames);
-      // When merging data items take the average:
-      currHistogramData.value =
-        (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
-        currHistogramData.frames.length;
-      // Merge the colors? For now we keep the first color set.
-    } else {
-      // A new name boundary has been discovered.
-      currHistogramData = {
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
-        color: getStepColor(step),
-      };
-      if (step.extraInfo && "frameNumber" in step.extraInfo) {
-        currHistogramData.frameNumber = step.extraInfo.frameNumber;
-        frameStart[step.extraInfo.frameNumber] = histogramData.length;
-      }
-      histogramData.push(currHistogramData);
-      nextX += 1;
+      addFrames();
+      return;
     }
-  }
-  sendLog(histogramData);
+
+    // If the last histogram data point still doesn't have enough
+    // frames in it (determined by the samplesPerStep variable)
+    // merge the current step into it. When merging steps we
+    // take the average for the value.
+
+    if (currHistogramData && step.extraInfo.frameNumber == null) {
+      if (currHistogramData.frames.length < samplesPerStep) {
+        currHistogramData.frames.push(step.frames);
+        currHistogramData.value =
+          (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
+            currHistogramData.frames.length;
+        return;
+      }
+    }
+
+    // Add frames to the histogramData.
+
+    var extra = {};
+    if (extraInfo.frameNumber != null) {
+      extra.frameNumber = extraInfo.frameNumber;
+      frameStart[extraInfo.frameNumber] = histogramData.length;
+    }
+    addFrames(extra);
+  });
+
   sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
 }
 
