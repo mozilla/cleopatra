@@ -1686,7 +1686,15 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+
+          // Window IO Functions
+          || stepContains('NtClose', frames, symbols) 
           || stepContains('NtFlushBuffersFile', frames, symbols) 
+          || stepContains('NtSetInformationFile', frames, symbols) 
+          || stepContains('NtWriteFile', frames, symbols) 
+          || stepContains('ZwCreateFile', frames, symbols) 
+          || stepContains('ZwQueryFullAttributesFile', frames, symbols) 
+
           || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
           || stepContains('__unlink', frames, symbols) 
           || stepContains('fsync', frames, symbols) 
