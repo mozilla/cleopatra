@@ -125,6 +125,9 @@ self.onmessage = function (msg) {
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
+      case "getHistogramBoundaries":
+        getHistogramBoundaries(requestID, taskData.profileID, taskData.showMissedSample, taskData.threadId);
+        break;
       case "calculateHistogramData":
         calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
@@ -1324,19 +1327,44 @@ function findTimelineEnd(profileID) {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
+function getHistogramBoundaries(requestID, profileID, showMissedSample) {
+  function flatten(arr) {
+    return arr.reduce(function(a, b) { return a.concat(b) });
+  }
+
+  var samples = gProfiles[profileID].filteredThreadSamples;
+  var times = flatten(Object.keys(samples).map(function (id) {
+    return Object.keys(samples[id]).map(function (stepId) {
+      return Math.floor(samples[id][stepId].extraInfo.time);
+    });
+  }));
+
+  // Filter out all entries with no time.
+  times = times.filter(function (time) { return !isNaN(time); });
+
+  sendFinished(requestID, {
+    minima: Math.min.apply(null, times),
+    maxima: Math.max.apply(null, times)
+  });
+}
+
 function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
+  // TODO:
+  //  1. showMissedSample
+  //  2. Markers
+
   function getStepColor(step) {
+    var res, red = 0;
+
     if (options.showPowerInfo) {
-      var res = step.extraInfo.power;
-      var redComponent = Math.round(255 * Math.min(1, res / 0.1));
-      return "rgb(" + redComponent + ",0,0)";
+      res = step.extraInfo.power;
+      red = Math.round(255 * Math.min(1, res / 0.1));
     } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
-      var res = step.extraInfo.responsiveness;
-      var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
-      return "rgb(" + redComponent + ",0,0)";
+      res = step.extraInfo.responsiveness;
+      red = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
     }
 
-    return "rgb(0,0,0)";
+    return "rgb(" + red + ",0,0)";
   }
 
   function getHeight(step) {
@@ -1345,126 +1373,23 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
-  var expectedInterval = null;
-  if (showMissedSample === true && profile.meta && profile.meta.interval) {
-    expectedInterval = profile.meta.interval; 
-  }
+  var maxHeight = data.reduce(function (prev, curr, i, a) {
+    curr = getHeight(curr);
+    return curr > prev ? curr : prev;
+  }, 0) + 1;
 
-  var histogramData = [];
-  var maxHeight = 0;
-
-  data.forEach(function (datum) {
-    if (datum)
-      maxHeight = maxHeight < getHeight(datum) ? getHeight(datum) : maxHeight;
-  });
-
-  maxHeight += 1;
-  var nextX = 0; // Q: What is this?
-
-  // The number of data items per histogramData rects.
-  // Except when seperated by a marker.
-  // This is used to cut down the number of rects, since
-  // there's no point in having more rects then pixels
-  var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
-  var frameStart = {};
-
-  sendLog("Times:", data.map((datum) => datum.extraInfo.time || -1 ).join(":"));
-
-  data.forEach(function (step, i) {
-    // Add a gap for the sample that was filtered out.
-    if (!step) {
-      nextX += 1 / samplesPerStep;
-      return;
-    }
-
-    var currTime = step.extraInfo.time;
-    var prevStep = data[i - 1];
-    var prevTime = prevStep ? prevStep.extraInfo.time : null;
-
-    // If the interval between the last step and the current one
-    // is bigger than we expected, calculate how many samples were
-    // skipped and record that.
-    //
-    // We calculate that simply by taking an interval value between
-    // two steps and dividing that by the expected interval value.
-
-    if (expectedInterval != null) {
-      if (i > 0 && prevTime != null && currTime != null) {
-        if (currTime > prevTime + expectedInterval) {
-          nextX += 1 * (Math.floor((currTime - prevTime) / expectedInterval) - 1) /
-            samplesPerStep;
-        }
-      }
-    }
-
-    var value = getHeight(step) / maxHeight;
-    var frames = step.frames;
-    var currHistogramData = histogramData[histogramData.length - 1];
-    var extraInfo = step.extraInfo || {};
-
-    function addFrames(extra) {
-      var data = {
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
+  var histogram = data
+    .filter(function (step) { return step != null; })
+    .map(function (step, i) {
+      return {
+        frames: [ step.frames ],
+        height: getHeight(step) / maxHeight,
+        time: step.extraInfo.time,
         color: getStepColor(step)
       };
+    });
 
-      extra = extra || {};
-      Object.keys(extra).map(function (key) {
-        data[key] = extra[key];
-      });
-
-      histogramData.push(data);
-      nextX += 1;
-    }
-
-    // A marker denotes that something interesting happen prior to
-    // this sample being collected. When we encounter it, in addition
-    // to adding samples, add information about the marker.
-
-    if (step.extraInfo && "marker" in step.extraInfo) {
-      histogramData.push({
-        frames: "marker",
-        x: nextX,
-        width: 2,
-        value: 1,
-        marker: step.extraInfo.marker,
-        color: "fuchsia"
-      });
-
-      nextX += 2;
-      addFrames();
-      return;
-    }
-
-    // If the last histogram data point still doesn't have enough
-    // frames in it (determined by the samplesPerStep variable)
-    // merge the current step into it. When merging steps we
-    // take the average for the value.
-
-    if (currHistogramData && step.extraInfo.frameNumber == null) {
-      if (currHistogramData.frames.length < samplesPerStep) {
-        currHistogramData.frames.push(step.frames);
-        currHistogramData.value =
-          (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
-            currHistogramData.frames.length;
-        return;
-      }
-    }
-
-    // Add frames to the histogramData.
-
-    var extra = {};
-    if (extraInfo.frameNumber != null) {
-      extra.frameNumber = extraInfo.frameNumber;
-      frameStart[extraInfo.frameNumber] = histogramData.length;
-    }
-    addFrames(extra);
-  });
-
-  sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
+  sendFinished(requestID, { threadId: threadId, histogramData: histogram });
 }
 
 var diagnosticList = [

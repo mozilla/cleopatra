@@ -256,6 +256,15 @@ var Parser = {
     request.addEventListener("finished", callback);
   },
 
+  getHistogramBoundaries: function Parser_getHistogramBoundaries(showMissedSample) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("getHistogramBoundaries", {
+      profileID: 0,
+      showMissedSample: showMissedSample,
+    });
+    return request;
+  },
+
   calculateHistogramData: function Parser_calculateHistogramData(showMissedSample, options, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("calculateHistogramData", {

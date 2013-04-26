@@ -1575,23 +1575,36 @@ function filtersChanged() {
     }
   });
 
-  for (var threadId in gThreadsDesc) {
-    var options = {
-      showPowerInfo: gShowPowerInfo,
-    };
-    var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
-    histogramRequest.addEventListener("finished", function (data) {
-      start = Date.now();
-      gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
-      if (gFrameView)
-        gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack);
-      console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+
+  var boundariesRequest = Parser.getHistogramBoundaries(gShowMissedSample);
+    boundariesRequest.addEventListener("finished", function (data) {
+      var options = {
+        showPowerInfo: gShowPowerInfo,
+        sampleMin: data.minima,
+        sampleMax: data.maxima
+      };
+ 
+      var boundaries = {
+        min: data.minima,
+        max: data.maxima
+      };
+ 
+      for (var threadId in gThreadsDesc) {
+        var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
+        histogramRequest.addEventListener("finished", function (data) {
+          start = Date.now();
+          gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
+            boundaries);
+          if (gFrameView)
+            gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
+              boundaries);
+          console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+        });
+      }
+
+      diagnosticChanged();
+      viewOptionsChanged();
     });
-  }
-
-  diagnosticChanged();
-
-  viewOptionsChanged();
 }
 
 function diagnosticChanged() {

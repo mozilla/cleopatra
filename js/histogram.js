@@ -22,7 +22,6 @@ HistogramContainer.prototype = {
     var rowIndex = 0;
     for (var threadId in threadsDesc) {
       var thread = threadsDesc[threadId];
-
       currRow = this._container.insertRow(rowIndex++);
       var threadHistogramDescriptionContainer = currRow.insertCell(0);
       threadHistogramDescriptionContainer.className = "threadHistogramDescription";
@@ -79,8 +78,8 @@ HistogramContainer.prototype = {
     // Only supported on the main thread ATM
     this._threadsDesc[0].threadHistogramView.selectRange(start, end);
   },
-  display: function HistogramContainer_display(threadId, histogramData, frameStart, widthSum, highlightedCallstack) {
-    this._threadsDesc[threadId].threadHistogramView.display(histogramData, frameStart, widthSum, highlightedCallstack);
+  display: function HistogramContainer_display(threadId, histogramData, frameStart, widthSum, highlightedCallstack, boundaries) {
+    this._threadsDesc[threadId].threadHistogramView.display(histogramData, frameStart, widthSum, highlightedCallstack, boundaries);
   },
   updateInfoBar: function HistogramContainer_updateInfoBar() {
     thread.infoBar.display(); 
@@ -114,10 +113,12 @@ function HistogramView(debugName) {
 
   this._histogramData = [];
 }
+
 HistogramView.prototype = {
   dataIsOutdated: function HistogramView_dataIsOutdated() {
     this._busyCover.classList.add("busy");
   },
+
   _createCanvas: function HistogramView__createCanvas() {
     var canvas = document.createElement("canvas");
     canvas.height = 60;
@@ -125,12 +126,15 @@ HistogramView.prototype = {
     canvas.style.height = "100%";
     return canvas;
   },
+
   getContainer: function HistogramView_getContainer() {
     return this._container;
   },
+
   selectRange: function HistogramView_selectRange(start, end) {
     this._rangeSelector._finishSelection(start, end);
   },
+
   showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
     if (!this._frameStart || !this._frameStart[frame])
       return;
@@ -143,10 +147,12 @@ HistogramView.prototype = {
     }
     this._rangeSelector.showVideoRange(frameStart, frameEnd);
   },
+
   showVideoPosition: function HistogramView_showVideoPosition(position) {
     // position in 0..1
     this._rangeSelector.showVideoPosition(position);
   },
+
   _gatherMarkersList: function HistogramView__gatherMarkersList(histogramData) {
     var markers = [];
     for (var i = 0; i < histogramData.length; ++i) {
@@ -160,10 +166,12 @@ HistogramView.prototype = {
     }
     return markers;
   },
+
   _calculateWidthMultiplier: function () {
     var minWidth = 2000;
     return Math.ceil(minWidth / this._widthSum);
   },
+
   histogramClick: function HistogramView_histogramClick(index) {
     var sample = this._histogramData[index]; 
     var frames = sample.frames;
@@ -177,15 +185,18 @@ HistogramView.prototype = {
       setHighlightedCallstack(frames[0], frames[0]);
     });
   },
-  display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
+
+  display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack, boundaries) {
     this._histogramData = histogramData;
     this._frameStart = frameStart;
     this._widthSum = widthSum;
     this._widthMultiplier = this._calculateWidthMultiplier();
-    this._canvas.width = this._widthMultiplier * this._widthSum;
+    this._canvas.width = 2000;// this._widthMultiplier * this._widthSum;
+    this.boundaries = boundaries;
     this._render(highlightedCallstack);
     this._busyCover.classList.remove("busy");
   },
+
   _scheduleRender: function HistogramView__scheduleRender(highlightedCallstack) {
     var self = this;
     if (self._pendingAnimationFrame != null) {
@@ -197,6 +208,7 @@ HistogramView.prototype = {
       self._render(highlightedCallstack);
     });
   },
+
   _render: function HistogramView__render(highlightedCallstack) {
     if (this._pendingAnimationFrame != null) {
       cancelAnimationFrame(this._pendingAnimationFrame);
@@ -205,7 +217,9 @@ HistogramView.prototype = {
 
     var ctx = this._canvas.getContext("2d");
     var height = this._canvas.height;
-    ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
+     ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
+    ctx.font = "20px Georgia";
+    ctx.clearRect(0, 0, this._widthSum, height);
     ctx.font = "20px Georgia";
     ctx.clearRect(0, 0, this._widthSum, height);
 
@@ -242,12 +256,58 @@ HistogramView.prototype = {
 
     this._finishedRendering = true;
   },
+
+  _render: function HistogramView__render(highlightedCallstack) {
+    if (this._pendingAnimationFrame != null) {
+      cancelAnimationFrame(this._pendingAnimationFrame);
+      this._pendingAnimationFrame = null;
+    }
+
+    var ctx = this._canvas.getContext("2d");
+    var height = this._canvas.height;
+    var width = this._canvas.width;
+    var step = this.boundaries.max / width;
+    var curr = 0;
+    var x = 0;
+
+    // ctx.setTransform(2000, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    var data, value;
+    while (curr <= width) {
+      data = [];
+      for (var i = 0, datum; datum = this._histogramData[i]; i++) {
+        if (datum.time > curr) {
+          break;
+        }
+        
+        data.push(datum);
+        this._histogramData.shift();
+      }
+
+      if (data.length !== 0) {
+        // debugger;
+      }
+
+      value = data.reduce(function (prev, curr) { return prev + curr.height }, 0) / data.length;
+
+      ctx.fillStyle = "black";
+      ctx.fillRect(x, 0, 1, value * 100);
+      curr += step;
+      x += 1;
+    }
+
+    this._finishedRendering = true;
+  },
+
   highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
     this._scheduleRender(highlightedCallstack);
   },
+
   _isInRangeSelector: function HistogramView_isInRangeSelector(index) {
     return false;
   },
+
   _isStepSelected: function HistogramView__isStepSelected(step, highlightedCallstack) {
     if ("marker" in step)
       return false;
@@ -279,9 +339,11 @@ HistogramView.prototype = {
     };
     return false;
   },
+
   getHistogramData: function HistogramView__getHistogramData() {
     return this._histogramData;
   },
+
   _getStepColor: function HistogramView__getStepColor(step) {
       if ("responsiveness" in step.extraInfo) {
         if (gShowPowerInfo) {
@@ -501,4 +563,3 @@ function videoPaneTimeChange(video) {
 
   gHistogramContainer.showVideoFramePosition(frame); 
 }
-
