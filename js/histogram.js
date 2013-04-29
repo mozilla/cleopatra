@@ -126,12 +126,10 @@ var HistogramContainer;
       ctx.clearRect(0, 0, width, height);
 
       var curr = 0, x = 0;
-      var step = width / this.boundaries.max;
+      var step = (width / this.boundaries.max) * 5;
       var data, value;
 
-      console.log("namee", this.debugName);
-
-      while (curr <= width) {
+      while (x <= width) {
         data = [];
         for (var i = 0, datum; datum = this.data[i]; i++) {
           if (datum.time > curr) {
@@ -139,17 +137,17 @@ var HistogramContainer;
           }
 
           data.push(datum);
-          this.data.shift();
         }
 
         if (data.length !== 0) {
+          this.data = this.data.slice(data.length);
           value = data.reduce(function (prev, curr) { return prev + curr.height }, 0) / data.length;
           ctx.fillStyle = "black";
-          ctx.fillRect(x, height - (value * height), 1, value * height);
+          ctx.fillRect(x, height - (value * height), 5, value * height);
         }
 
         curr += step;
-        x += 1;
+        x += 5;
       }
     }
   };
