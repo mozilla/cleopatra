@@ -1439,9 +1439,9 @@ function enterFinishedProfileUI() {
   currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
 
   gHistogramContainer = new HistogramContainer();
-  gHistogramContainer.updateThreadsDesc(gThreadsDesc);
+  gHistogramContainer.updateThreads(gThreadsDesc);
   currRow = finishedProfilePane.insertRow(rowIndex++);
-  currRow.insertCell(0).appendChild(gHistogramContainer.getContainer());
+  currRow.insertCell(0).appendChild(gHistogramContainer.container);
 
   if (false && gLocation.indexOf("file:") == 0) {
     // Local testing for frameView
@@ -1583,7 +1583,7 @@ function filtersChanged() {
         sampleMin: data.minima,
         sampleMax: data.maxima
       };
- 
+
       var boundaries = {
         min: data.minima,
         max: data.maxima
