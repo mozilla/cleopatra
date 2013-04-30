@@ -38,6 +38,14 @@ var HistogramContainer;
   }
 
   HistogramContainer.prototype = {
+    eachThread: function (cb) {
+      for (var id in this.threads) {
+        if (this.threads.hasOwnProperty(id)) {
+          cb(this.threads[id], id);
+        }
+      }
+    },
+
     updateThreads: function (threads) {
       var index = 0;
 
@@ -79,25 +87,29 @@ var HistogramContainer;
     },
 
     displayDiagnostics: function (items, threadId) {
+      // Only supported on the main thread at the moment.
+      this.eachThread(function (thread) { thread.diagnosticBar.hide() });
+      this.threads[threadId].diagnosticBar.display(items);
     },
 
     dataIsOutdated: function () {
+      this.eachThread(function (thread) { thread.threadHistogramView.dataIsOutdated() });
     },
 
     showVideoFramePosition: function (frame) {
+      this.threads[0].threadHistogramView.showVideoFramePosition(frame);
     },
 
     highlightedCallstackChanged: function (callstack) {
+      this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack) });
     },
 
     selectRange: function (start, end) {
+      // TODO: Multiple threads support
     },
 
     display: function (id, data, frameStart, widthSum, stack, boundaries) {
       this.threads[id].threadHistogramView.display(data, boundaries);
-    },
-
-    updateInfoBar: function () {
     },
 
     histogramSelected: function (view, cb) {
@@ -135,7 +147,7 @@ var HistogramContainer;
 
         timeout = setTimeout(function () {
           timeout = null;
-          this.busyCover.classList.add("busy");
+          this.dataIsOutdated();
           this.render();
           this.busyCover.classList.remove("busy");
         }.bind(this), 200);
@@ -181,6 +193,10 @@ var HistogramContainer;
         curr += step;
         x += 5;
       }
+    },
+
+    dataIsOutdated: function () {
+      this.busyCover.classList.add("busy");
     }
   };
 
