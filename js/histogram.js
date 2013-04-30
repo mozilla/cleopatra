@@ -9,16 +9,32 @@ var HistogramContainer;
     return canvas;
   }
 
+  function createElement(name, props) {
+    var el = document.createElement(name);
+
+    for (var key in props) {
+      if (key === "style") {
+        for (var styleName in props.style) {
+          el.style[styleName] = props.style[styleName];
+        }
+      } else {
+        el[key] = props[key];
+      }
+    }
+
+    return el;
+  }
+
   HistogramContainer = function () {
-    this.container = document.createElement("table");
-    this.container.className = "histogramContainer";
-    this.container.style.width = "100%";
-    this.container.style.height = "100%";
-    this.container.border = "0";
-    this.container.borderCollapse = "collapse";  
-    this.container.cellPadding = "0";
-    this.container.cellSpacing = "0";
     this.threads = [];
+    this.container = createElement("table", {
+      className: "histogramContainer",
+      style: { width: "100%", height: "100%" },
+      border: "0",
+      borderCollapse: "collapse",
+      cellPadding: "0",
+      cellSpacing: "0"
+    });
   }
 
   HistogramContainer.prototype = {
@@ -89,8 +105,7 @@ var HistogramContainer;
   };
 
   var HistogramView = function (debugName) {
-    var container = document.createElement("div");
-    container.className = "histogram";
+    var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
     container.appendChild(this.canvas);
@@ -99,8 +114,7 @@ var HistogramContainer;
     this.rangeSelector.enableRangeSelectionOnHistogram();
     container.appendChild(this.rangeSelector.container);
 
-    this.busyCover = document.createElement("div");
-    this.busyCover.className = "busyCover";
+    this.busyCover = createElement("div", { className: "busyCover" });
     container.appendChild(this.busyCover);
 
     this.debugName = debugName || "NoName";
@@ -172,8 +186,7 @@ var HistogramContainer;
 
   var RangeSelector = function (graph, histogram) {
     this.histogram = histogram;
-    this.container = document.createElement("div");
-    this.container.className = "rangeSelectorContainer";
+    this.container = document.createElement("div", { className: "rangeSelectorContainer" });
     this.graph = graph;
   };
 
