@@ -126,7 +126,7 @@ var HistogramContainer;
       ctx.clearRect(0, 0, width, height);
 
       var curr = 0, x = 0;
-      var step = (width / this.boundaries.max) * 5;
+      var step = Math.floor(this.boundaries.max / (width / 5));
       var data, value, color;
 
       while (x <= width) {
