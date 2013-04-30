@@ -127,7 +127,7 @@ var HistogramContainer;
 
       var curr = 0, x = 0;
       var step = (width / this.boundaries.max) * 5;
-      var data, value;
+      var data, value, color;
 
       while (x <= width) {
         data = [];
@@ -142,8 +142,10 @@ var HistogramContainer;
         if (data.length !== 0) {
           this.data = this.data.slice(data.length);
           value = data.reduce(function (prev, curr) { return prev + curr.height }, 0) / data.length;
-          ctx.fillStyle = "black";
-          ctx.fillRect(x, height - (value * height), 5, value * height);
+          color = data.reduce(function (prev, curr) { return prev + curr.color }, 0) / data.length;
+          ctx.fillStyle = "rgb(" + color + ",0,0)";
+          var h  = (height / 100) * value;
+          ctx.fillRect(x, height - h, 5, value * h);
         }
 
         curr += step;

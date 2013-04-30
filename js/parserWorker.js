@@ -1354,17 +1354,17 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   //  2. Markers
 
   function getStepColor(step) {
-    var res, red = 0;
+    var res;
 
     if (options.showPowerInfo) {
       res = step.extraInfo.power;
-      red = Math.round(255 * Math.min(1, res / 0.1));
+      return Math.round(255 * Math.min(1, res / 0.1));
     } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
       res = step.extraInfo.responsiveness;
-      red = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
+      return Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
     }
 
-    return "rgb(" + red + ",0,0)";
+    return 0;
   }
 
   function getHeight(step) {
@@ -1383,7 +1383,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     .map(function (step, i) {
       return {
         frames: [ step.frames ],
-        height: getHeight(step) / maxHeight,
+        height: getHeight(step) / (maxHeight / 100),
         time: step.extraInfo.time,
         color: getStepColor(step)
       };
