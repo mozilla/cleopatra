@@ -113,6 +113,22 @@ var HistogramContainer;
       this.data = data;
       this.boundaries = boundaries;
       this.render();
+
+      var timeout;
+      var throttler = function () {
+        if (timeout)
+          return;
+
+        timeout = setTimeout(function () {
+          timeout = null;
+          this.busyCover.classList.add("busy");
+          this.render();
+          this.busyCover.classList.remove("busy");
+        }.bind(this), 200);
+      }.bind(this);
+
+      window.addEventListener("resize", throttler, false);
+
       this.busyCover.classList.remove("busy");
     },
 
@@ -122,27 +138,27 @@ var HistogramContainer;
       var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
 
       this.canvas.width = width;
-      ctx.font = "20px Georgia";
       ctx.clearRect(0, 0, width, height);
 
       var curr = 0, x = 0;
       var step = Math.floor(this.boundaries.max / (width / 5));
-      var data, value, color;
+      var data = JSON.parse(JSON.stringify(this.data));
+      var slice, value, color;
 
       while (x <= width) {
-        data = [];
-        for (var i = 0, datum; datum = this.data[i]; i++) {
+        slice = [];
+        for (var i = 0, datum; datum = data[i]; i++) {
           if (datum.time > curr) {
             break;
           }
 
-          data.push(datum);
+          slice.push(datum);
         }
 
-        if (data.length !== 0) {
-          this.data = this.data.slice(data.length);
-          value = data.reduce(function (prev, curr) { return prev + curr.height }, 0) / data.length;
-          color = data.reduce(function (prev, curr) { return prev + curr.color }, 0) / data.length;
+        if (slice.length !== 0) {
+          data = data.slice(slice.length);
+          value = slice.reduce(function (prev, curr) { return prev + curr.height }, 0) / slice.length;
+          color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
           ctx.fillStyle = "rgb(" + color + ",0,0)";
           var h  = (height / 100) * value;
           ctx.fillRect(x, height - h, 5, value * h);
