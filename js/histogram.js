@@ -229,7 +229,63 @@ var HistogramContainer;
 
   RangeSelector.prototype = {
     enableRangeSelectionOnHistogram: function () {
+      var isMouseDown = false;
+      var rect = null;
+      var coord = {};
+
+      var updateSelectionMarker = function (x, y) {
+        x = Math.min(x, rect.right);
+
+        var start = {
+          x: Math.min(x, coord.x) - rect.left,
+          y: 0
+        };
+
+        var width = Math.abs(x - coord.x);
+        var height = this.graph.parentNode.clientHeight;
+
+        if (start.x < 0) {
+          width += start.x;
+          start.x = 0;
+        }
+
+        // TODO: Save selected range
+        this.drawSelectionMarker(start.x, start.y, width, height);
+      }.bind(this);
+
+      this.graph.addEventListener("mousedown", function (ev) {
+        if (ev.button !== 0) {
+          return;
+        }
+
+        this.graph.style.cursor = "col-resize";
+        isMouseDown = true;
+
+        // Begin histogram selection
+        this.higlighter.classList.remove("finished");
+        this.higlighter.classList.remove("collapsed");
+        this.higlighter.classList.add("selecting");
+
+        coord.x = ev.pageX;
+        coord.y = ev.pageY;
+        rect = this.graph.parentNode.getBoundingClientRect();
+
+        updateSelectionMarker(coord.x, coord.y);
+        ev.preventDefault();
+      }.bind(this), false);
+
+      this.graph.addEventListener("mouseup", function (ev) {
+        this.graph.style.cursor = "default";
+        isMouseDown = false;
+      }.bind(this), false);
+
       this.graph.addEventListener("mousemove", function (ev) {
+        if (isMouseDown) {
+          this.clearMouseMarker();
+          updateSelectionMarker(ev.pageX, ev.pageY);
+          return;
+        }
+
         this.updateMouseMarker(ev.pageX);
       }.bind(this), false);
 
@@ -245,6 +301,14 @@ var HistogramContainer;
 
     clearMouseMarker: function () {
       this.updateMouseMarker(-1);
+    },
+
+    drawSelectionMarker: function (x, y, width, height) {
+      var hl = this.higlighter;
+      hl.style.left = x + "px";
+      hl.style.top = "0";
+      hl.style.width = width + "px";
+      hl.style.height = height + "px";
     }
   };
 }());
