@@ -216,10 +216,35 @@ var HistogramContainer;
     this.histogram = histogram;
     this.container = document.createElement("div", { className: "rangeSelectorContainer" });
     this.graph = graph;
+
+    this.higlighter = createElement("div", { className: "histogramHilite collapsed" });
+    this.container.appendChild(this.higlighter);
+
+    this.mouseMarker = createElement("div", {
+      className: "histogramMouseMarker",
+      style: { left: "-500px" }
+    });
+    this.container.appendChild(this.mouseMarker);
   };
 
   RangeSelector.prototype = {
     enableRangeSelectionOnHistogram: function () {
+      this.graph.addEventListener("mousemove", function (ev) {
+        this.updateMouseMarker(ev.pageX);
+      }.bind(this), false);
+
+      this.graph.addEventListener("mouseout", function (ev) {
+        this.clearMouseMarker();
+      }.bind(this), false);
+    },
+
+    updateMouseMarker: function (x) {
+      x = x - this.graph.parentNode.getBoundingClientRect().left;
+      this.mouseMarker.style.left = x + "px";
+    },
+
+    clearMouseMarker: function () {
+      this.updateMouseMarker(-1);
     }
   };
 }());
