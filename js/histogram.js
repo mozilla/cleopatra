@@ -135,6 +135,20 @@ var HistogramContainer;
   }
 
   HistogramView.prototype = {
+    getCanvas: function () {
+      if (!this.boundaries) {
+        // Not a very good API design, I know.
+        throw new Error("You need to call HistogramView.display first.");
+      }
+
+      var ctx = this.canvas.getContext("2d");
+      var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
+      var height = this.canvas.height;
+      var step = Math.floor(this.boundaries.max / (width / 5));
+
+      return { context: ctx, height: height, width: width, step: step };
+    },
+
     display: function (data, boundaries) {
       this.data = data;
       this.boundaries = boundaries;
@@ -159,19 +173,17 @@ var HistogramContainer;
     },
 
     render: function () {
-      var ctx = this.canvas.getContext("2d");
-      var height = this.canvas.height;
-      var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
+      var info = this.getCanvas();
+      var ctx = info.context;
 
-      this.canvas.width = width;
-      ctx.clearRect(0, 0, width, height);
+      this.canvas.width = info.width;
+      ctx.clearRect(0, 0, info.width, info.height);
 
       var curr = 0, x = 0;
-      var step = Math.floor(this.boundaries.max / (width / 5));
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, value, color;
 
-      while (x <= width) {
+      while (x <= info.width) {
         slice = [];
         for (var i = 0, datum; datum = data[i]; i++) {
           if (datum.time > curr) {
@@ -186,11 +198,11 @@ var HistogramContainer;
           value = slice.reduce(function (prev, curr) { return prev + curr.height }, 0) / slice.length;
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
           ctx.fillStyle = "rgb(" + color + ",0,0)";
-          var h  = (height / 100) * value;
-          ctx.fillRect(x, height - h, 5, value * h);
+          var h  = (info.height / 100) * value;
+          ctx.fillRect(x, info.height - h, 5, value * h);
         }
 
-        curr += step;
+        curr += info.step;
         x += 5;
       }
     },
