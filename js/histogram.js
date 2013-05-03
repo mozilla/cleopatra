@@ -216,6 +216,7 @@ var HistogramContainer;
     this.histogram = histogram;
     this.container = document.createElement("div", { className: "rangeSelectorContainer" });
     this.graph = graph;
+    this.selectedRange = { start: 0, end: 0 };
 
     this.higlighter = createElement("div", { className: "histogramHilite collapsed" });
     this.container.appendChild(this.higlighter);
@@ -228,6 +229,8 @@ var HistogramContainer;
   };
 
   RangeSelector.prototype = {
+    selectedRange: null,
+
     enableRangeSelectionOnHistogram: function () {
       var isMouseDown = false;
       var rect = null;
@@ -249,7 +252,8 @@ var HistogramContainer;
           start.x = 0;
         }
 
-        // TODO: Save selected range
+        this.selectedRange.start = start.x;
+        this.selectedRange.end = start.x + width;
         this.drawSelectionMarker(start.x, start.y, width, height);
       }.bind(this);
 
@@ -276,6 +280,13 @@ var HistogramContainer;
 
       this.graph.addEventListener("mouseup", function (ev) {
         this.graph.style.cursor = "default";
+
+        if (isMouseDown) {
+          updateSelectionMarker(ev.pageX, ev.pageY);
+          this.finishHistogramSelection(coord.x !== ev.pageX);
+          // TODO: Implement simple click in the histogram.
+        }
+
         isMouseDown = false;
       }.bind(this), false);
 
@@ -292,6 +303,31 @@ var HistogramContainer;
       this.graph.addEventListener("mouseout", function (ev) {
         this.clearMouseMarker();
       }.bind(this), false);
+    },
+
+    finishHistogramSelection: function (isSelected) {
+      this.higlighter.classList.remove("selecting");
+
+      if (!isSelected) {
+        return void this.higlighter.classList.add("collapsed");
+      }
+
+      this.higlighter.classList.add("finished");
+
+      var range = this.getSampleRange(this.selectedRange);
+      var chain = gSampleFilters.concat({ type: "RangeSampleFilter", start: range.start, end: range.end });
+      gBreadcrumbTrail.add({
+        title: "Sample Range [" + range.start + ", " + (range.end + 1) + "]",
+        enterCallback: function () {
+          gSampleFilters = chain;
+          this.higlighter.add("collapsed");
+          filtersChanged();
+        }.bind(this)
+      })
+    },
+
+    getSampleRange: function (coords) {
+      // TODO: Implement this.
     },
 
     updateMouseMarker: function (x) {
