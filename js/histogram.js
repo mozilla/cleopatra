@@ -144,7 +144,7 @@ var HistogramContainer;
       var ctx = this.canvas.getContext("2d");
       var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
       var height = this.canvas.height;
-      var step = Math.floor(this.boundaries.max / (width / 5));
+      var step = Math.floor((this.boundaries.max - this.boundaries.min) / (width / 5));
 
       return { context: ctx, height: height, width: width, step: step };
     },
@@ -179,7 +179,7 @@ var HistogramContainer;
       this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
-      var curr = 0, x = 0;
+      var curr = this.boundaries.min, x = 0;
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, value, color;
 
@@ -327,7 +327,14 @@ var HistogramContainer;
     },
 
     getSampleRange: function (coords) {
-      // TODO: Implement this.
+      var info = this.histogram.getCanvas();
+      var bnd = this.histogram.boundaries;
+      var ctx = info.context;
+      var timePerPixel = Math.floor((bnd.max - bnd.min) / info.width);
+      var start = coords.start * timePerPixel;
+      var end = coords.end * timePerPixel;
+
+      return { start: start, end: end };
     },
 
     updateMouseMarker: function (x) {
