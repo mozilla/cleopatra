@@ -320,7 +320,7 @@ var HistogramContainer;
         title: "Sample Range [" + range.start + ", " + (range.end + 1) + "]",
         enterCallback: function () {
           gSampleFilters = chain;
-          this.higlighter.add("collapsed");
+          this.higlighter.classList.add("collapsed");
           filtersChanged();
         }.bind(this)
       })
