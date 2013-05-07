@@ -1541,10 +1541,7 @@ function comparator_receiveSelection(snapshot, frameData) {
   viewOptionsChanged();
 }
 
-function filtersChanged() {
-  if (window.comparator_setSelection) {
-  //  window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot(), null);
-  }
+function filtersChanged(boundaries) {
   updateDocumentURL();
   var data = { symbols: {}, functions: {}, samples: [] };
 
@@ -1559,6 +1556,7 @@ function filtersChanged() {
       javascriptOnly: gJavascriptOnly
     }, threadId);
   }
+
   var start = Date.now();
   updateRequest.addEventListener("finished", function (filteredSamples) {
     console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
@@ -1575,36 +1573,40 @@ function filtersChanged() {
     }
   });
 
+  function onBoundariesFinished(data) {
+    var options = {
+      showPowerInfo: gShowPowerInfo,
+      sampleMin: data.minima,
+      sampleMax: data.maxima
+    };
+
+    var boundaries = {
+      min: data.minima,
+      max: data.maxima
+    };
+
+    for (var threadId in gThreadsDesc) {
+      var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
+      histogramRequest.addEventListener("finished", function (data) {
+        start = Date.now();
+        gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
+          boundaries);
+        if (gFrameView)
+          gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
+            boundaries);
+        console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+      });
+    }
+
+    diagnosticChanged();
+    viewOptionsChanged();
+  }
+
+  if (boundaries)
+    return void onBoundariesFinished({ minima: boundaries.start, maxima: boundaries.end });
 
   var boundariesRequest = Parser.getHistogramBoundaries(gShowMissedSample);
-    boundariesRequest.addEventListener("finished", function (data) {
-      var options = {
-        showPowerInfo: gShowPowerInfo,
-        sampleMin: data.minima,
-        sampleMax: data.maxima
-      };
-
-      var boundaries = {
-        min: data.minima,
-        max: data.maxima
-      };
- 
-      for (var threadId in gThreadsDesc) {
-        var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
-        histogramRequest.addEventListener("finished", function (data) {
-          start = Date.now();
-          gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
-            boundaries);
-          if (gFrameView)
-            gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
-              boundaries);
-          console.log("histogram displaying: " + (Date.now() - start) + "ms.");
-        });
-      }
-
-      diagnosticChanged();
-      viewOptionsChanged();
-    });
+  boundariesRequest.addEventListener("finished", onBoundariesFinished);
 }
 
 function diagnosticChanged() {

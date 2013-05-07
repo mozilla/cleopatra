@@ -38,6 +38,10 @@ var HistogramContainer;
   }
 
   HistogramContainer.prototype = {
+    threads:   null,
+    data:      null,
+    container: null,
+
     eachThread: function (cb) {
       for (var id in this.threads) {
         if (this.threads.hasOwnProperty(id)) {
@@ -172,7 +176,7 @@ var HistogramContainer;
       this.busyCover.classList.remove("busy");
     },
 
-    render: function () {
+    render: function (callstack) {
       var info = this.getCanvas();
       var ctx = info.context;
 
@@ -209,6 +213,9 @@ var HistogramContainer;
 
     dataIsOutdated: function () {
       this.busyCover.classList.add("busy");
+    },
+
+    highlightedCallstackChanged: function () {
     }
   };
 
@@ -321,7 +328,7 @@ var HistogramContainer;
         enterCallback: function () {
           gSampleFilters = chain;
           this.higlighter.classList.add("collapsed");
-          filtersChanged();
+          filtersChanged(range);
         }.bind(this)
       })
     },
@@ -334,7 +341,7 @@ var HistogramContainer;
       var start = coords.start * timePerPixel;
       var end = coords.end * timePerPixel;
 
-      return { start: start, end: end };
+      return { start: Math.round(start), end: Math.round(end) };
     },
 
     updateMouseMarker: function (x) {
