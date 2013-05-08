@@ -1211,7 +1211,7 @@ RangeSampleFilter.prototype = {
   filter: function RangeSampleFilter_filter(samples, symbols, functions) {
     return samples.filter(function (sample) {
       return sample.extraInfo.time >= this._start && sample.extraInfo.time <= this._end;
-    });
+    }.bind(this));
   }
 }
 
