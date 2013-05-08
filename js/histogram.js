@@ -148,7 +148,7 @@ var HistogramContainer;
       var ctx = this.canvas.getContext("2d");
       var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
       var height = this.canvas.height;
-      var step = Math.floor((this.boundaries.max - this.boundaries.min) / (width / 5));
+      var step = (this.boundaries.max - this.boundaries.min) / (width / 5);
 
       return { context: ctx, height: height, width: width, step: step };
     },
@@ -337,7 +337,7 @@ var HistogramContainer;
       var info = this.histogram.getCanvas();
       var bnd = this.histogram.boundaries;
       var ctx = info.context;
-      var timePerPixel = Math.floor((bnd.max - bnd.min) / info.width);
+      var timePerPixel = (bnd.max - bnd.min) / info.width;
       var start = coords.start * timePerPixel;
       var end = coords.end * timePerPixel;
 
