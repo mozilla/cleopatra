@@ -1351,10 +1351,6 @@ function getHistogramBoundaries(requestID, profileID, showMissedSample) {
 }
 
 function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
-  // TODO:
-  //  1. showMissedSample
-  //  2. Markers
-
   function getStepColor(step) {
     var res;
 
@@ -1387,6 +1383,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
         frames: [ step.frames ],
         height: getHeight(step) / (maxHeight / 100),
         time: step.extraInfo.time,
+        markers: step.extraInfo.marker || [],
         color: getStepColor(step)
       };
     });

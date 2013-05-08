@@ -185,25 +185,37 @@ var HistogramContainer;
 
       var curr = this.boundaries.min, x = 0;
       var data = JSON.parse(JSON.stringify(this.data));
-      var slice, value, color;
+      var slice, markers, value, color;
 
       while (x <= info.width) {
         slice = [];
+        markers = [];
+
         for (var i = 0, datum; datum = data[i]; i++) {
           if (datum.time > curr) {
             break;
           }
 
           slice.push(datum);
+
+          if (datum.markers.length) {
+            markers.push(datum.markers);
+          }
         }
 
         if (slice.length !== 0) {
           data = data.slice(slice.length);
           value = slice.reduce(function (prev, curr) { return prev + curr.height }, 0) / slice.length;
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
-          ctx.fillStyle = "rgb(" + color + ",0,0)";
+          ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
           var h  = (info.height / 100) * value;
           ctx.fillRect(x, info.height - h, 5, value * h);
+
+          if (markers.length) {
+            ctx.fillStyle = "rgb(255,0,0)";
+            ctx.fillRect(x, 0, 1, 20);
+            ctx.fillText(markers[0], x + 2, 10);
+          }
         }
 
         curr += info.step;
