@@ -336,12 +336,11 @@ var HistogramContainer;
     getSampleRange: function (coords) {
       var info = this.histogram.getCanvas();
       var bnd = this.histogram.boundaries;
-      var ctx = info.context;
       var timePerPixel = (bnd.max - bnd.min) / info.width;
-      var start = coords.start * timePerPixel;
-      var end = coords.end * timePerPixel;
+      var start = bnd.min + Math.round(coords.start * timePerPixel);
+      var end = bnd.min + Math.round(coords.end * timePerPixel);
 
-      return { start: Math.round(start), end: Math.round(end) };
+      return { start: start, end: end };
     },
 
     updateMouseMarker: function (x) {

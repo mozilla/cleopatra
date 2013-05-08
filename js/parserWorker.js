@@ -1209,7 +1209,9 @@ function RangeSampleFilter(start, end) {
 }
 RangeSampleFilter.prototype = {
   filter: function RangeSampleFilter_filter(samples, symbols, functions) {
-    return samples.slice(this._start, this._end);
+    return samples.filter(function (sample) {
+      return sample.extraInfo.time >= this._start && sample.extraInfo.time <= this._end;
+    });
   }
 }
 
