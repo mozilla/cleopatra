@@ -156,7 +156,7 @@ var HistogramContainer;
     display: function (data, boundaries) {
       this.data = data;
       this.boundaries = boundaries;
-      this.render();
+      this.scheduleRender();
 
       var timeout;
       var throttler = function () {
@@ -166,7 +166,7 @@ var HistogramContainer;
         timeout = setTimeout(function () {
           timeout = null;
           this.dataIsOutdated();
-          this.render();
+          this.scheduleRender();
           this.busyCover.classList.remove("busy");
         }.bind(this), 200);
       }.bind(this);
@@ -174,6 +174,13 @@ var HistogramContainer;
       window.addEventListener("resize", throttler, false);
 
       this.busyCover.classList.remove("busy");
+    },
+
+    scheduleRender: function (callstack) {
+      var fn = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+        window.webkitAnimationFrame || window.msRequestAnimationFrame;
+
+      fn(this.render.bind(this, callstack));
     },
 
     render: function (callstack) {
