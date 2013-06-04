@@ -54,9 +54,9 @@
 
       if (queryData.report) {
         if (queryData.report.length == 40) {
-          loadProfileURL('http://profile-store.commondatastorage.googleapis.com/' + queryData.report);
+          loadProfileURL('https://profile-store.commondatastorage.googleapis.com/' + queryData.report);
         } else {
-          loadProfileURL('http://profile-logs.appspot.com/serve/' + queryData.report);
+          loadProfileURL('https://profile-logs.appspot.com/serve/' + queryData.report);
         }
       } else if (queryData.customProfile !== undefined) {
         loadProfileURL(queryData.customProfile);
