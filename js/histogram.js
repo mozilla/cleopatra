@@ -224,7 +224,7 @@ var HistogramContainer;
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
           ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
 
-          if (this.isStepSelected(data, callstack)) {
+          if (this.isStepSelected(slice, callstack)) {
             ctx.fillStyle = "green";
           }
 
