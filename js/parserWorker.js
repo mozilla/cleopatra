@@ -1792,14 +1792,7 @@ function firstMatch(array, matchFunction) {
 }
 
 function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
-  /*
-  if (!histogramData || histogramData.length < 1) {
-    sendFinished(requestID, []);
-    return;
-  }*/
-
   var profile = gProfiles[profileID];
-  //var symbols = profile.symbols;
   var symbols = profile.functions;
   var data = profile.filteredThreadSamples[threadId];
 

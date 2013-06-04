@@ -63,7 +63,7 @@ var HistogramContainer;
         container.innerHTML = thread.name;
         container.title = "Thread Name";
 
-        thread.threadHistogramView = new HistogramView(thread.name);
+        thread.threadHistogramView = new HistogramView(thread.name, id);
         thread.threadId = id;
 
         thread.diagnosticBar = new DiagnosticBar();
@@ -117,10 +117,17 @@ var HistogramContainer;
     },
 
     histogramSelected: function (view, cb) {
+      if (gSelectedThreadId == view.threadId) {
+        return void cb();
+      }
+
+      gSelectedThreadId = view.threadId;
+      viewOptionsChanged(cb);
+      diagnosticChanged();
     }
   };
 
-  var HistogramView = function (debugName) {
+  var HistogramView = function (debugName, threadId) {
     var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
@@ -136,6 +143,7 @@ var HistogramContainer;
     this.debugName = debugName || "NoName";
     this.container = container;
     this.data = [];
+    this.threadId = threadId;
   }
 
   HistogramView.prototype = {
@@ -234,7 +242,20 @@ var HistogramContainer;
       this.busyCover.classList.add("busy");
     },
 
-    highlightedCallstackChanged: function () {
+    histogramClick: function (index) {
+      var sample = this.data[index];
+      var frames = sample.frames;
+      var list = gSampleBar.setSample(frames[0]);
+
+      setHighlightedCallstack(frames[0], frames[0]);
+      gHistogramContainer.histogramSelected(this, function () {
+        gTreeManager.setSelection(list);
+        setHighlightedCallstack(frames[0], frames[0]);
+      });
+    },
+
+    highlightedCallstackChanged: function (stack) {
+      this.scheduleRender(stack);
     }
   };
 
@@ -243,6 +264,7 @@ var HistogramContainer;
     this.container = document.createElement("div", { className: "rangeSelectorContainer" });
     this.graph = graph;
     this.selectedRange = { start: 0, end: 0 };
+    this.movedDuringClick = false;
 
     this.higlighter = createElement("div", { className: "histogramHilite collapsed" });
     this.container.appendChild(this.higlighter);
@@ -301,22 +323,38 @@ var HistogramContainer;
         rect = this.graph.parentNode.getBoundingClientRect();
 
         updateSelectionMarker(coord.x, coord.y);
+        this.movedDuringClick = false;
         ev.preventDefault();
       }.bind(this), false);
 
       this.graph.addEventListener("mouseup", function (ev) {
         this.graph.style.cursor = "default";
 
+        var x, index;
+        if (!this.movedDuringClick) {
+          // Handle as a click on the histogram and select the sample.
+          x = Math.min(ev.pageX, this.graph.parentNode.getBoundingClientRect().right);
+          x = x - this.graph.parentNode.getBoundingClientRect().left;
+
+          index = (function () {
+            var samples = parseFloat(gCurrentlyShownSampleData.length);
+            var width = parseFloat(this.graph.parentNode.clientWidth);
+            return parseInt(parseFloat(x) * (samples / width));
+          }.bind(this))();
+
+          isMouseDown = false;
+          return void this.histogram.histogramClick(index);
+        }
+
         if (isMouseDown) {
           updateSelectionMarker(ev.pageX, ev.pageY);
           this.finishHistogramSelection(coord.x !== ev.pageX);
-          // TODO: Implement simple click in the histogram.
+          isMouseDown = false;
         }
-
-        isMouseDown = false;
       }.bind(this), false);
 
       this.graph.addEventListener("mousemove", function (ev) {
+        this.movedDuringClick = true;
         if (isMouseDown) {
           this.clearMouseMarker();
           updateSelectionMarker(ev.pageX, ev.pageY);
