@@ -223,6 +223,11 @@ var HistogramContainer;
           value = slice.reduce(function (prev, curr) { return prev + curr.height }, 0) / slice.length;
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
           ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
+
+          if (this.isStepSelected(data, callstack)) {
+            ctx.fillStyle = "green";
+          }
+
           var h  = (info.height / 100) * value;
           ctx.fillRect(x, info.height - h, 5, value * h);
 
@@ -256,6 +261,25 @@ var HistogramContainer;
 
     highlightedCallstackChanged: function (stack) {
       this.scheduleRender(stack);
+    },
+
+    isStepSelected: function (data, callstack) {
+      if (!callstack) {
+        return false;
+      }
+
+      var leaf = callstack[callstack.length - 1];
+      for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].frames.length; j++) {
+          for (var k = 0; k < data[i].frames[j].length; k++) {
+            if (data[i].frames[j][k] === leaf) {
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
     }
   };
 
