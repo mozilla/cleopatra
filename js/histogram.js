@@ -108,10 +108,6 @@ var HistogramContainer;
       this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack) });
     },
 
-    selectRange: function (start, end) {
-      // TODO: Multiple threads support
-    },
-
     display: function (id, data, frameStart, widthSum, stack, boundaries) {
       this.threads[id].threadHistogramView.display(data, boundaries);
     },
@@ -345,6 +341,11 @@ var HistogramContainer;
         coord.x = ev.pageX;
         coord.y = ev.pageY;
         rect = this.graph.parentNode.getBoundingClientRect();
+
+        // Remove selection markers from all threads.
+        gHistogramContainer.eachThread(function (thread) {
+          thread.threadHistogramView.rangeSelector.drawSelectionMarker(0, 0, 0, 0);
+        });
 
         updateSelectionMarker(coord.x, coord.y);
         this.movedDuringClick = false;
