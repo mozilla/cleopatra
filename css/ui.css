@@ -311,6 +311,9 @@ body {
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
 }
+.histogramSelected {
+  background: rgb(200,200,255);
+}
 .histogramHilite {
   position: absolute;
   pointer-events: none;

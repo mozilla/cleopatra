@@ -88,6 +88,8 @@ var HistogramContainer;
 
         this.threads[id] = thread;
       }.bind(this));
+
+      this.threads[0].threadHistogramView.container.classList.add("histogramSelected");
     },
 
     displayDiagnostics: function (items, threadId) {
@@ -117,6 +119,13 @@ var HistogramContainer;
         return void cb();
       }
 
+      console.log("selected");
+
+      var selectedContainer = document.getElementsByClassName("histogramSelected")[0];
+      if (selectedContainer) {
+        selectedContainer.classList.remove("histogramSelected");
+      }
+      view.container.classList.add("histogramSelected");
       gSelectedThreadId = view.threadId;
       viewOptionsChanged(cb);
       diagnosticChanged();
@@ -194,16 +203,28 @@ var HistogramContainer;
       this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
+      this._renderSamples(ctx, callstack, info.width, info.height - 15, info.step);
+    },
+
+    _renderSamples: function (ctx, callstack, width, height, step) {
       var curr = this.boundaries.min, x = 0;
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, markers, value, color;
+      var lastTimeLabel = null;
+      var barWidth = 5;
 
-      while (x <= info.width) {
+      // Don't show gaps smaller then 1ms
+      if (step < 1) {
+        barWidth = width / (this.boundaries.max - this.boundaries.min);
+        step = 1;
+      }
+
+      while (x <= width) {
         slice = [];
         markers = [];
 
         for (var i = 0, datum; datum = data[i]; i++) {
-          if (datum.time > curr) {
+          if (datum.time > curr + step) {
             break;
           }
 
@@ -224,8 +245,8 @@ var HistogramContainer;
             ctx.fillStyle = "green";
           }
 
-          var h  = (info.height / 100) * value;
-          ctx.fillRect(x, info.height - h, 5, value * h);
+          var h  = (height / 100) * value;
+          ctx.fillRect(x, height - h, barWidth, h);
 
           if (markers.length) {
             ctx.fillStyle = "rgb(255,0,0)";
@@ -234,8 +255,20 @@ var HistogramContainer;
           }
         }
 
-        curr += info.step;
-        x += 5;
+        if (lastTimeLabel === null && slice.length !== 0 ||
+            lastTimeLabel !== null && x > lastTimeLabel + 100) {
+          ctx.fillStyle = "rgb(255,0,0)";
+          ctx.fillRect(x, height, 1, 5);
+          ctx.fillText(Math.round(curr,0) + " ms", x + 2, height+10);
+          lastTimeLabel = x;
+        } else if (lastTimeLabel !== null) {
+          ctx.fillStyle = "rgb(255,255,255)";
+          ctx.fillRect(x, height, 1, 2);
+        }
+
+
+        curr += step;
+        x += barWidth;
       }
     },
 
