@@ -476,13 +476,19 @@ var HistogramContainer;
     },
 
     drawSelectionMarker: function (x, y, width, height) {
+      if (width === 0) {
+        return;
+      }
       var hl = this.higlighter;
       hl.style.left = x + "px";
       hl.style.top = "0";
       hl.style.width = width + "px";
       hl.style.height = height + "px";
       hl.style.display = "";
-      hl.textContent = Math.round(this.histogram.pixelToTime(width)) + "ms";
+
+      var info = this.histogram.getCanvas();
+      var bnd = this.histogram.boundaries;
+      hl.textContent = Math.round((bnd.max - bnd.min) / info.width * width) + "ms";
     },
 
     clearSelectionMarker: function () {
