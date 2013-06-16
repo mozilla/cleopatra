@@ -310,6 +310,7 @@ body {
   background: -moz-linear-gradient(#EEE, #CCC);
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white
 }
 .histogramSelected {
   background: rgb(200,200,255);
@@ -317,6 +318,7 @@ body {
 .histogramHilite {
   position: absolute;
   pointer-events: none;
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white
 }
 .histogramHilite:not(.collapsed) {
   background: rgba(150, 150, 150, 0.5);
@@ -329,7 +331,7 @@ body {
   height: 100%;
 }
 .histogramMouseMarker:not(.collapsed) {
-    background: rgba(0, 0, 150, 0.7);
+  border-left: solid 1px rgba(0, 0, 150, 0.7);
 }
 #iconbox {
   display: none;

@@ -272,6 +272,10 @@ var HistogramContainer;
       }
     },
 
+    pixelToTime: function (pixel) {
+      return this.boundaries.min + pixel / this.container.clientWidth * this.boundaries.max;
+    },
+
     dataIsOutdated: function () {
       this.busyCover.classList.add("busy");
     },
@@ -324,7 +328,8 @@ var HistogramContainer;
 
     this.mouseMarker = createElement("div", {
       className: "histogramMouseMarker",
-      style: { left: "-500px" }
+      style: { display: "none" },
+      textContent: "5ms"
     });
     this.container.appendChild(this.mouseMarker);
   };
@@ -377,7 +382,7 @@ var HistogramContainer;
 
         // Remove selection markers from all threads.
         gHistogramContainer.eachThread(function (thread) {
-          thread.threadHistogramView.rangeSelector.drawSelectionMarker(0, 0, 0, 0);
+          thread.threadHistogramView.rangeSelector.clearSelectionMarker();
         });
 
         updateSelectionMarker(coord.x, coord.y);
@@ -443,6 +448,7 @@ var HistogramContainer;
         enterCallback: function () {
           gSampleFilters = chain;
           this.higlighter.classList.add("collapsed");
+          this.higlighter.style.display = "none";
           filtersChanged(range);
         }.bind(this)
       })
@@ -459,12 +465,14 @@ var HistogramContainer;
     },
 
     updateMouseMarker: function (x) {
+      this.mouseMarker.style.display = "";
       x = x - this.graph.parentNode.getBoundingClientRect().left;
       this.mouseMarker.style.left = x + "px";
+      this.mouseMarker.textContent = Math.round(this.histogram.pixelToTime(x)) + "ms";
     },
 
     clearMouseMarker: function () {
-      this.updateMouseMarker(-1);
+      this.mouseMarker.style.display = "none";
     },
 
     drawSelectionMarker: function (x, y, width, height) {
@@ -473,6 +481,14 @@ var HistogramContainer;
       hl.style.top = "0";
       hl.style.width = width + "px";
       hl.style.height = height + "px";
-    }
+      hl.style.display = "";
+      hl.textContent = Math.round(this.histogram.pixelToTime(width)) + "ms";
+    },
+
+    clearSelectionMarker: function () {
+      var hl = this.higlighter;
+      hl.style.display = "none";
+    },
+
   };
 }());
