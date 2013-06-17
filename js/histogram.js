@@ -273,7 +273,29 @@ var HistogramContainer;
     },
 
     pixelToTime: function (pixel) {
-      return this.boundaries.min + pixel / this.container.clientWidth * this.boundaries.max;
+      return this.boundaries.min + pixel / this.container.clientWidth * (this.boundaries.max - this.boundaries.min);
+    },
+
+    timeToIndex: function (time) {
+      console.log("time lookup: " + time);
+      // Speed up using binary search if required, but make sure the first item
+      // in case of equality.
+      
+      for (var i = 0; i < this.data.length - 1; i++) {
+        if (this.data[i+1].time > time) {
+          console.log("Found " + i + " at time: " + this.data[i].time);
+          return i;
+        }
+      }
+
+      console.log("Bounds: " + this.boundaries.min + " max: " + this.boundaries.max);
+      console.log("Found max time: " + this.data[this.data.length-1].time);
+
+      return this.data.length - 1;
+    },
+
+    pixelToIndex: function (pixel) {
+      return this.timeToIndex(this.pixelToTime(pixel));
     },
 
     dataIsOutdated: function () {
@@ -329,7 +351,7 @@ var HistogramContainer;
     this.mouseMarker = createElement("div", {
       className: "histogramMouseMarker",
       style: { display: "none" },
-      textContent: "5ms"
+      textContent: "..."
     });
     this.container.appendChild(this.mouseMarker);
   };
@@ -399,11 +421,7 @@ var HistogramContainer;
           x = Math.min(ev.pageX, this.graph.parentNode.getBoundingClientRect().right);
           x = x - this.graph.parentNode.getBoundingClientRect().left;
 
-          index = (function () {
-            var samples = parseFloat(gCurrentlyShownSampleData.length);
-            var width = parseFloat(this.graph.parentNode.clientWidth);
-            return parseInt(parseFloat(x) * (samples / width));
-          }.bind(this))();
+          index = this.histogram.pixelToIndex(x);
 
           isMouseDown = false;
           return void this.histogram.histogramClick(index);
