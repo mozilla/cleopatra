@@ -125,6 +125,9 @@ self.onmessage = function (msg) {
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
+      case "getHistogramBoundaries":
+        getHistogramBoundaries(requestID, taskData.profileID, taskData.showMissedSample, taskData.threadId);
+        break;
       case "calculateHistogramData":
         calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
@@ -174,6 +177,13 @@ function sendFinished(requestID, result) {
     type: "finished",
     result: result,
     log: gLogLines
+  });
+}
+
+function sendLog() {
+  self.postMessage({
+    type: "log",
+    params: Array.slice.call(null, arguments)
   });
 }
 
@@ -256,7 +266,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       throw "rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.";
     }
   }
-
 
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
@@ -1200,7 +1209,9 @@ function RangeSampleFilter(start, end) {
 }
 RangeSampleFilter.prototype = {
   filter: function RangeSampleFilter_filter(samples, symbols, functions) {
-    return samples.slice(this._start, this._end);
+    return samples.filter(function (sample) {
+      return sample.extraInfo.time >= this._start && sample.extraInfo.time <= this._end;
+    }.bind(this));
   }
 }
 
@@ -1318,20 +1329,40 @@ function findTimelineEnd(profileID) {
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
+function getHistogramBoundaries(requestID, profileID, showMissedSample) {
+  function flatten(arr) {
+    return arr.reduce(function(a, b) { return a.concat(b) });
+  }
 
+  var samples = gProfiles[profileID].filteredThreadSamples;
+  var times = flatten(Object.keys(samples).map(function (id) {
+    return Object.keys(samples[id]).map(function (stepId) {
+      return Math.floor(samples[id][stepId].extraInfo.time);
+    });
+  }));
+
+  // Filter out all entries with no time.
+  times = times.filter(function (time) { return !isNaN(time); });
+
+  sendFinished(requestID, {
+    minima: Math.min.apply(null, times),
+    maxima: Math.max.apply(null, times)
+  });
+}
+
+function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
   function getStepColor(step) {
+    var res;
+
     if (options.showPowerInfo) {
-      var res = step.extraInfo.power;
-      var redComponent = Math.round(255 * Math.min(1, res / 0.1));
-      return "rgb(" + redComponent + ",0,0)";
+      res = step.extraInfo.power;
+      return Math.round(255 * Math.min(1, res / 0.1));
     } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
-      var res = step.extraInfo.responsiveness;
-      var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
-      return "rgb(" + redComponent + ",0,0)";
+      res = step.extraInfo.responsiveness;
+      return Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
     }
 
-    return "rgb(0,0,0)";
+    return 0;
   }
 
   function getHeight(step) {
@@ -1340,92 +1371,24 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
-  var expectedInterval = null;
-  if (showMissedSample === true && profile.meta && profile.meta.interval) {
-    expectedInterval = profile.meta.interval; 
-  }
-  //var start = findTimelineStart(profileID);
-  //var end = findTimelineEnd(profileID);
-  var histogramData = [];
-  var maxHeight = 0;
-  for (var i = 0; i < data.length; ++i) {
-    if (!data[i])
-      continue;
-    var value = getHeight(data[i]);
-    if (maxHeight < value)
-      maxHeight = value;
-  }
-  maxHeight += 1;
-  var nextX = 0;
-  // The number of data items per histogramData rects.
-  // Except when seperated by a marker.
-  // This is used to cut down the number of rects, since
-  // there's no point in having more rects then pixels
-  var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
-  var frameStart = {};
-  for (var i = 0; i < data.length; i++) {
-    var step = data[i];
-    if (!step) {
-      // Add a gap for the sample that was filtered out.
-      nextX += 1 / samplesPerStep;
-      continue;
-    }
-    if (expectedInterval != null && i > 0 && data[i-1] != null &&
-        data[i-1].extraInfo.time != null && step.extraInfo.time != null &&
-        step.extraInfo.time > data[i-1].extraInfo.time + expectedInterval) {
-      var samplesSkipped = Math.floor((step.extraInfo.time - data[i-1].extraInfo.time) / expectedInterval) - 1;
-      nextX += 1 * samplesSkipped / samplesPerStep;
-    }
-    nextX = Math.ceil(nextX);
-    var value = getHeight(step) / maxHeight;
-    var frames = step.frames;
-    var currHistogramData = histogramData[histogramData.length-1];
-    if (step.extraInfo && "marker" in step.extraInfo) {
-      // A new marker boundary has been discovered.
-      histogramData.push({
-        frames: "marker",
-        x: nextX,
-        width: 2,
-        value: 1,
-        marker: step.extraInfo.marker,
-        color: "fuchsia"
-      });
-      nextX += 2;
-      histogramData.push({
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
-        color: getStepColor(step),
-      });
-      nextX += 1;
-    } else if (currHistogramData != null &&
-      currHistogramData.frames.length < samplesPerStep &&
-      !(step.extraInfo && "frameNumber" in step.extraInfo)) {
-      currHistogramData.frames.push(step.frames);
-      // When merging data items take the average:
-      currHistogramData.value =
-        (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
-        currHistogramData.frames.length;
-      // Merge the colors? For now we keep the first color set.
-    } else {
-      // A new name boundary has been discovered.
-      currHistogramData = {
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
-        color: getStepColor(step),
+  var maxHeight = data.reduce(function (prev, curr, i, a) {
+    curr = getHeight(curr);
+    return curr > prev ? curr : prev;
+  }, 0) + 1;
+
+  var histogram = data
+    .filter(function (step) { return step != null; })
+    .map(function (step, i) {
+      return {
+        frames: [ step.frames ],
+        height: getHeight(step) / (maxHeight / 100),
+        time: step.extraInfo.time,
+        markers: step.extraInfo.marker || [],
+        color: getStepColor(step)
       };
-      if (step.extraInfo && "frameNumber" in step.extraInfo) {
-        currHistogramData.frameNumber = step.extraInfo.frameNumber;
-        frameStart[step.extraInfo.frameNumber] = histogramData.length;
-      }
-      histogramData.push(currHistogramData);
-      nextX += 1;
-    }
-  }
-  sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
+    });
+
+  sendFinished(requestID, { threadId: threadId, histogramData: histogram });
 }
 
 var diagnosticList = [
@@ -1829,14 +1792,7 @@ function firstMatch(array, matchFunction) {
 }
 
 function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
-  /*
-  if (!histogramData || histogramData.length < 1) {
-    sendFinished(requestID, []);
-    return;
-  }*/
-
   var profile = gProfiles[profileID];
-  //var symbols = profile.symbols;
   var symbols = profile.functions;
   var data = profile.filteredThreadSamples[threadId];
 

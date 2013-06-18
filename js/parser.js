@@ -86,6 +86,9 @@ function WorkerRequest(worker) {
           self._fireEvent("finished", partialResult);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
+        case "log":
+          console.log.apply(console, data.params);
+          break;
       }
       // dump log if present
       if (data.log) {
@@ -251,6 +254,15 @@ var Parser = {
       complete: complete
     });
     request.addEventListener("finished", callback);
+  },
+
+  getHistogramBoundaries: function Parser_getHistogramBoundaries(showMissedSample) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("getHistogramBoundaries", {
+      profileID: 0,
+      showMissedSample: showMissedSample,
+    });
+    return request;
   },
 
   calculateHistogramData: function Parser_calculateHistogramData(showMissedSample, options, threadId) {

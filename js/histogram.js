@@ -1,504 +1,542 @@
-function HistogramContainer() {
-  this._container = document.createElement("table");
-  this._container.className = "histogramContainer";
-  this._container.style.width = "100%";
-  this._container.style.height = "100%";
-  this._container.border = "0";
-  this._container.cellPadding = "0";
-  this._container.cellSpacing = "0";
-  this._container.borderCollapse = "collapse";
+var HistogramContainer;
 
-  this._threadsDesc = null;
-}
-
-HistogramContainer.prototype = {
-  getContainer: function HistogramContainer_getContainer() {
-    return this._container;
-  },
-  updateThreadsDesc: function HistogramContainer_updateThreadsDesc(threadsDesc) {
-    this._container.innerHTML = "";
-
-    var currRow;
-    var rowIndex = 0;
-    for (var threadId in threadsDesc) {
-      var thread = threadsDesc[threadId];
-
-      currRow = this._container.insertRow(rowIndex++);
-      var threadHistogramDescriptionContainer = currRow.insertCell(0);
-      threadHistogramDescriptionContainer.className = "threadHistogramDescription";
-      threadHistogramDescriptionContainer.innerHTML = thread.name;
-      threadHistogramDescriptionContainer.title = "Thread Name";
-
-      thread.threadHistogramView = new HistogramView(thread.name);
-      thread.threadHistogramView.threadId = threadId;
-      var currCell = currRow.insertCell(1);
-      currCell.appendChild(thread.threadHistogramView.getContainer());
-
-      thread.diagnosticBar = new DiagnosticBar();
-      thread.diagnosticBar.hide();
-      thread.diagnosticBar.setDetailsListener(function(details) {
-        if (details.indexOf("bug ") == 0) {
-          window.open('https://bugzilla.mozilla.org/show_bug.cgi?id=' + details.substring(4));
-        } else {
-          var sourceView = new SourceView();
-          sourceView.setText("Diagnostic", js_beautify(details));
-          gMainArea.appendChild(sourceView.getContainer());
-        }
-      });
-      currCell.appendChild(thread.diagnosticBar.getContainer());
-    }
-    this._threadsDesc = threadsDesc;
-  },
-  displayDiagnostics: function HistogramContainer_displayDiagnostics(diagnosticItems, diagnosticThreadId) {
-    // Only supported on the main thread ATM
-    for (var threadId in this._threadsDesc) {
-      var thread = this._threadsDesc[threadId];
-      thread.diagnosticBar.hide();
-    }
-    this._threadsDesc[diagnosticThreadId].diagnosticBar.display(diagnosticItems); 
-  },
-  dataIsOutdated: function HistogramContainer_dataIsOutdated() {
-    for (var threadId in this._threadsDesc) {
-      var thread = this._threadsDesc[threadId];
-
-      thread.threadHistogramView.dataIsOutdated();
-    }
-  },
-  showVideoFramePosition: function HistogramContainer_showVideoFramePosition(frame) {
-    // Only supported on the main thread ATM
-    this._threadsDesc[0].threadHistogramView.showVideoFramePosition(frame); 
-  },
-  highlightedCallstackChanged: function HistogramContainer_highlightedCallstackChanged(highlightedCallstack) {
-    for (var threadId in this._threadsDesc) {
-      var thread = this._threadsDesc[threadId];
-
-      thread.threadHistogramView.highlightedCallstackChanged(highlightedCallstack);
-    }
-  },
-  selectRange: function HistogramContainer_selectRange(start, end) {
-    // Only supported on the main thread ATM
-    this._threadsDesc[0].threadHistogramView.selectRange(start, end);
-  },
-  display: function HistogramContainer_display(threadId, histogramData, frameStart, widthSum, highlightedCallstack) {
-    this._threadsDesc[threadId].threadHistogramView.display(histogramData, frameStart, widthSum, highlightedCallstack);
-  },
-  updateInfoBar: function HistogramContainer_updateInfoBar() {
-    thread.infoBar.display(); 
-  },
-  histogramSelected: function HistogramContainer_histogramSelected(view, selected_cb) {
-    if (gSelectedThreadId != view.threadId) {
-      gSelectedThreadId = view.threadId;
-      viewOptionsChanged(selected_cb);
-      diagnosticChanged();
-    } else {
-      selected_cb();
-    }
-  },
-};
-
-function HistogramView(debugName) {
-  this._container = document.createElement("div");
-  this._container.className = "histogram";
-  this._debugName = debugName || "NoName";
-
-  this._canvas = this._createCanvas();
-  this._container.appendChild(this._canvas);
-
-  this._rangeSelector = new RangeSelector(this._canvas, this);
-  this._rangeSelector.enableRangeSelectionOnHistogram();
-  this._container.appendChild(this._rangeSelector.getContainer());
-
-  this._busyCover = document.createElement("div");
-  this._busyCover.className = "busyCover";
-  this._container.appendChild(this._busyCover);
-
-  this._histogramData = [];
-}
-HistogramView.prototype = {
-  dataIsOutdated: function HistogramView_dataIsOutdated() {
-    this._busyCover.classList.add("busy");
-  },
-  _createCanvas: function HistogramView__createCanvas() {
+(function () {
+  function createCanvas() {
     var canvas = document.createElement("canvas");
     canvas.height = 60;
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     return canvas;
-  },
-  getContainer: function HistogramView_getContainer() {
-    return this._container;
-  },
-  selectRange: function HistogramView_selectRange(start, end) {
-    this._rangeSelector._finishSelection(start, end);
-  },
-  showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
-    if (!this._frameStart || !this._frameStart[frame])
-      return;
-    var frameStart = this._frameStart[frame];
-    // Now we look for the frame end. Because we can swap frame we don't present we have to look ahead
-    // in the stream if frame+1 doesn't exist.
-    var frameEnd = this._frameStart[frame+1];
-    for (var i = 0; i < 10 && !frameEnd; i++) {
-      frameEnd = this._frameStart[frame+1+i];
-    }
-    this._rangeSelector.showVideoRange(frameStart, frameEnd);
-  },
-  showVideoPosition: function HistogramView_showVideoPosition(position) {
-    // position in 0..1
-    this._rangeSelector.showVideoPosition(position);
-  },
-  _gatherMarkersList: function HistogramView__gatherMarkersList(histogramData) {
-    var markers = [];
-    for (var i = 0; i < histogramData.length; ++i) {
-      var step = histogramData[i];
-      if ("marker" in step) {
-        markers.push({
-          index: i,
-          name: step.marker
-        });
+  }
+
+  function createElement(name, props) {
+    var el = document.createElement(name);
+
+    for (var key in props) {
+      if (key === "style") {
+        for (var styleName in props.style) {
+          el.style[styleName] = props.style[styleName];
+        }
+      } else {
+        el[key] = props[key];
       }
     }
-    return markers;
-  },
-  _calculateWidthMultiplier: function () {
-    var minWidth = 2000;
-    return Math.ceil(minWidth / this._widthSum);
-  },
-  histogramClick: function HistogramView_histogramClick(index) {
-    var sample = this._histogramData[index]; 
-    var frames = sample.frames;
-    var list = gSampleBar.setSample(frames[0]);
-    // Select the timeline now
-    setHighlightedCallstack(frames[0], frames[0]);
-    gHistogramContainer.histogramSelected(this, function histogramSelected() {
-      // If this is the current histogram this will run right away, otherwise
-      // it will run when the selection is completed
-      gTreeManager.setSelection(list);
+
+    return el;
+  }
+
+  HistogramContainer = function () {
+    this.threads = [];
+    this.container = createElement("table", {
+      className: "histogramContainer",
+      style: { width: "100%", height: "100%" },
+      border: "0",
+      borderCollapse: "collapse",
+      cellPadding: "0",
+      cellSpacing: "0"
+    });
+  }
+
+  HistogramContainer.prototype = {
+    threads:   null,
+    data:      null,
+    container: null,
+
+    eachThread: function (cb) {
+      for (var id in this.threads) {
+        if (this.threads.hasOwnProperty(id)) {
+          cb(this.threads[id], id);
+        }
+      }
+    },
+
+    updateThreads: function (threads) {
+      var index = 0;
+
+      this.container.innerHTML = "";
+      Object.keys(threads).forEach(function (id) {
+        var thread = threads[id];
+        var row = this.container.insertRow(index++);
+        var container = row.insertCell(0);
+
+        container.className = "threadHistogramDescription";
+        container.innerHTML = thread.name;
+        container.title = "Thread Name";
+
+        thread.threadHistogramView = new HistogramView(thread.name, id);
+        thread.threadId = id;
+
+        thread.diagnosticBar = new DiagnosticBar();
+        thread.diagnosticBar.hide();
+        thread.diagnosticBar.setDetailsListener(function (details) {
+          var bugId;
+
+          if (details.indexOf("bug ") == 0) {
+            bugId = details.substring(4);
+            window.open("https://bugzilla.mozilla.org/show_bug.cgi?id=" + bugId);
+            return;
+          }
+
+          var view = new SourceView();
+          view.setText("Diagnostic", js_beautify(details));
+          gMainArea.appendChild(view.getContainer());
+        })
+
+        var cell = row.insertCell(1);
+        cell.appendChild(thread.threadHistogramView.container);
+        cell.appendChild(thread.diagnosticBar.getContainer());
+
+        this.threads[id] = thread;
+      }.bind(this));
+
+      this.threads[0].threadHistogramView.container.classList.add("histogramSelected");
+    },
+
+    displayDiagnostics: function (items, threadId) {
+      // Only supported on the main thread at the moment.
+      this.eachThread(function (thread) { thread.diagnosticBar.hide() });
+      this.threads[threadId].diagnosticBar.display(items);
+    },
+
+    dataIsOutdated: function () {
+      this.eachThread(function (thread) { thread.threadHistogramView.dataIsOutdated() });
+    },
+
+    showVideoFramePosition: function (frame) {
+      this.threads[0].threadHistogramView.showVideoFramePosition(frame);
+    },
+
+    highlightedCallstackChanged: function (callstack) {
+      this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack) });
+    },
+
+    display: function (id, data, frameStart, widthSum, stack, boundaries) {
+      this.threads[id].threadHistogramView.display(data, boundaries);
+    },
+
+    histogramSelected: function (view, cb) {
+      if (gSelectedThreadId == view.threadId) {
+        return void cb();
+      }
+
+      console.log("selected");
+
+      var selectedContainer = document.getElementsByClassName("histogramSelected")[0];
+      if (selectedContainer) {
+        selectedContainer.classList.remove("histogramSelected");
+      }
+      view.container.classList.add("histogramSelected");
+      gSelectedThreadId = view.threadId;
+      viewOptionsChanged(cb);
+      diagnosticChanged();
+    }
+  };
+
+  var HistogramView = function (debugName, threadId) {
+    var container = createElement("div", { className: "histogram" });
+
+    this.canvas = createCanvas();
+    container.appendChild(this.canvas);
+
+    this.rangeSelector = new RangeSelector(this.canvas, this);
+    this.rangeSelector.enableRangeSelectionOnHistogram();
+    container.appendChild(this.rangeSelector.container);
+
+    this.busyCover = createElement("div", { className: "busyCover" });
+    container.appendChild(this.busyCover);
+
+    this.debugName = debugName || "NoName";
+    this.container = container;
+    this.data = [];
+    this.threadId = threadId;
+  }
+
+  HistogramView.prototype = {
+    getCanvas: function () {
+      if (!this.boundaries) {
+        // Not a very good API design, I know.
+        throw new Error("You need to call HistogramView.display first.");
+      }
+
+      var ctx = this.canvas.getContext("2d");
+      var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
+      var height = this.canvas.height;
+      var step = (this.boundaries.max - this.boundaries.min) / (width / 5);
+
+      return { context: ctx, height: height, width: width, step: step };
+    },
+
+    display: function (data, boundaries) {
+      this.data = data;
+      this.boundaries = boundaries;
+      this.scheduleRender();
+
+      var timeout;
+      var throttler = function () {
+        if (timeout)
+          return;
+
+        timeout = setTimeout(function () {
+          timeout = null;
+          this.dataIsOutdated();
+          this.scheduleRender();
+          this.busyCover.classList.remove("busy");
+        }.bind(this), 200);
+      }.bind(this);
+
+      window.addEventListener("resize", throttler, false);
+
+      this.busyCover.classList.remove("busy");
+    },
+
+    scheduleRender: function (callstack) {
+      var fn = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+        window.webkitAnimationFrame || window.msRequestAnimationFrame;
+
+      fn(this.render.bind(this, callstack));
+    },
+
+    render: function (callstack) {
+      var info = this.getCanvas();
+      var ctx = info.context;
+
+      // Clear labels
+      var markers = this.container.getElementsByClassName("marker");
+      while(markers.length > 0){
+        var marker = markers[0];
+        marker.parentNode.removeChild(marker);
+
+      }
+
+      this.canvas.width = info.width;
+      ctx.clearRect(0, 0, info.width, info.height);
+
+      this._renderSamples(ctx, callstack, info.width, info.height - 15, info.step);
+    },
+
+    _renderSamples: function (ctx, callstack, width, height, step) {
+      var curr = this.boundaries.min, x = 0;
+      var data = JSON.parse(JSON.stringify(this.data));
+      var slice, markers, value, color;
+      var lastTimeLabel = null;
+      var barWidth = 5;
+
+      // Don't show gaps smaller then 1ms
+      if (step < 1) {
+        barWidth = width / (this.boundaries.max - this.boundaries.min);
+        step = 1;
+      }
+
+      while (x <= width) {
+        slice = [];
+        markers = [];
+
+        for (var i = 0, datum; datum = data[i]; i++) {
+          if (datum.time > curr + step) {
+            break;
+          }
+
+          slice.push(datum);
+
+          if (datum.markers.length) {
+            markers.push(datum.markers);
+          }
+        }
+
+        if (slice.length !== 0) {
+          data = data.slice(slice.length);
+          value = slice.reduce(function (prev, curr) { return prev + curr.height }, 0) / slice.length;
+          color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
+          ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
+
+          if (this.isStepSelected(slice, callstack)) {
+            ctx.fillStyle = "green";
+          }
+
+          var h  = (height / 100) * value;
+          ctx.fillRect(x, height - h, barWidth, h);
+
+          var self = this;
+          if (markers.length) {
+            var str = "";
+            var id = 1;
+            markers.forEach(function (marker) {
+              if (markers.length > 1) {
+                str += (id++) + ": " + marker + " ";
+              } else {
+                str = marker;
+              }
+            });
+            var markerDiv = createElement("div", { className: "marker" });
+            markerDiv.textContent = str;
+            markerDiv.style.left = x + "px";
+            console.log("Add marker at " + x);
+            markerDiv.style.top = "0px";
+            self.container.appendChild(markerDiv);
+            ctx.fillStyle = "rgb(255,0,0)";
+            ctx.fillRect(x, 0, 1, 20);
+            //ctx.fillText(markers[0], x + 2, 10);
+          }
+        }
+
+        if (lastTimeLabel === null && slice.length !== 0 ||
+            lastTimeLabel !== null && x > lastTimeLabel + 100) {
+          ctx.fillStyle = "rgb(255,0,0)";
+          ctx.fillRect(x, height, 1, 5);
+          ctx.fillText(Math.round(curr,0) + " ms", x + 2, height+10);
+          lastTimeLabel = x;
+        } else if (lastTimeLabel !== null) {
+          ctx.fillStyle = "rgb(255,255,255)";
+          ctx.fillRect(x, height, 1, 2);
+        }
+
+
+        curr += step;
+        x += barWidth;
+      }
+    },
+
+    pixelToTime: function (pixel) {
+      return this.boundaries.min + pixel / this.container.clientWidth * (this.boundaries.max - this.boundaries.min);
+    },
+
+    timeToIndex: function (time) {
+      console.log("time lookup: " + time);
+      // Speed up using binary search if required, but make sure the first item
+      // in case of equality.
+      
+      for (var i = 0; i < this.data.length - 1; i++) {
+        if (this.data[i+1].time > time) {
+          console.log("Found " + i + " at time: " + this.data[i].time);
+          return i;
+        }
+      }
+
+      console.log("Bounds: " + this.boundaries.min + " max: " + this.boundaries.max);
+      console.log("Found max time: " + this.data[this.data.length-1].time);
+
+      return this.data.length - 1;
+    },
+
+    pixelToIndex: function (pixel) {
+      return this.timeToIndex(this.pixelToTime(pixel));
+    },
+
+    dataIsOutdated: function () {
+      this.busyCover.classList.add("busy");
+    },
+
+    histogramClick: function (index) {
+      var sample = this.data[index];
+      var frames = sample.frames;
+      var list = gSampleBar.setSample(frames[0]);
+
       setHighlightedCallstack(frames[0], frames[0]);
-    });
-  },
-  display: function HistogramView_display(histogramData, frameStart, widthSum, highlightedCallstack) {
-    this._histogramData = histogramData;
-    this._frameStart = frameStart;
-    this._widthSum = widthSum;
-    this._widthMultiplier = this._calculateWidthMultiplier();
-    this._canvas.width = this._widthMultiplier * this._widthSum;
-    this._render(highlightedCallstack);
-    this._busyCover.classList.remove("busy");
-  },
-  _scheduleRender: function HistogramView__scheduleRender(highlightedCallstack) {
-    var self = this;
-    if (self._pendingAnimationFrame != null) {
-      // We have to cancel the old draw request because the
-      // highlightedCallstack is newer so this request overrules.
-      cancelAnimationFrame(this._pendingAnimationFrame);
-    }
-    self._pendingAnimationFrame = requestAnimationFrame(function anim_frame() {
-      self._render(highlightedCallstack);
-    });
-  },
-  _render: function HistogramView__render(highlightedCallstack) {
-    if (this._pendingAnimationFrame != null) {
-      cancelAnimationFrame(this._pendingAnimationFrame);
-      this._pendingAnimationFrame = null;
-    }
+      gHistogramContainer.histogramSelected(this, function () {
+        gTreeManager.setSelection(list);
+        setHighlightedCallstack(frames[0], frames[0]);
+      });
+    },
 
-    var ctx = this._canvas.getContext("2d");
-    var height = this._canvas.height;
-    ctx.setTransform(this._widthMultiplier, 0, 0, 1, 0, 0);
-    ctx.font = "20px Georgia";
-    ctx.clearRect(0, 0, this._widthSum, height);
+    highlightedCallstackChanged: function (stack) {
+      this.scheduleRender(stack);
+    },
 
-    var self = this;
-    var markerCount = 0;
-    for (var i = 0; i < this._histogramData.length; i++) {
-      var step = this._histogramData[i];
-      var isSelected = self._isStepSelected(step, highlightedCallstack);
-      var isInRangeSelector = self._isInRangeSelector(i);
-      if (isSelected) {
-        ctx.fillStyle = "green";
-      } else if (isInRangeSelector) {
-        ctx.fillStyle = "blue";
-      } else {
-        ctx.fillStyle = step.color;
+    isStepSelected: function (data, callstack) {
+      if (!callstack) {
+        return false;
       }
-      var roundedHeight = Math.round(step.value * height);
-      ctx.fillRect(step.x, height - roundedHeight, step.width, roundedHeight);
-      if (step.frameNumber && gShowFrames) {
-        ctx.fillStyle = "blue";
-        ctx.fillRect(step.x, 0, 1, height);
-      }
-      if (step.marker) {
-        var x = step.x + step.width + 2;
-        var endPoint = x + ctx.measureText(step.marker).width;
-        var lastDataPoint = this._histogramData[this._histogramData.length-1];
-        if (endPoint >= lastDataPoint.x + lastDataPoint.width) {
-          x -= endPoint - (lastDataPoint.x + lastDataPoint.width) - 1;
+
+      var leaf = callstack[callstack.length - 1];
+      for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].frames.length; j++) {
+          for (var k = 0; k < data[i].frames[j].length; k++) {
+            if (data[i].frames[j][k] === leaf) {
+              return true;
+            }
+          }
         }
-        ctx.fillText(step.marker, x, 15 + ((markerCount % 2) == 0 ? 0 : 20));
-        markerCount++;
       }
-    }
 
-    this._finishedRendering = true;
-  },
-  highlightedCallstackChanged: function HistogramView_highlightedCallstackChanged(highlightedCallstack) {
-    this._scheduleRender(highlightedCallstack);
-  },
-  _isInRangeSelector: function HistogramView_isInRangeSelector(index) {
-    return false;
-  },
-  _isStepSelected: function HistogramView__isStepSelected(step, highlightedCallstack) {
-    if ("marker" in step)
       return false;
-
-    search_frames: for (var i = 0; i < step.frames.length; i++) {
-      var frames = step.frames[i];
-
-      if (frames.length < highlightedCallstack.length ||
-          highlightedCallstack.length <= (gInvertCallstack ? 0 : 1))
-        continue;
-
-      var compareFrames = frames;
-      if (gInvertCallstack) {
-        for (var j = 0; j < highlightedCallstack.length; j++) {
-          var compareFrameIndex = compareFrames.length - 1 - j;
-          if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
-            continue search_frames;
-          }
-        }
-      } else {
-        for (var j = 0; j < highlightedCallstack.length; j++) {
-          var compareFrameIndex = j;
-          if (highlightedCallstack[j] != compareFrames[compareFrameIndex]) {
-            continue search_frames;
-          }
-        }
-      }
-      return true;
-    };
-    return false;
-  },
-  getHistogramData: function HistogramView__getHistogramData() {
-    return this._histogramData;
-  },
-  _getStepColor: function HistogramView__getStepColor(step) {
-      if ("responsiveness" in step.extraInfo) {
-        if (gShowPowerInfo) {
-          var res = step.extraInfo.power;
-          var redComponent = Math.round(255 * Math.min(1, res / 10));
-        } else {
-          var res = step.extraInfo.responsiveness;
-          var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
-        }
-        return "rgb(" + redComponent + ",0,0)";
-      }
-
-      return "rgb(0,0,0)";
-  },
-};
-
-function RangeSelector(graph, histogram) {
-  this._histogram = histogram;
-  this.container = document.createElement("div");
-  this.container.className = "rangeSelectorContainer";
-  this._graph = graph;
-  this._selectedRange = { startX: 0, endX: 0 };
-  this._selectedSampleRange = { start: 0, end: 0 };
-
-  this._highlighter = document.createElement("div");
-  this._highlighter.className = "histogramHilite collapsed";
-  this.container.appendChild(this._highlighter);
-
-  this._mouseMarker = document.createElement("div");
-  this._mouseMarker.className = "histogramMouseMarker";
-  this._mouseMarker.style.left = "-500px";
-  this.container.appendChild(this._mouseMarker);
-}
-RangeSelector.prototype = {
-  getContainer: function RangeSelector_getContainer() {
-    return this.container;
-  },
-  // echo the location of the mouse on the histogram
-  drawMouseMarker: function RangeSelector_drawMouseMarker(x) {
-    var mouseMarker = this._mouseMarker;
-    mouseMarker.style.left = x + "px";
-  },
-  showVideoPosition: function RangeSelector_showVideoPosition(position) {
-    this.drawMouseMarker(position * (this._graph.parentNode.clientWidth-1));
-    PROFILERLOG("Show video position: " + position);
-  },
-  drawHiliteRectangle: function RangeSelector_drawHiliteRectangle(x, y, width, height) {
-    var hilite = this._highlighter;
-    hilite.style.left = x + "px";
-    hilite.style.top = "0";
-    hilite.style.width = width + "px";
-    hilite.style.height = height + "px";
-  },
-  clearCurrentRangeSelection: function RangeSelector_clearCurrentRangeSelection() {
-    try {
-      this.changeEventSuppressed = true;
-      var children = this.selector.childNodes;
-      for (var i = 0; i < children.length; ++i) {
-        children[i].selected = false;
-      }
-    } finally {
-      this.changeEventSuppressed = false;
     }
-  },
-  showVideoRange: function RangeSelector_showVideoRange(startIndex, endIndex) {
-    if (!endIndex || endIndex < 0)
-      endIndex = gCurrentlyShownSampleData.length;
+  };
 
-    var len = this._graph.parentNode.getBoundingClientRect().right - this._graph.parentNode.getBoundingClientRect().left;
-    this._selectedRange.startX = startIndex * len / this._histogram._histogramData.length;
-    this._selectedRange.endX = endIndex * len / this._histogram._histogramData.length;
-    var width = this._selectedRange.endX - this._selectedRange.startX;
-    var height = this._graph.parentNode.clientHeight;
-    this._highlighter.classList.remove("collapsed");
-    this.drawHiliteRectangle(this._selectedRange.startX, 0, width, height);
-    //this._finishSelection(startIndex, endIndex);
-  },
-  enableRangeSelectionOnHistogram: function RangeSelector_enableRangeSelectionOnHistogram() {
-    var graph = this._graph;
-    var isDrawingRectangle = false;
-    var origX, origY;
-    var self = this;
-    // Compute this on the mouse down rather then forcing a sync reflow
-    // every frame.
-    var boundingRect = null;
-    function histogramClick(clickX, clickY) {
-      clickX = Math.min(clickX, graph.parentNode.getBoundingClientRect().right);
-      clickX = clickX - graph.parentNode.getBoundingClientRect().left;
-      var index = self._histogramIndexFromPoint(clickX);
-      self._histogram.histogramClick(index);
-    }
-    function updateHiliteRectangle(newX, newY) {
-      newX = Math.min(newX, boundingRect.right);
-      var startX = Math.min(newX, origX) - boundingRect.left;
-      var startY = 0;
-      var width = Math.abs(newX - origX);
-      var height = graph.parentNode.clientHeight;
-      if (startX < 0) {
-        width += startX;
-        startX = 0;
-      }
-      self._selectedRange.startX = startX;
-      self._selectedRange.endX = startX + width;
-      self.drawHiliteRectangle(startX, startY, width, height);
-    }
-    function updateMouseMarker(newX) {
-      self.drawMouseMarker(newX - graph.parentNode.getBoundingClientRect().left);
-    }
-    graph.addEventListener("mousedown", function(e) {
-      if (e.button != 0)
-        return;
-      graph.style.cursor = "col-resize";
-      isDrawingRectangle = true;
-      self.beginHistogramSelection();
-      origX = e.pageX;
-      origY = e.pageY;
-      boundingRect = graph.parentNode.getBoundingClientRect();
-      if (this.setCapture)
-        this.setCapture();
-      // Reset the highlight rectangle
-      updateHiliteRectangle(e.pageX, e.pageY);
-      e.preventDefault();
-      this._movedDuringClick = false;
-    }, false);
-    graph.addEventListener("mouseup", function(e) {
-      graph.style.cursor = "default";
-      if (!this._movedDuringClick) {
-        isDrawingRectangle = false;
-        // Handle as a click on the histogram. Select the sample:
-        histogramClick(e.pageX, e.pageY);
-      } else if (isDrawingRectangle) {
-        isDrawingRectangle = false;
-        updateHiliteRectangle(e.pageX, e.pageY);
-        self.finishHistogramSelection(e.pageX != origX);
-        if (e.pageX == origX) {
-          // Simple click in the histogram
-          var index = self._sampleIndexFromPoint(e.pageX - graph.parentNode.getBoundingClientRect().left);
-          // TODO Select this sample in the tree view
-          var sample = gCurrentlyShownSampleData[index];
-        }
-      }
-    }, false);
-    graph.addEventListener("mousemove", function(e) {
-      this._movedDuringClick = true;
-      if (isDrawingRectangle) {
-        updateMouseMarker(-1); // Clear
-        updateHiliteRectangle(e.pageX, e.pageY);
-      } else {
-        updateMouseMarker(e.pageX);
-      }
-    }, false);
-    graph.addEventListener("mouseout", function(e) {
-      updateMouseMarker(-1); // Clear
-    }, false);
-  },
-  beginHistogramSelection: function RangeSelector_beginHistgramSelection() {
-    var hilite = this._highlighter;
-    hilite.classList.remove("finished");
-    hilite.classList.add("selecting");
-    hilite.classList.remove("collapsed");
-    if (this._transientRestrictionEnteringAffordance) {
-      this._transientRestrictionEnteringAffordance.discard();
-    }
-  },
-  _finishSelection: function RangeSelector__finishSelection(start, end) {
-    var newFilterChain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
-    var self = this;
-    self._transientRestrictionEnteringAffordance = gBreadcrumbTrail.add({
-      title: "Sample Range [" + start + ", " + (end + 1) + "]",
-      enterCallback: function () {
-        gSampleFilters = newFilterChain;
-        self.collapseHistogramSelection();
-        filtersChanged();
-      }
+  var RangeSelector = function (graph, histogram) {
+    this.histogram = histogram;
+    this.container = createElement("div", { className: "rangeSelectorContainer" });
+    this.graph = graph;
+    this.selectedRange = { start: 0, end: 0 };
+    this.movedDuringClick = false;
+
+    this.higlighter = createElement("div", { className: "histogramHilite collapsed" });
+    this.container.appendChild(this.higlighter);
+
+    this.mouseMarker = createElement("div", {
+      className: "histogramMouseMarker",
+      style: { display: "none" },
+      textContent: "..."
     });
-  },
-  finishHistogramSelection: function RangeSelector_finishHistgramSelection(isSomethingSelected) {
-    var self = this;
-    var hilite = this._highlighter;
-    hilite.classList.remove("selecting");
-    if (isSomethingSelected) {
-      hilite.classList.add("finished");
-      var start = this._sampleIndexFromPoint(this._selectedRange.startX);
-      var end = this._sampleIndexFromPoint(this._selectedRange.endX);
-      self._finishSelection(start, end);
-    } else {
-      hilite.classList.add("collapsed");
-    }
-  },
-  collapseHistogramSelection: function RangeSelector_collapseHistogramSelection() {
-    var hilite = this._highlighter;
-    hilite.classList.add("collapsed");
-  },
-  _sampleIndexFromPoint: function RangeSelector__sampleIndexFromPoint(x) {
-    // XXX this is completely wrong, fix please
-    var totalSamples = parseFloat(gCurrentlyShownSampleData.length);
-    var width = parseFloat(this._graph.parentNode.clientWidth);
-    var factor = totalSamples / width;
-    return parseInt(parseFloat(x) * factor);
-  },
-  _histogramIndexFromPoint: function RangeSelector__histogramIndexFromPoint(x) {
-    // XXX this is completely wrong, fix please
-    var totalSamples = parseFloat(this._histogram._histogramData.length);
-    var width = parseFloat(this._graph.parentNode.clientWidth);
-    var factor = totalSamples / width;
-    return parseInt(parseFloat(x) * factor);
-  },
-};
+    this.container.appendChild(this.mouseMarker);
+  };
 
-function videoPaneTimeChange(video) {
-  if (!gMeta || !gMeta.frameStart)
-    return;
+  RangeSelector.prototype = {
+    selectedRange: null,
 
-  var frame = gVideoPane.getCurrentFrameNumber();
-  //var frameStart = gMeta.frameStart[frame];
-  //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
+    enableRangeSelectionOnHistogram: function () {
+      var isMouseDown = false;
+      var rect = null;
+      var coord = {};
 
-  gHistogramContainer.showVideoFramePosition(frame); 
-}
+      var updateSelectionMarker = function (x, y) {
+        x = Math.min(x, rect.right);
 
+        var start = {
+          x: Math.min(x, coord.x) - rect.left,
+          y: 0
+        };
+
+        var width = Math.abs(x - coord.x);
+        var height = this.graph.parentNode.clientHeight;
+
+        if (start.x < 0) {
+          width += start.x;
+          start.x = 0;
+        }
+
+        this.selectedRange.start = start.x;
+        this.selectedRange.end = start.x + width;
+        this.drawSelectionMarker(start.x, start.y, width, height);
+      }.bind(this);
+
+      this.graph.addEventListener("mousedown", function (ev) {
+        if (ev.button !== 0) {
+          return;
+        }
+
+        this.graph.style.cursor = "col-resize";
+        isMouseDown = true;
+
+        // Begin histogram selection
+        this.higlighter.classList.remove("finished");
+        this.higlighter.classList.remove("collapsed");
+        this.higlighter.classList.add("selecting");
+
+        coord.x = ev.pageX;
+        coord.y = ev.pageY;
+        rect = this.graph.parentNode.getBoundingClientRect();
+
+        // Remove selection markers from all threads.
+        gHistogramContainer.eachThread(function (thread) {
+          thread.threadHistogramView.rangeSelector.clearSelectionMarker();
+        });
+
+        updateSelectionMarker(coord.x, coord.y);
+        this.movedDuringClick = false;
+        ev.preventDefault();
+      }.bind(this), false);
+
+      this.graph.addEventListener("mouseup", function (ev) {
+        this.graph.style.cursor = "default";
+
+        var x, index;
+        if (!this.movedDuringClick) {
+          // Handle as a click on the histogram and select the sample.
+          x = Math.min(ev.pageX, this.graph.parentNode.getBoundingClientRect().right);
+          x = x - this.graph.parentNode.getBoundingClientRect().left;
+
+          index = this.histogram.pixelToIndex(x);
+
+          isMouseDown = false;
+          return void this.histogram.histogramClick(index);
+        }
+
+        if (isMouseDown) {
+          updateSelectionMarker(ev.pageX, ev.pageY);
+          this.finishHistogramSelection(coord.x !== ev.pageX);
+          isMouseDown = false;
+        }
+      }.bind(this), false);
+
+      this.graph.addEventListener("mousemove", function (ev) {
+        this.movedDuringClick = true;
+        if (isMouseDown) {
+          this.clearMouseMarker();
+          updateSelectionMarker(ev.pageX, ev.pageY);
+          return;
+        }
+
+        this.updateMouseMarker(ev.pageX);
+      }.bind(this), false);
+
+      this.graph.addEventListener("mouseout", function (ev) {
+        this.clearMouseMarker();
+      }.bind(this), false);
+    },
+
+    finishHistogramSelection: function (isSelected) {
+      this.higlighter.classList.remove("selecting");
+
+      if (!isSelected) {
+        return void this.higlighter.classList.add("collapsed");
+      }
+
+      this.higlighter.classList.add("finished");
+
+      var range = this.getSampleRange(this.selectedRange);
+      var chain = gSampleFilters.concat({ type: "RangeSampleFilter", start: range.start, end: range.end });
+      gBreadcrumbTrail.add({
+        title: "Sample Range [" + range.start + ", " + (range.end + 1) + "]",
+        enterCallback: function () {
+          gSampleFilters = chain;
+          this.higlighter.classList.add("collapsed");
+          this.higlighter.style.display = "none";
+          filtersChanged(range);
+        }.bind(this)
+      })
+    },
+
+    getSampleRange: function (coords) {
+      var info = this.histogram.getCanvas();
+      var bnd = this.histogram.boundaries;
+      var timePerPixel = (bnd.max - bnd.min) / info.width;
+      var start = bnd.min + Math.round(coords.start * timePerPixel);
+      var end = bnd.min + Math.round(coords.end * timePerPixel);
+
+      return { start: start, end: end };
+    },
+
+    updateMouseMarker: function (x) {
+      this.mouseMarker.style.display = "";
+      x = x - this.graph.parentNode.getBoundingClientRect().left;
+      this.mouseMarker.style.left = x + "px";
+      this.mouseMarker.textContent = Math.floor(this.histogram.pixelToTime(x)) + "ms";
+    },
+
+    clearMouseMarker: function () {
+      this.mouseMarker.style.display = "none";
+    },
+
+    drawSelectionMarker: function (x, y, width, height) {
+      if (width === 0) {
+        return;
+      }
+      var hl = this.higlighter;
+      hl.style.left = x + "px";
+      hl.style.top = "0";
+      hl.style.width = width + "px";
+      hl.style.height = height + "px";
+      hl.style.display = "";
+
+      var info = this.histogram.getCanvas();
+      var bnd = this.histogram.boundaries;
+      hl.textContent = Math.round((bnd.max - bnd.min) / info.width * width) + "ms";
+    },
+
+    clearSelectionMarker: function () {
+      var hl = this.higlighter;
+      hl.style.display = "none";
+    },
+
+  };
+}());
