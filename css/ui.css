@@ -335,6 +335,11 @@ body {
 }
 .rangeSelectorContainer {
 }
+.histogramContainerParent {
+  display: block;
+  overflow-y: scroll;
+  max-height: 300px;
+}
 .histogramSelected {
   background: rgb(200,200,255);
 }

@@ -1442,6 +1442,7 @@ function enterFinishedProfileUI() {
   gHistogramContainer.updateThreads(gThreadsDesc);
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gHistogramContainer.container);
+  gHistogramContainer.container.parentNode.className = "histogramContainerParent";
 
   if (false && gLocation.indexOf("file:") == 0) {
     // Local testing for frameView
