@@ -486,7 +486,7 @@ var HistogramContainer;
       this.mouseMarker.style.display = "";
       x = x - this.graph.parentNode.getBoundingClientRect().left;
       this.mouseMarker.style.left = x + "px";
-      this.mouseMarker.textContent = Math.round(this.histogram.pixelToTime(x)) + "ms";
+      this.mouseMarker.textContent = Math.floor(this.histogram.pixelToTime(x)) + "ms";
     },
 
     clearMouseMarker: function () {
