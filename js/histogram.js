@@ -95,7 +95,8 @@ var HistogramContainer;
     displayDiagnostics: function (items, threadId) {
       // Only supported on the main thread at the moment.
       this.eachThread(function (thread) { thread.diagnosticBar.hide() });
-      this.threads[threadId].diagnosticBar.display(items);
+      console.log("Bounds: " + this.threads[threadId].threadHistogramView.boundaries.min);
+      this.threads[threadId].diagnosticBar.display(items, this.threads[threadId].threadHistogramView.boundaries);
     },
 
     dataIsOutdated: function () {
@@ -118,8 +119,6 @@ var HistogramContainer;
       if (gSelectedThreadId == view.threadId) {
         return void cb();
       }
-
-      console.log("selected");
 
       var selectedContainer = document.getElementsByClassName("histogramSelected")[0];
       if (selectedContainer) {
@@ -149,6 +148,7 @@ var HistogramContainer;
     this.container = container;
     this.data = [];
     this.threadId = threadId;
+    this.boundaries = null;
   }
 
   HistogramView.prototype = {
@@ -270,7 +270,6 @@ var HistogramContainer;
             var markerDiv = createElement("div", { className: "marker" });
             markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
-            console.log("Add marker at " + x);
             markerDiv.style.top = "0px";
             self.container.appendChild(markerDiv);
             ctx.fillStyle = "rgb(255,0,0)";
@@ -301,19 +300,14 @@ var HistogramContainer;
     },
 
     timeToIndex: function (time) {
-      console.log("time lookup: " + time);
       // Speed up using binary search if required, but make sure the first item
       // in case of equality.
       
       for (var i = 0; i < this.data.length - 1; i++) {
         if (this.data[i+1].time > time) {
-          console.log("Found " + i + " at time: " + this.data[i].time);
           return i;
         }
       }
-
-      console.log("Bounds: " + this.boundaries.min + " max: " + this.boundaries.max);
-      console.log("Found max time: " + this.data[this.data.length-1].time);
 
       return this.data.length - 1;
     },

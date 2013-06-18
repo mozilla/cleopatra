@@ -1802,13 +1802,15 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
 
   var diagnosticItems = [];
 
-  function finishPendingDiagnostic(endX) {
+  function finishPendingDiagnostic(step, endX) {
     if (!pendingDiagnosticInfo)
       return;
 
     var diagnostic = pendingDiagnosticInfo.diagnostic;
     var currDiagnostic = {
       x: pendingDiagnosticInfo.x / widthSum,
+      start: pendingDiagnosticInfo.start,
+      end: step.extraInfo.time,
       width: (endX - pendingDiagnosticInfo.x) / widthSum,
       imageFile: pendingDiagnosticInfo.diagnostic.image,
       title: pendingDiagnosticInfo.diagnostic.title,
@@ -1842,7 +1844,7 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
     }
 
     if (!diagnostic) {
-      finishPendingDiagnostic(x);
+      finishPendingDiagnostic(step, x);
       return;
     }
 
@@ -1856,18 +1858,19 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
       }
 
       // We have left the old diagnostic and found a new one. Finish the old one.
-      finishPendingDiagnostic(x);
+      finishPendingDiagnostic(step, x);
     }
 
     pendingDiagnosticInfo = {
       diagnostic: diagnostic,
       x: x,
+      start: step.extraInfo.time,
       details: details,
       onclickDetails: diagnostic.onclickDetails ? diagnostic.onclickDetails(frames, symbols, meta, step) : null
     };
   });
   if (pendingDiagnosticInfo)
-    finishPendingDiagnostic(data.length);
+    finishPendingDiagnostic(data[data.length-1], data.length);
 
   sendFinished(requestID, diagnosticItems);
 }
