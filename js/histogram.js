@@ -200,6 +200,14 @@ var HistogramContainer;
       var info = this.getCanvas();
       var ctx = info.context;
 
+      // Clear labels
+      var markers = this.container.getElementsByClassName("marker");
+      while(markers.length > 0){
+        var marker = markers[0];
+        marker.parentNode.removeChild(marker);
+
+      }
+
       this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
@@ -248,10 +256,26 @@ var HistogramContainer;
           var h  = (height / 100) * value;
           ctx.fillRect(x, height - h, barWidth, h);
 
+          var self = this;
           if (markers.length) {
+            var str = "";
+            var id = 1;
+            markers.forEach(function (marker) {
+              if (markers.length > 1) {
+                str += (id++) + ": " + marker + " ";
+              } else {
+                str = marker;
+              }
+            });
+            var markerDiv = createElement("div", { className: "marker" });
+            markerDiv.textContent = str;
+            markerDiv.style.left = x + "px";
+            console.log("Add marker at " + x);
+            markerDiv.style.top = "0px";
+            self.container.appendChild(markerDiv);
             ctx.fillStyle = "rgb(255,0,0)";
             ctx.fillRect(x, 0, 1, 20);
-            ctx.fillText(markers[0], x + 2, 10);
+            //ctx.fillText(markers[0], x + 2, 10);
           }
         }
 
@@ -340,7 +364,7 @@ var HistogramContainer;
 
   var RangeSelector = function (graph, histogram) {
     this.histogram = histogram;
-    this.container = document.createElement("div", { className: "rangeSelectorContainer" });
+    this.container = createElement("div", { className: "rangeSelectorContainer" });
     this.graph = graph;
     this.selectedRange = { start: 0, end: 0 };
     this.movedDuringClick = false;

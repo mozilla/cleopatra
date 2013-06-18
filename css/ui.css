@@ -310,7 +310,30 @@ body {
   background: -moz-linear-gradient(#EEE, #CCC);
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
-  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white;
+}
+.marker {
+  position: absolute;
+  cursor: default;
+  white-space: nowrap;
+  text-overflow:ellipsis;
+  max-width: 50px;
+  overflow: hidden;
+}
+.marker:hover {
+  transition-property: background, box-shadow;
+  transition-duration: 500ms, 500ms;
+  background: #FFD;
+  border-radius: 3px;
+  white-space: normal;
+  overflow: visible;
+  max-width: none;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  padding: 2px 5px;
+  margin: -2px -1px;
+}
+.rangeSelectorContainer {
 }
 .histogramSelected {
   background: rgb(200,200,255);
@@ -319,6 +342,7 @@ body {
   position: absolute;
   pointer-events: none;
   text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white
+  z-index: 1;
 }
 .histogramHilite:not(.collapsed) {
   background: rgba(150, 150, 150, 0.5);
@@ -329,6 +353,7 @@ body {
   top: 0;
   width: 1px;
   height: 100%;
+  z-index: 1;
 }
 .histogramMouseMarker:not(.collapsed) {
   border-left: solid 1px rgba(0, 0, 150, 0.7);
