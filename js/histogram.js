@@ -60,8 +60,20 @@ var HistogramContainer;
         var container = row.insertCell(0);
 
         container.className = "threadHistogramDescription";
-        container.innerHTML = thread.name;
+        container.innerHTML = thread.name + "<br>";
         container.title = "Thread Name";
+
+        var minimizeButton = createElement("input", {type:"button", value:"Bottom"});
+        container.appendChild(minimizeButton);
+        var self = this;
+        minimizeButton.onclick = function() {
+          var tableRow = container.parentNode;
+          var startY = tableRow.getBoundingClientRect().top;
+          var table = tableRow.parentNode;
+          tableRow.parentNode.removeChild(tableRow);
+          table.appendChild(tableRow);
+          var endY = tableRow.getBoundingClientRect().top;
+        }
 
         thread.threadHistogramView = new HistogramView(thread.name, id);
         thread.threadId = id;
