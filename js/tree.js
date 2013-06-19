@@ -105,6 +105,9 @@ TreeView.prototype = {
       this._header.appendChild(li);
     }
   },
+  getTreeHeader: function TreeView_getTreeHeader() {
+    return this._header;
+  },
   dataIsOutdated: function TreeView_dataIsOutdated() {
     this._busyCover.classList.add("busy");
   },

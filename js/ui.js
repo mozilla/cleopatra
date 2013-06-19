@@ -180,6 +180,24 @@ function treeObjSort(a, b) {
   return b.counter - a.counter;
 }
 
+function MakeSizeAdjustable(dragElement, elementToResize) {
+  var startY = 32;
+  var h = 16;
+  dragElement.classList.add("adjustable");
+  dragElement.addEventListener("mousedown", function(e) {
+    dragElement.dragging = function(e) {
+      var mh = e.clientY;
+      elementToResize.style.maxHeight = (mh - h/2 - startY) + "px";
+      console.log((h) + "px");
+    };
+    document.addEventListener("mousemove", dragElement.dragging);
+    dragElement.dragging(e);
+  });
+  document.addEventListener("mouseup", function() {
+    document.removeEventListener("mousemove", dragElement.dragging);
+  });
+}
+
 function ProfileTreeManager() {
   this.treeView = new TreeView();
   this.treeView.setColumns([
@@ -188,6 +206,7 @@ function ProfileTreeManager() {
     { name: "resource", title: "" },
     { name: "symbolName", title: "Symbol Name"}
   ]);
+  MakeSizeAdjustable(this.treeView.getTreeHeader(), gHistogramContainer.container.parentNode);
   var self = this;
   this.treeView.addEventListener("select", function (frameData) {
     self.highlightFrame(frameData);

@@ -495,3 +495,6 @@ iframe {
   background: none repeat scroll 0% 0% rgb(219, 223, 231);
   border-right: solid 1px white;
 }
+.adjustable {
+  cursor: ns-resize;
+}
