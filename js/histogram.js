@@ -258,8 +258,12 @@ var HistogramContainer;
           slice.push(datum);
 
           if (datum.markers.length) {
-            markers.push(datum.markers);
             for (var j = 0; j < datum.markers.length; j++) {
+              var marker = datum.markers[j]
+              markers.push({
+                name: marker,
+                time: datum.time,
+              });
               //threadMarkers.push(datum.markers[j]);
             }
           }
@@ -284,16 +288,15 @@ var HistogramContainer;
             var id = 1;
             markers.forEach(function (marker) {
               if (markers.length > 1) {
-                str += (id++) + ": " + marker + " ";
+                str += (id++) + ": " + marker.name + " ";
               } else {
-                str = marker;
+                str = marker.name;
               }
             });
             var markerDiv = createElement("div", { className: "marker" });
             markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
-            markerDiv.markers = markers;
             markerDiv.addEventListener("click", function() {
               if (self.manager._onMarkerClick) {
                 self.manager._onMarkerClick(threadMarkers);
@@ -302,7 +305,8 @@ var HistogramContainer;
             markers.forEach(function (marker) {
               threadMarkers.push({
                 div: markerDiv,
-                name: marker,
+                name: marker.name,
+                time: Math.round(marker.time),
               });
             });
             self.container.appendChild(markerDiv);

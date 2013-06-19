@@ -3,7 +3,7 @@ function MarkerTreeManager() {
   this.treeView = new TreeView();
   this.treeView.setColumns([
     { name: "markerType", title: "Type" },
-    { name: "markerCount", title: "Marker Count" },
+    { name: "markerCount", title: "Time" },
     { name: "resource", title: "" },
     { name: "markerName", title: "Marker Name"}
   ]);
@@ -14,6 +14,17 @@ function MarkerTreeManager() {
     //if (window.comparator_setSelection) {
     //  window.comparator_setSelection(gTreeManager.serializeCurrentSelectionSnapshot(), frameData);
     //}
+  });
+  this.treeView.addEventListener("select", function (markerData) {
+    if (self.lastSelected) {
+      self.lastSelected.style.fontWeight = "normal";
+      self.lastSelected.style.zIndex = "0";
+      self.lastSelected.style.maxWidth = "50px";
+    }
+    markerData.marker.div.style.fontWeight = "bold";
+    markerData.marker.div.style.zIndex = "1";
+    markerData.marker.div.style.maxWidth = "300px";
+    self.lastSelected = markerData.marker.div;
   });
   this._container = document.createElement("div");
   this._container.className = "tree";
@@ -44,11 +55,14 @@ MarkerTreeManager.prototype = {
   getTreeHeader: function MarkerTreeManager_getTreeHeader() {
     return this.treeView.getTreeHeader();
   },
+  selectMarker: function MarkerTreeManager_selectMarker(marker) {
+    
+  },
   _HTMLForFunction: function MarkerTreeManager__HTMLForFunction(node) {
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
      '<span class="sampleCount"></span> ' +
      '<span class="samplePercentage"></span> ' +
-     '<span class="selfSampleCount">' + node.selfCounter + '</span> ' +
+     '<span class="selfSampleCount">' + node.time + '</span> ' +
      '<span class="resourceIcon" data-resource="' + node.library + '"></span> ' +
      '<span class="functionName">' + node.name + '</span>' +
      '<span class="libraryName">' + node.library + '</span>' +
@@ -59,9 +73,10 @@ MarkerTreeManager.prototype = {
       var currObj = {};
       currObj.parent = parent;
       currObj.counter = 0;
-      currObj.selfCounter = 1;
+      currObj.time = marker.time;
       currObj.name = marker.name;
       currObj.library = "Main Thread";
+      currObj.marker = marker;
       return currObj;
     }
     function getMarkerChildrenObjects(markers, parent) {
@@ -80,7 +95,7 @@ MarkerTreeManager.prototype = {
     }
     var rootObj = {};
     rootObj.counter = 0;
-    rootObj.selfCounter = 1;
+    rootObj.time = "";
     rootObj.name = "(markers)";
     rootObj.library = "";
     rootObj.children = getMarkerChildrenObjects(markers, rootObj);
