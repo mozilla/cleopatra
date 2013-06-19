@@ -1466,7 +1466,6 @@ function enterFinishedProfileUI() {
   gHistogramContainer = new HistogramContainer();
   gHistogramContainer.updateThreads(gThreadsDesc);
   gHistogramContainer.onMarkerClick(function(markers) {
-    console.log("Marker: " + markers[0]);
     gTreeManager.getContainer().style.display = "none";
     gMarkerTreeManager.show();
     gMarkerTreeManager.display(markers);

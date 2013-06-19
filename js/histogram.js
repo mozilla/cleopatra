@@ -244,6 +244,8 @@ var HistogramContainer;
         step = 1;
       }
 
+      var threadMarkers = [];
+
       while (x <= width) {
         slice = [];
         markers = [];
@@ -257,6 +259,9 @@ var HistogramContainer;
 
           if (datum.markers.length) {
             markers.push(datum.markers);
+            for (var j = 0; j < datum.markers.length; j++) {
+              //threadMarkers.push(datum.markers[j]);
+            }
           }
         }
 
@@ -288,10 +293,17 @@ var HistogramContainer;
             markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
+            markerDiv.markers = markers;
             markerDiv.addEventListener("click", function() {
               if (self.manager._onMarkerClick) {
-                self.manager._onMarkerClick(markers);
+                self.manager._onMarkerClick(threadMarkers);
               }
+            });
+            markers.forEach(function (marker) {
+              threadMarkers.push({
+                div: markerDiv,
+                name: marker,
+              });
             });
             self.container.appendChild(markerDiv);
             ctx.fillStyle = "rgb(255,0,0)";
