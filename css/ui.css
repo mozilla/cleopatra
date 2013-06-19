@@ -498,3 +498,6 @@ iframe {
 .adjustable {
   cursor: ns-resize;
 }
+.hidden {
+  visibility: none;
+}

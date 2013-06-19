@@ -75,7 +75,7 @@ var HistogramContainer;
           var endY = tableRow.getBoundingClientRect().top;
         }
 
-        thread.threadHistogramView = new HistogramView(thread.name, id);
+        thread.threadHistogramView = new HistogramView(this, thread.name, id);
         thread.threadId = id;
 
         thread.diagnosticBar = new DiagnosticBar();
@@ -102,6 +102,10 @@ var HistogramContainer;
       }.bind(this));
 
       this.threads[0].threadHistogramView.container.classList.add("histogramSelected");
+    },
+
+    onMarkerClick: function(cb) {
+      this._onMarkerClick = cb;
     },
 
     displayDiagnostics: function (items, threadId) {
@@ -143,7 +147,7 @@ var HistogramContainer;
     }
   };
 
-  var HistogramView = function (debugName, threadId) {
+  var HistogramView = function (manager, debugName, threadId) {
     var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
@@ -156,6 +160,7 @@ var HistogramContainer;
     this.busyCover = createElement("div", { className: "busyCover" });
     container.appendChild(this.busyCover);
 
+    this.manager = manager;
     this.debugName = debugName || "NoName";
     this.container = container;
     this.data = [];
@@ -283,6 +288,11 @@ var HistogramContainer;
             markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
+            markerDiv.addEventListener("click", function() {
+              if (self.manager._onMarkerClick) {
+                self.manager._onMarkerClick(markers);
+              }
+            });
             self.container.appendChild(markerDiv);
             ctx.fillStyle = "rgb(255,0,0)";
             ctx.fillRect(x, 0, 1, 20);

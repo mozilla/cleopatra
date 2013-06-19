@@ -1016,6 +1016,7 @@ var gSelectedThreadId = 0;
 var gHighlightedCallstack = [];
 var gFrameView = null;
 var gTreeManager = null;
+var gMarkerTreeManager = null;
 var gSampleBar = null;
 var gBreadcrumbTrail = null;
 var gHistogramContainer = null;
@@ -1357,6 +1358,11 @@ function viewJSSource(sample) {
 
 function setHighlightedCallstack(samples, heaviestSample) {
   PROFILERTRACE("highlight: " + samples);
+
+  // Make sure that the right tree is shown
+  gTreeManager.getContainer().style.display = "block";
+  gMarkerTreeManager.hide();
+
   gHighlightedCallstack = samples;
   gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack);
   if (!gInvertCallstack) {
@@ -1459,6 +1465,12 @@ function enterFinishedProfileUI() {
 
   gHistogramContainer = new HistogramContainer();
   gHistogramContainer.updateThreads(gThreadsDesc);
+  gHistogramContainer.onMarkerClick(function(markers) {
+    console.log("Marker: " + markers[0]);
+    gTreeManager.getContainer().style.display = "none";
+    gMarkerTreeManager.show();
+    gMarkerTreeManager.display(markers);
+  });
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gHistogramContainer.container);
   gHistogramContainer.container.parentNode.className = "histogramContainerParent";
@@ -1502,6 +1514,11 @@ function enterFinishedProfileUI() {
   gPluginView = new PluginView();
   //currRow = finishedProfilePane.insertRow(4);
   treeContainerDiv.appendChild(gPluginView.getContainer());
+
+  gMarkerTreeManager = new MarkerTreeManager();
+  treeContainerDiv.appendChild(gMarkerTreeManager.getContainer());
+  gMarkerTreeManager.getContainer().classList.add("hidden");
+  MakeSizeAdjustable(gMarkerTreeManager.getTreeHeader(), gHistogramContainer.container.parentNode);
 
   gMainArea.appendChild(finishedProfilePaneBackgroundCover);
   gMainArea.appendChild(finishedProfilePane);
