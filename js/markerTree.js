@@ -44,6 +44,7 @@ MarkerTreeManager.prototype = {
     return this.treeView.setSelection(frames);
   },
   display: function MarkerTreeManager_display(markers) {
+    console.log(markers.length);
     this.treeView.display(this.convertToJSTreeData(markers));
   },
   hide: function MarkerTreeManager_hide() {
@@ -98,6 +99,7 @@ MarkerTreeManager.prototype = {
     rootObj.time = "";
     rootObj.name = "(markers)";
     rootObj.library = "";
+    console.log("SIZE: " + markers.length);
     rootObj.children = getMarkerChildrenObjects(markers, rootObj);
     return [{getData: function() { return rootObj; }}];
     var totalSamples = rootNode.counter;
