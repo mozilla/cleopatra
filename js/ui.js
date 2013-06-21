@@ -187,7 +187,7 @@ function MakeSizeAdjustable(dragElement, elementToResize) {
   dragElement.addEventListener("mousedown", function(e) {
     dragElement.dragging = function(e) {
       var mh = e.clientY;
-      elementToResize.style.maxHeight = (mh - h/2 - startY) + "px";
+      elementToResize.style.maxHeight = Math.max(60, (mh - h/2 - startY)) + "px";
       console.log((h) + "px");
     };
     document.addEventListener("mousemove", dragElement.dragging);
