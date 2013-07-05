@@ -547,7 +547,7 @@ var HistogramContainer;
       try {
         if (gShowPowerInfo) {
           var index = this.histogram.pixelToIndex(x);
-          str = this.histogram.data[index].power.toFixed(2) + " Watts"
+          str = this.histogram.data[index].power.toFixed(1) + " Watts"
         } else { // show time
           str = Math.floor(this.histogram.pixelToTime(x)) + "ms";
         }

@@ -356,7 +356,7 @@ body {
   position: absolute;
   pointer-events: none;
   top: 0;
-  width: 1px;
+  width: 100px;
   height: 100%;
   z-index: 1;
 }
