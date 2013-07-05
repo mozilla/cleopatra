@@ -542,7 +542,20 @@ var HistogramContainer;
       this.mouseMarker.style.display = "";
       x = x - this.graph.parentNode.getBoundingClientRect().left;
       this.mouseMarker.style.left = x + "px";
-      this.mouseMarker.textContent = Math.floor(this.histogram.pixelToTime(x)) + "ms";
+
+      var str;
+      try {
+        if (gShowPowerInfo) {
+          var index = this.histogram.pixelToIndex(x);
+          str = this.histogram.data[index].power.toFixed(2) + " Watts"
+        } else { // show time
+          str = Math.floor(this.histogram.pixelToTime(x)) + "ms";
+        }
+      } catch (e) {
+        str = "Err" + e.message;
+      }
+
+      this.mouseMarker.textContent = str;
     },
 
     clearMouseMarker: function () {

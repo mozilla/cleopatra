@@ -1356,7 +1356,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 
     if (options.showPowerInfo) {
       res = step.extraInfo.power;
-      return Math.round(255 * Math.min(1, res / 0.1));
+      return Math.round(255 * Math.min(1, res / options.peakPower));
     } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
       res = step.extraInfo.responsiveness;
       return Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
@@ -1383,6 +1383,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
         frames: [ step.frames ],
         height: getHeight(step) / (maxHeight / 100),
         time: step.extraInfo.time,
+        power: step.extraInfo.power,
         markers: step.extraInfo.marker || [],
         color: getStepColor(step)
       };

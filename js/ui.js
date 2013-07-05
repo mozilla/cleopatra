@@ -974,6 +974,7 @@ InfoBar.prototype = {
     infoText += "<label><input type='checkbox' id='showMissedSample' " + (gShowMissedSample ?" checked='true' ":" ") + " onchange='toggleShowMissedSample()'/>Show Missed Sample</label>\n";
     if (gMeta && gMeta.hasPowerInfo) {
       infoText += "<br><label><input type='checkbox' id='showPowerInfo' " + (gShowPowerInfo ?" checked='true' ":" ") + " onchange='toggleShowPowerInfo()'/>Show Power</label>\n";
+      infoText += "<br>Peak Color: <label><input type='textbox' id='txtPeakPower' value='"+gPeakPower+"' onchange='changePeakPower()'>Watts</input></label>";
     }
 
     infoText += "<h2>Share With URL</h2>\n";
@@ -1297,9 +1298,13 @@ function toggleShowMissedSample() {
 }
 
 var gShowPowerInfo = false;
+var gPeakPower = 30; // Watts
 function toggleShowPowerInfo() {
   gShowPowerInfo = !gShowPowerInfo;
   filtersChanged();
+}
+function changePeakPower() {
+  gPeakPower = parseInt(document.getElementById("txtPeakPower").value)
 }
 
 var gJavascriptOnly = false;
@@ -1629,6 +1634,7 @@ function filtersChanged(boundaries) {
   function onBoundariesFinished(data) {
     var options = {
       showPowerInfo: gShowPowerInfo,
+      peakPower: gPeakPower,
       sampleMin: data.minima,
       sampleMax: data.maxima
     };
