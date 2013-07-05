@@ -651,13 +651,35 @@ function numberOfCurrentlyShownSamples() {
   return num;
 }
 
-function totalPower() {
+function totalPowerStr() {
+  var power = totalPower();
+  if (power > 1000000) {
+    return (power / 1000000).toFixed(2) + " MJ";
+  } else if (power > 1000) {
+    return (power / 1000).toFixed(2) + " kJ";
+  } else {
+    return power + " J";
+  }
+}
+
+function totalPower() { // in Joules
   var data = gCurrentlyShownSampleData;
   var totalPower = 0.0;
+  var lastTime = null;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["power"])
       continue;
-    totalPower += data[i].extraInfo["power"];
+    if (isNaN(data[i].extraInfo["time"])) {
+      console.log("missing timestamp for power calculation");
+      lastTime = null;
+      continue;
+    }
+    if (lastTime == null) {
+      lastTime = data[i].extraInfo['time'];
+      continue;
+    }
+    var deltaTime = data[i].extraInfo['time'] - lastTime;
+    totalPower += data[i].extraInfo["power"] * deltaTime / 1000;
   }
   return totalPower.toFixed(2);
 }
@@ -665,25 +687,19 @@ function totalPower() {
 function peakPower() {
   var data = gCurrentlyShownSampleData;
   var peakPower = 0.0;
-  var lastTime = null;
   for (var i = 0; i < data.length; ++i) {
     if (!data[i] || !data[i].extraInfo || !data[i].extraInfo["power"])
       continue;
     var deltaTime = null;
     if (isNaN(data[i].extraInfo["time"])) {
+      console.log("missing timestamp for power calculation");
       lastTime = null;
       continue;
     }
-    if (lastTime != null) {
-      deltaTime = data[i].extraInfo["time"] - lastTime;
-      deltaTime /= 1000; // Convert to seconds
+    var power = data[i].extraInfo["power"];
+    if (power > peakPower) {
+      peakPower = power;
     }
-    if (deltaTime != null) {
-      console.log(data[i].extraInfo["power"] +" -> " + deltaTime + ", lastTime: " + lastTime + " currTime: " + data[i].extraInfo["time"]);
-      var power = data[i].extraInfo["power"] / deltaTime;
-      peakPower = Math.max(peakPower, power);
-    }
-    lastTime = data[i].extraInfo["time"];
   }
   return peakPower.toFixed(2);
 }
@@ -936,7 +952,7 @@ InfoBar.prototype = {
     infoText += "  <dt>Max Event Lag:</dt><dd>" + maxResponsiveness().toFixed(2) + " ms</dd>\n";
     infoText += "  <dt>Real Interval:</dt><dd>" + effectiveInterval() + "</dd>";
     if (gMeta && gMeta.hasPowerInfo) {
-      infoText += "  <dt>Work:</dt><dd>" + totalPower() + " J</dd>";
+      infoText += "  <dt>Work:</dt><dd>" + totalPowerStr() + "</dd>";
       infoText += "  <dt>Peak:</dt><dd>" + peakPower() + " Watt</dd>";
     }
     infoText += "</dl>\n";
