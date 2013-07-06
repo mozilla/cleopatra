@@ -300,6 +300,7 @@ var HistogramContainer;
             markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
+            markerDiv.markers = markers;
             (function(markers) {
               markerDiv.addEventListener("click", function() {
                 if (self.manager._onMarkerClick) {
@@ -312,7 +313,7 @@ var HistogramContainer;
               threadMarkers.push({
                 div: markerDiv,
                 name: marker.name,
-                time: Math.round(marker.time),
+                time: marker.time,
               });
             });
             self.container.appendChild(markerDiv);

@@ -16,15 +16,29 @@ function MarkerTreeManager() {
     //}
   });
   this.treeView.addEventListener("select", function (markerData) {
-    if (self.lastSelected) {
-      self.lastSelected.style.fontWeight = "normal";
-      self.lastSelected.style.zIndex = "0";
-      self.lastSelected.style.maxWidth = "50px";
+    function selectMarkerDiv(markerDiv) {
+      if (self.lastSelected) {
+        self.lastSelected.style.fontWeight = "normal";
+        self.lastSelected.style.zIndex = "0";
+        self.lastSelected.style.maxWidth = "50px";
+      }
+      markerDiv.style.fontWeight = "bold";
+      markerDiv.style.zIndex = "1";
+      markerDiv.style.maxWidth = "300px";
+      self.lastSelected = markerDiv;
     }
-    markerData.marker.div.style.fontWeight = "bold";
-    markerData.marker.div.style.zIndex = "1";
-    markerData.marker.div.style.maxWidth = "300px";
-    self.lastSelected = markerData.marker.div;
+    var markerDivs = document.getElementsByClassName("marker");
+    for (var i = 0; i < markerDivs.length; i++) {
+      var markerDiv = markerDivs.item(i);
+      var markers = markerDiv.markers;
+      for (var j = 0; j < markers.length; j++) {
+        var marker = markers[j];
+        if (marker.name == markerData.name && marker.time == markerData.time) {
+          selectMarkerDiv(markerDiv);
+          return;
+        }
+      }
+    }
   });
   this._container = document.createElement("div");
   this._container.className = "tree";
@@ -60,9 +74,9 @@ MarkerTreeManager.prototype = {
   },
   _HTMLForFunction: function MarkerTreeManager__HTMLForFunction(node) {
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
-     '<span class="sampleCount"></span> ' +
+     '<span class="sampleCount">Marker</span> ' +
      '<span class="samplePercentage"></span> ' +
-     '<span class="selfSampleCount">' + node.time + '</span> ' +
+     '<span class="selfSampleCount">' + Math.round(node.time) + '</span> ' +
      '<span class="resourceIcon" data-resource="' + node.library + '"></span> ' +
      '<span class="functionName">' + node.name + '</span>' +
      '<span class="libraryName">' + node.library + '</span>' +
