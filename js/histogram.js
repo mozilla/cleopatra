@@ -244,6 +244,9 @@ var HistogramContainer;
         step = 1;
       }
 
+      if (barWidth <= 0)
+        return;
+
       var threadMarkers = [];
 
       while (x <= width) {
