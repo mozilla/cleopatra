@@ -44,7 +44,6 @@ MarkerTreeManager.prototype = {
     return this.treeView.setSelection(frames);
   },
   display: function MarkerTreeManager_display(markers) {
-    console.log(markers.length);
     this.treeView.display(this.convertToJSTreeData(markers));
   },
   hide: function MarkerTreeManager_hide() {
@@ -57,7 +56,7 @@ MarkerTreeManager.prototype = {
     return this.treeView.getTreeHeader();
   },
   selectMarker: function MarkerTreeManager_selectMarker(marker) {
-    
+    this.treeView.setSelection(["(markers)", marker.name]);
   },
   _HTMLForFunction: function MarkerTreeManager__HTMLForFunction(node) {
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
@@ -99,7 +98,6 @@ MarkerTreeManager.prototype = {
     rootObj.time = "";
     rootObj.name = "(markers)";
     rootObj.library = "";
-    console.log("SIZE: " + markers.length);
     rootObj.children = getMarkerChildrenObjects(markers, rootObj);
     return [{getData: function() { return rootObj; }}];
     var totalSamples = rootNode.counter;

@@ -300,11 +300,14 @@ var HistogramContainer;
             markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
-            markerDiv.addEventListener("click", function() {
-              if (self.manager._onMarkerClick) {
-                self.manager._onMarkerClick(threadMarkers);
-              }
-            });
+            (function(markers) {
+              markerDiv.addEventListener("click", function() {
+                if (self.manager._onMarkerClick) {
+                  console.log("Send: " + JSON.stringify(markers[0]));
+                  self.manager._onMarkerClick(threadMarkers, markers[0]);
+                }
+              });
+            })(markers);
             markers.forEach(function (marker) {
               threadMarkers.push({
                 div: markerDiv,

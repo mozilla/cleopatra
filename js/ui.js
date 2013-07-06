@@ -1486,11 +1486,13 @@ function enterFinishedProfileUI() {
 
   gHistogramContainer = new HistogramContainer();
   gHistogramContainer.updateThreads(gThreadsDesc);
-  gHistogramContainer.onMarkerClick(function(markers) {
+  gHistogramContainer.onMarkerClick(function(threadMarker, selectedMarker) {
     gTreeManager.getContainer().style.display = "none";
     gMarkerTreeManager.show();
-    gMarkerTreeManager.display(markers);
-    gMarkerTreeManager.selectMarker(marker);
+    gMarkerTreeManager.display(threadMarker);
+    if (selectedMarker) {
+      gMarkerTreeManager.selectMarker(selectedMarker);
+    }
   });
   currRow = finishedProfilePane.insertRow(rowIndex++);
   currRow.insertCell(0).appendChild(gHistogramContainer.container);
