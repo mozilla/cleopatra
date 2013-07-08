@@ -1325,7 +1325,7 @@ function findTimelineEnd(profileID) {
   return max;
 }
 
-// The responsiveness threshold (in ms) after which the sample shuold become
+// The responsiveness threshold (in ms) after which the sample should become
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
@@ -1337,6 +1337,9 @@ function getHistogramBoundaries(requestID, profileID, showMissedSample) {
   var samples = gProfiles[profileID].filteredThreadSamples;
   var times = flatten(Object.keys(samples).map(function (id) {
     return Object.keys(samples[id]).map(function (stepId) {
+      if (!samples[id][stepId]) {
+        return Number.NaN;
+      }
       return Math.floor(samples[id][stepId].extraInfo.time);
     });
   }));
@@ -1366,6 +1369,9 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   }
 
   function getHeight(step) {
+    if (!step) {
+      return 0;
+    }
     return step.extraInfo.height || step.frames.length;
   }
 
