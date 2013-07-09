@@ -840,7 +840,7 @@ function uploadProfile(selected) {
     var formData = new FormData();
     formData.append("file", dataToUpload);
     document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
-    oXHR.open("POST", "http://profile-store.appspot.com/store", true);
+    oXHR.open("POST", "https://profile-store.appspot.com/store", true);
     oXHR.send(formData);
   });
 }
