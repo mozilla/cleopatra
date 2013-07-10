@@ -1401,6 +1401,9 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   var histogram = data
     .filter(function (step) { return step != null; })
     .map(function (step, i) {
+      if (step.extraInfo.marker) {
+        prepareMarker(step.extraInfo.marker);
+      }
       return {
         frames: [ step.frames ],
         height: getHeight(step) / (maxHeight / 100),
