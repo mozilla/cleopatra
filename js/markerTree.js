@@ -91,6 +91,22 @@ MarkerTreeManager.prototype = {
       currObj.name = marker.name;
       currObj.library = "Main Thread";
       currObj.marker = marker;
+      if (marker.marker.data && marker.marker.data.type == "innerHTML") {
+        dump("Innerhtml\n");
+        currObj.children = [ {
+          getData: function() {
+            var child = {};
+            child.parent = currObj;
+            child.counter = 0;
+            child.time = marker.time;
+            child.name = marker.marker.data.innerHTML;
+            child.library = "";
+            child.marker = marker;
+            return child;
+          }
+        }];
+
+      }
       return currObj;
     }
     function getMarkerChildrenObjects(markers, parent) {

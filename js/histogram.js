@@ -265,6 +265,7 @@ var HistogramContainer;
               markers.push({
                 name: marker.name,
                 time: datum.time,
+                marker: marker,
               });
               //threadMarkers.push(datum.markers[j]);
             }
@@ -311,6 +312,7 @@ var HistogramContainer;
             markers.forEach(function (marker) {
               threadMarkers.push({
                 div: markerDiv,
+                marker: marker.marker,
                 name: marker.name,
                 time: marker.time,
               });
