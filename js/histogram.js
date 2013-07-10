@@ -218,11 +218,10 @@ var HistogramContainer;
       var ctx = info.context;
 
       // Clear labels
-      var markers = this.container.getElementsByClassName("marker");
-      while(markers.length > 0){
-        var marker = markers[0];
-        marker.parentNode.removeChild(marker);
-
+      var markersDiv = this.container.getElementsByClassName("marker");
+      while(markersDiv.length > 0){
+        var markerDiv = markersDiv[0];
+        markerDiv.parentNode.removeChild(markerDiv);
       }
 
       this.canvas.width = info.width;
@@ -264,7 +263,7 @@ var HistogramContainer;
             for (var j = 0; j < datum.markers.length; j++) {
               var marker = datum.markers[j]
               markers.push({
-                name: marker,
+                name: marker.name,
                 time: datum.time,
               });
               //threadMarkers.push(datum.markers[j]);

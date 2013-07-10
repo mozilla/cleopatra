@@ -228,6 +228,20 @@ function sendFinishedInChunks(requestID, result, maxChunkCost, costOfElementCall
   });
 }
 
+// Markers before bug 867757 were just a simple string.
+// This will upgrade the marker if they are a string
+function prepareMarker(markerArray) {
+  for (var i = 0; i < markerArray.length; i++) {
+    var marker = markerArray[i];
+    if (typeof marker == "string") {
+      markerArray[i] = {
+        name: marker,
+      };
+    }
+  }
+
+}
+
 function makeSample(frames, extraInfo) {
   return {
     frames: frames,
@@ -642,6 +656,7 @@ function parseRawProfile(requestID, params, rawProfile) {
           extraInfo.marker = [];
         }
         extraInfo.marker.push(info);
+        prepareMarker(extraInfo.marker);
         break;
       case 's':
         // sample
@@ -826,6 +841,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         }
         if (sample.marker) {
           sample.extraInfo["marker"] = sample.marker;
+          prepareMarker(sample.marker);
         }
         if (sample.time) {
           sample.extraInfo["time"] = sample.time;
