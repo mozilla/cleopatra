@@ -151,6 +151,7 @@ var HistogramContainer;
     var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
+    this.barWidth = 1;
     container.appendChild(this.canvas);
 
     this.rangeSelector = new RangeSelector(this.canvas, this);
@@ -178,7 +179,7 @@ var HistogramContainer;
       var ctx = this.canvas.getContext("2d");
       var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
       var height = this.canvas.height;
-      var step = (this.boundaries.max - this.boundaries.min) / (width / 5);
+      var step = (this.boundaries.max - this.boundaries.min) / (width / this.barWidth);
 
       return { context: ctx, height: height, width: width, step: step };
     },
@@ -235,7 +236,8 @@ var HistogramContainer;
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, markers, value, color;
       var lastTimeLabel = null;
-      var barWidth = 5;
+      var lastTimeNotch = null;
+      var barWidth = this.barWidth;
 
       // Don't show gaps smaller then 1ms
       if (step < 1) {
@@ -330,11 +332,11 @@ var HistogramContainer;
           ctx.fillRect(x, height, 1, 5);
           ctx.fillText(Math.round(curr,0) + " ms", x + 2, height+10);
           lastTimeLabel = x;
-        } else if (lastTimeLabel !== null) {
+        } else if (lastTimeNotch === null || lastTimeNotch + 5 < x) {
           ctx.fillStyle = "rgb(255,255,255)";
           ctx.fillRect(x, height, 1, 2);
+          lastTimeNotch = x;
         }
-
 
         curr += step;
         x += barWidth;
