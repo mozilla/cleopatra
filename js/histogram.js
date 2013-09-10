@@ -393,14 +393,14 @@ var HistogramContainer;
       for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < data[i].frames.length; j++) {
           for (var k = 0; k < data[i].frames[j].length; k++) {
-            if (data[i].frames[j][k] === leaf) {
-              return true;
+            if (k < callstack.length && data[i].frames[j][k] !== callstack[k]) {
+              return false;
             }
           }
         }
       }
 
-      return false;
+      return true;
     }
   };
 
