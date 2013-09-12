@@ -326,7 +326,7 @@ var HistogramContainer;
           }
         }
 
-        if (lastTimeLabel === null && slice.length !== 0 ||
+        if (lastTimeLabel === null ||
             lastTimeLabel !== null && x > lastTimeLabel + 100) {
           ctx.fillStyle = "rgb(255,0,0)";
           ctx.fillRect(x, height, 1, 5);
