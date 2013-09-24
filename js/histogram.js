@@ -41,6 +41,7 @@ var HistogramContainer;
     threads:   null,
     data:      null,
     container: null,
+    waterfall: null,
 
     eachThread: function (cb) {
       for (var id in this.threads) {
@@ -54,6 +55,16 @@ var HistogramContainer;
       var index = 0;
 
       this.container.innerHTML = "";
+
+      // Timeline
+      var row = this.container.insertRow(index++);
+      var container = row.insertCell(0);
+      container.className = "threadHistogramDescription";
+      container.innerHTML = "Frames";
+      var cell = row.insertCell(1);
+      this.waterfall = new Waterfall();
+      cell.appendChild(this.waterfall.getContainer());
+
       Object.keys(threads).forEach(function (id) {
         var thread = threads[id];
         var row = this.container.insertRow(index++);
@@ -129,6 +140,12 @@ var HistogramContainer;
 
     display: function (id, data, frameStart, widthSum, stack, boundaries) {
       this.threads[id].threadHistogramView.display(data, boundaries);
+    },
+
+    update: function() {
+      if (this.waterfall) {
+        this.waterfall.display();
+      }
     },
 
     histogramSelected: function (view, cb) {
@@ -264,11 +281,13 @@ var HistogramContainer;
           if (datum.markers.length) {
             for (var j = 0; j < datum.markers.length; j++) {
               var marker = datum.markers[j]
-              markers.push({
-                name: marker.name,
-                time: datum.time,
-                marker: marker,
-              });
+              //if (!marker.data || !marker.data.category) {
+                markers.push({
+                  name: marker.name,
+                  time: datum.time,
+                  marker: marker,
+                });
+              //}
               //threadMarkers.push(datum.markers[j]);
             }
           }

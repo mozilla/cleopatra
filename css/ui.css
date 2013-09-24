@@ -301,6 +301,10 @@ body {
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
 }
+.waterfallCanvas {
+  width: 100%;
+  height: 100%;
+}
 .histogram {
   position: relative;
   height: 60px;

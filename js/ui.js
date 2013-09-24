@@ -1659,6 +1659,10 @@ function filtersChanged(boundaries) {
       });
     }
 
+    if (gHistogramContainer) {
+      // Update non thread items like the frame waterfall
+      gHistogramContainer.update();
+    }
     diagnosticChanged();
     viewOptionsChanged();
   }
