@@ -728,6 +728,20 @@ function parseRawProfile(requestID, params, rawProfile) {
            profile.threads[tid] = JSON.parse(profile.threads[tid]);
            // If we parse the samples this may be a subprocess profile we need to merge in
            if (profile.threads[tid].threads != null) {
+             var deltaTime = null;
+             dump("BENWA SUBTHREAD!\n");
+             if (profile.meta.startTime && profile.threads[tid].meta.startTime) {
+               dump("found startTime\n");
+               deltaTime = profile.threads[tid].meta.startTime - profile.meta.startTime;
+               for (var sampleId = 0; sampleId < profile.threads[tid].threads[0].samples; sampleId++) {
+                 dump("going over sample\n");
+                 var sample = profile.threads[tid].threads[0].samples[sampleId];
+                 if (sample.time) {
+                   dump("has time\n");
+                   sample.time += deltaTime;
+                 }
+               }
+             }
              profile.threads[tid] = profile.threads[tid].threads[0];
            }
          }
@@ -1829,10 +1843,15 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var compThread = null;
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
-    if (thread.name == "Gecko" || thread.name == "GeckoMain") {
+    if (thread.name &&
+       (thread.name.lastIndexOf("Gecko") == 0 ||
+        thread.name.lastIndexOf("GeckoMain") == 0)) {
       mainThread = thread.samples;
-    } else if (thread.name == "Compositor") {
+      dump("Found main thread\n");
+    } else if (thread.name &&
+        thread.name.lastIndexOf("Compositor") == 0) {
       compThread = thread.samples;
+      dump("Found compositor thread\n");
     }
   }
 
@@ -1959,7 +1978,8 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       var paintMarkers = getPaintMarkers(nextSample);
       for (var i = 0; i < paintMarkers.length; i++) {
         var marker = paintMarkers[i];
-        if (marker.name == "Composite" && marker.data.interval == "start") {
+        if (marker.name == "Composite" && marker.data.interval == "start" &&
+            startComposite) {
           startComposite = nextSample.extraInfo.time;
         } else if (marker.name == "Composite" && marker.data.interval == "end") {
           if (mainThreadPos != 0 &&
