@@ -70,7 +70,6 @@ DiagnosticBar.prototype = {
       var x1 = (item.start - boundaries.min) / (boundaries.max - boundaries.min);
       var x2 = (item.end - boundaries.min) / (boundaries.max - boundaries.min);
       var width = (item.start - boundaries.min) / (boundaries.max - boundaries.min);
-      console.log("X: " + item.start);
       return self._addDiagnosticItem(x1, x2-x1, item.imageFile, item.title, item.details, item.onclickDetails);
     }).some(function (didAdd) { return didAdd; });
 

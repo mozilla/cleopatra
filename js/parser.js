@@ -92,8 +92,8 @@ function WorkerRequest(worker) {
       }
       // dump log if present
       if (data.log) {
-        for (var line in data.log) {
-          PROFILERLOG(line);
+        for (var i = 0; i < data.log.length; i++) {
+          PROFILERLOG(data.log[i]);
         }
       }
     }
@@ -272,6 +272,15 @@ var Parser = {
       threadId: threadId,
       options: options,
       showMissedSample: showMissedSample,
+    });
+    return request;
+  },
+
+  calculateWaterfallData: function Parser_caculateWaterfallData(boundaries) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("calculateWaterfallData", {
+      profileID: 0,
+      boundaries: boundaries,
     });
     return request;
   },

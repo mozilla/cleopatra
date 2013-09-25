@@ -131,6 +131,9 @@ self.onmessage = function (msg) {
       case "calculateHistogramData":
         calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
+      case "calculateWaterfallData":
+        calculateWaterfallData(requestID, taskData.profileID, taskData.boundaries);
+        break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
         break;
@@ -1816,6 +1819,168 @@ function firstMatch(array, matchFunction) {
       return array[i];
   }
   return undefined;
+}
+
+function calculateWaterfallData(requestID, profileID, boundaries) {
+  var profile = gProfiles[profileID];
+  var symbols = profile.functions;
+
+  var mainThread = null;
+  var compThread = null;
+  for (var threadId in profile.threads) {
+    var thread = profile.threads[threadId];
+    if (thread.name == "Gecko" || thread.name == "GeckoMain") {
+      mainThread = thread.samples;
+    } else if (thread.name == "Compositor") {
+      compThread = thread.samples;
+    }
+  }
+
+  if (!mainThread || !compThread) {
+    sendFinished(requestID, null);
+    return null;
+  }
+
+  function computeLastPaintMarker(sample) {
+    if (sample.extraInfo == null ||
+        sample.extraInfo.marker == null)
+      return null;
+    for (var i = sample.extraInfo.marker.length - 1; i >= 0; i--) {
+      if (sample.extraInfo.marker[i].data &&
+          sample.extraInfo.marker[i].name != "Dirty" &&
+          sample.extraInfo.marker[i].data.category == "Paint") {
+        return sample.extraInfo.marker[i];
+      }
+    }
+    return null;
+  }
+
+  function getPaintMarkers(sample) {
+    if (sample.extraInfo == null ||
+        sample.extraInfo.marker == null)
+      return [];
+
+    var markers = [];
+    for (var i = 0; i < sample.extraInfo.marker.length; i++) {
+      if (sample.extraInfo.marker[i].data &&
+          sample.extraInfo.marker[i].data.category == "Paint") {
+        markers.push(sample.extraInfo.marker[i]);
+      }
+    }
+    return markers;
+  }
+  
+  var result = {
+    boundaries: boundaries,
+    items: [],
+  };
+  var mainThreadState = "Waiting";
+  var mainThreadPos = 0;
+  var compThreadState = "Waiting";
+  var compThreadPos = 0;
+  var time = boundaries.minima;
+  var startScripts = null;
+  var endScripts = null;
+  var startRasterize = null;
+  var startComposite = null;
+  while (true) {
+    while (mainThreadPos < mainThread.length &&
+        (mainThread[mainThreadPos].extraInfo.time == null ||
+         time > mainThread[mainThreadPos].extraInfo.time)) {
+      mainThreadPos++;
+    }
+    while (compThreadPos < compThread.length &&
+        (compThread[compThreadPos].extraInfo.time == null ||
+         time > compThread[compThreadPos].extraInfo.time)) {
+      compThreadPos++;
+    }
+    if (mainThreadPos >= mainThread.length &&
+        compThreadPos >= compThread.length) {
+      break;
+    }
+
+    var nextSample = null;
+    if (mainThreadPos < mainThread.length &&
+        (compThreadPos == compThread.length ||
+         mainThread[mainThreadPos].extraInfo.time <= compThread[compThreadPos].extraInfo.time)) {
+      nextSample = mainThread[mainThreadPos];
+      mainThreadPos++;
+      var paintMarkers = getPaintMarkers(nextSample);
+      for (var i = 0; i < paintMarkers.length; i++) {
+        var marker = paintMarkers[i];
+        if (marker.name == "RD" && marker.data.interval == "start") {
+          mainThreadState = "RDenter";
+        } else if (startScripts &&
+            marker.name == "RD" && marker.data.interval == "end") {
+          mainThreadState = "Waiting";
+        } else if (mainThreadState == "RDenter" &&
+            marker.name == "Scripts" && marker.data.interval == "start") {
+          startScripts = nextSample.extraInfo.time;
+          endScripts = null;
+        } else if (mainThreadState == "RDenter" &&
+            startScripts &&
+            marker.name == "Scripts" && marker.data.interval == "end") {
+          if (startScripts != nextSample.extraInfo.time) {
+            result.items.push({
+              startTime: startScripts,
+              endTime: nextSample.extraInfo.time,
+              text: "Scripts",
+            });
+          }
+          startScripts = null;
+          endScripts = nextSample.extraInfo.time;
+        } else if (mainThreadState == "RDenter" &&
+            marker.name == "Rasterize" && marker.data.interval == "start") {
+          startRasterize = nextSample.extraInfo.time;
+          if (endScripts != null && endScripts != nextSample.extraInfo.time) {
+            result.items.push({
+              startTime: endScripts,
+              endTime: nextSample.extraInfo.time,
+              text: "Layout",
+            });
+          }
+          endScripts = null;
+        } else if (mainThreadState == "RDenter" &&
+            startRasterize &&
+            marker.name == "Rasterize" && marker.data.interval == "end") {
+          if (startRasterize != nextSample.extraInfo.time) {
+            result.items.push({
+              startTime: startRasterize,
+              endTime: nextSample.extraInfo.time,
+              text: "Rasterize",
+            });
+          }
+          startRasterize = null;
+        }
+      }
+    } else {
+      nextSample = compThread[compThreadPos];
+      compThreadPos++;
+      var paintMarkers = getPaintMarkers(nextSample);
+      for (var i = 0; i < paintMarkers.length; i++) {
+        var marker = paintMarkers[i];
+        if (marker.name == "Composite" && marker.data.interval == "start") {
+          startComposite = nextSample.extraInfo.time;
+        } else if (marker.name == "Composite" && marker.data.interval == "end") {
+          if (mainThreadPos != 0 &&
+              startComposite != null && startComposite != nextSample.extraInfo.time) {
+            result.items.push({
+              startTime: startComposite,
+              endTime: nextSample.extraInfo.time,
+              text: "Composite",
+            });
+          }
+          startComposite = null;
+        }
+      }
+    }
+    
+    time = nextSample.extraInfo.time;
+  }
+  
+
+  dump("result: " + JSON.stringify(result) + "\n");
+  sendFinished(requestID, result);
 }
 
 function calculateDiagnosticItems(requestID, profileID, meta, threadId) {

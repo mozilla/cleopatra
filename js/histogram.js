@@ -38,10 +38,11 @@ var HistogramContainer;
   }
 
   HistogramContainer.prototype = {
-    threads:   null,
-    data:      null,
-    container: null,
-    waterfall: null,
+    threads:            null,
+    data:               null,
+    container:          null,
+    waterfallRow:       null,
+    waterfall:          null,
 
     eachThread: function (cb) {
       for (var id in this.threads) {
@@ -57,11 +58,12 @@ var HistogramContainer;
       this.container.innerHTML = "";
 
       // Timeline
-      var row = this.container.insertRow(index++);
-      var container = row.insertCell(0);
+      this.waterfallRow = this.container.insertRow(index++);
+      this.waterfallRow.style.display = "none";
+      var container = this.waterfallRow.insertCell(0);
       container.className = "threadHistogramDescription";
       container.innerHTML = "Frames";
-      var cell = row.insertCell(1);
+      var cell = this.waterfallRow.insertCell(1);
       this.waterfall = new Waterfall();
       cell.appendChild(this.waterfall.getContainer());
 
@@ -122,7 +124,6 @@ var HistogramContainer;
     displayDiagnostics: function (items, threadId) {
       // Only supported on the main thread at the moment.
       this.eachThread(function (thread) { thread.diagnosticBar.hide() });
-      console.log("Bounds: " + this.threads[threadId].threadHistogramView.boundaries.min);
       this.threads[threadId].diagnosticBar.display(items, this.threads[threadId].threadHistogramView.boundaries);
     },
 
@@ -142,9 +143,13 @@ var HistogramContainer;
       this.threads[id].threadHistogramView.display(data, boundaries);
     },
 
-    update: function() {
-      if (this.waterfall) {
-        this.waterfall.display();
+    displayWaterfall: function(data) {
+      if (this.waterfall && data) {
+        this.waterfallRow.style.display = "";
+        this.waterfall.display(data);
+      }
+      if (!data && this.waterfallRow) {
+        this.waterfallRow.style.display = "none";
       }
     },
 
@@ -281,13 +286,13 @@ var HistogramContainer;
           if (datum.markers.length) {
             for (var j = 0; j < datum.markers.length; j++) {
               var marker = datum.markers[j]
-              //if (!marker.data || !marker.data.category) {
+              if (!marker.data || !marker.data.category) {
                 markers.push({
                   name: marker.name,
                   time: datum.time,
                   marker: marker,
                 });
-              //}
+              }
               //threadMarkers.push(datum.markers[j]);
             }
           }
@@ -325,7 +330,6 @@ var HistogramContainer;
             (function(markers) {
               markerDiv.addEventListener("click", function() {
                 if (self.manager._onMarkerClick) {
-                  console.log("Send: " + JSON.stringify(markers[0]));
                   self.manager._onMarkerClick(threadMarkers, markers[0]);
                 }
               });

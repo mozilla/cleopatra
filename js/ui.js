@@ -1441,7 +1441,7 @@ function enterProgressUI() {
   totalProgressReporter.addListener(function (r) {
     var progress = r.getProgress();
     progressLabel.innerHTML = r.getAction();
-    console.log("Action: " + r.getAction());
+    //console.log("Action: " + r.getAction());
     if (isNaN(progress))
       progressBar.removeAttribute("value");
     else
@@ -1655,14 +1655,17 @@ function filtersChanged(boundaries) {
         if (gFrameView)
           gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
             boundaries);
-        console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+        //console.log("histogram displaying: " + (Date.now() - start) + "ms.");
       });
     }
 
-    if (gHistogramContainer) {
-      // Update non thread items like the frame waterfall
-      gHistogramContainer.update();
-    }
+    var waterfallRequest = Parser.calculateWaterfallData(boundaries);
+    waterfallRequest.addEventListener("finished", function (data) {
+      if (data) {
+        gHistogramContainer.displayWaterfall(data);
+      }
+    });
+
     diagnosticChanged();
     viewOptionsChanged();
   }
