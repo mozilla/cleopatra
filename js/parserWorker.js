@@ -1979,7 +1979,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       for (var i = 0; i < paintMarkers.length; i++) {
         var marker = paintMarkers[i];
         if (marker.name == "Composite" && marker.data.interval == "start" &&
-            startComposite) {
+            !startComposite) {
           startComposite = nextSample.extraInfo.time;
         } else if (marker.name == "Composite" && marker.data.interval == "end") {
           if (mainThreadPos != 0 &&
