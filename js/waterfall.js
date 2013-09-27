@@ -64,8 +64,6 @@ Waterfall.prototype = {
   },
 
   display: function Waterfall_display(data) {
-    console.log("Display waterfall");
-    console.log(data);
     this.busyCover.classList.remove("busy");
     var duration = data.boundaries.max - data.boundaries.min;
 
