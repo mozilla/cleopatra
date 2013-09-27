@@ -538,70 +538,6 @@ function parseRawProfile(requestID, params, rawProfile) {
     return symbolicationTable[symbol] || symbol;
   }
 
-  function syncThreads(threads) {
-
-    var threadCount = Object.keys(threads).length;
-    if (threadCount <= 1)
-      return;
-
-    var startPoint;
-    var endPoint;
-    for (var threadId in threads) {
-      var thread = threads[threadId];
-      var samples = thread.samples;
-
-      if (!samples || samples.length < 2) {
-        continue;
-      }
-
-      if (!startPoint || startPoint > samples[0].extraInfo["time"]) {
-        startPoint = samples[0].extraInfo["time"];
-      }
-      if (!endPoint || endPoint < samples[samples.length-2].extraInfo["time"]) {
-        endPoint = samples[samples.length-2].extraInfo["time"];
-      }
-    }
-
-    /*
-    var rootId = indexForSymbol("(root)");
-    for (var threadId in threads) {
-      var thread = threads[threadId];
-      var samples = thread.samples;
-      for (sampleId in samples) {
-        var sample = samples[sampleId];
-        if (sample.frames[0] != rootId) {
-          sample.frames.splice(0, 0, rootId);
-        }
-      }
-    }
-    */
-    var sampleId = 0;
-    for (var time = startPoint; time < endPoint; time+=10) {
-      for (var threadId in threads) {
-        var thread = threads[threadId];
-        var samples = thread.samples;
-
-        if (!samples || samples.length < 2) {
-          continue;
-        }
-
-        if (sampleId >= samples.length) {
-          // This thread's doesn't have enough samples, insert one
-          samples.push(makeMissedSample(samples[0].frames[0], time));
-        } else if (samples[sampleId].extraInfo["time"] > time) {
-          samples.splice(sampleId, 0, makeMissedSample(samples[0].frames[0], time));
-          //if (threadId == 1)
-          //  dump("inserting for: " + time + " @ " + sampleId + " next: " + samples[sampleId+1].extraInfo["time"] + "\n");
-        }
-      }
-      sampleId++;
-    }
-    //var jSamples = threads[1].samples;
-    //for (var sid in jSamples) {
-    //  dump("Sync: " + jSamples[sid].extraInfo["time"] + "\n");
-    //}
-  }
-
   function makeMissedSample(parentIndex, time) {
     return makeSample(
         [parentIndex, indexForSymbol("Missed")],
@@ -893,8 +829,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       name: thread.name,
     };
   }
-
-  //syncThreads(threads);
 
   progressReporter.finish();
   // Don't increment the profile ID now because (1) it's buggy
