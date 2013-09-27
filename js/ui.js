@@ -1042,12 +1042,18 @@ var gPluginView = null;
 var gFileList = null;
 var gInfoBar = null;
 var gMainArea = null;
+var gHighlighMovingStack = false;
 var gCurrentlyShownSampleData = null;
 var gSkipSymbols = ["test2", "test1"];
 var gAppendVideoCapture = null;
 var gQueryParamFilterName = null;
 var gRestoreSelection = null;
 var gReportID = null;
+
+function api_toggleMovingStack() {
+  gHighlighMovingStack = !gHighlighMovingStack;
+  filtersChanged();
+}
 
 function getTextData() {
   var data = [];
@@ -1378,8 +1384,6 @@ function viewJSSource(sample) {
 }
 
 function setHighlightedCallstack(samples, heaviestSample) {
-  PROFILERTRACE("highlight: " + samples);
-
   // Make sure that the right tree is shown
   gTreeManager.getContainer().style.display = "block";
   gMarkerTreeManager.hide();

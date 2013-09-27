@@ -282,7 +282,6 @@ var HistogramContainer;
           }
 
           slice.push(datum);
-
           if (datum.markers.length) {
             for (var j = 0; j < datum.markers.length; j++) {
               var marker = datum.markers[j]
@@ -300,7 +299,8 @@ var HistogramContainer;
 
         if (slice.length !== 0) {
           data = data.slice(slice.length);
-          value = slice.reduce(function (prev, curr) { return prev + curr.height }, 0) / slice.length;
+          value = slice.reduce(function (prev, curr) { return Math.max(prev, curr.height) }, 0);
+          movingValue = slice.reduce(function (prev, curr) { return Math.max(prev, curr.movingHeight) }, 0);
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
           ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
 
@@ -308,8 +308,15 @@ var HistogramContainer;
             ctx.fillStyle = "green";
           }
 
-          var h  = (height / 100) * value;
+          var h = (height / 100) * value;
           ctx.fillRect(x, height - h, barWidth, h);
+
+          // Non moving
+          if (gHighlighMovingStack) {
+            var nonH = (height / 100) * movingValue; //lastLargestCommonFrames.length, largestCommonFrames.length);
+            ctx.fillStyle = "rgba(70, 10, 200, 180)";
+            ctx.fillRect(x, height - h, barWidth, nonH);
+          }
 
           var self = this;
           if (markers.length) {

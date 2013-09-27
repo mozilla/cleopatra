@@ -1342,6 +1342,19 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     return step.extraInfo.height || step.frames.length;
   }
 
+  function getMovingHeight(prevStep, step) {
+    var nonMoving = 0;
+    if (prevStep) {
+      var len = Math.min(prevStep.frames.length, step.frames.length);
+      for (var i = 0; i < len; i++) {
+        if (prevStep.frames[i] == step.frames[i]) {
+           nonMoving++;
+        }
+      }
+    }
+    return step.frames.length - nonMoving;
+  }
+
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
   var maxHeight = data.reduce(function (prev, curr, i, a) {
@@ -1349,15 +1362,19 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     return curr > prev ? curr : prev;
   }, 0) + 1;
 
+  var prevStep = null;
   var histogram = data
     .filter(function (step) { return step != null; })
     .map(function (step, i) {
       if (step.extraInfo.marker) {
         prepareMarker(step.extraInfo.marker);
       }
+      var movingHeight = getMovingHeight(prevStep, step);
+      prevStep = step;
       return {
         frames: [ step.frames ],
         height: getHeight(step) / (maxHeight / 100),
+        movingHeight: movingHeight / (maxHeight / 100),
         time: step.extraInfo.time,
         power: step.extraInfo.power,
         markers: step.extraInfo.marker || [],
@@ -1933,7 +1950,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   }
   
 
-  dump("result: " + JSON.stringify(result) + "\n");
   sendFinished(requestID, result);
 }
 
