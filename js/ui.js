@@ -1665,9 +1665,7 @@ function filtersChanged(boundaries) {
 
     var waterfallRequest = Parser.calculateWaterfallData(boundaries);
     waterfallRequest.addEventListener("finished", function (data) {
-      if (data) {
-        gHistogramContainer.displayWaterfall(data);
-      }
+      gHistogramContainer.displayWaterfall(data);
     });
 
     diagnosticChanged();

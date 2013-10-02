@@ -1798,15 +1798,15 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
        (thread.name.lastIndexOf("Gecko") == 0 ||
         thread.name.lastIndexOf("GeckoMain") == 0)) {
       mainThread = thread.samples;
-      dump("Found main thread\n");
     } else if (thread.name &&
         thread.name.lastIndexOf("Compositor") == 0) {
       compThread = thread.samples;
-      dump("Found compositor thread\n");
     }
   }
 
-  if (!mainThread || !compThread) {
+  if (!mainThread || !compThread ||
+      boundaries.min == -Infinity || boundaries.min == Infinity ||
+      boundaries.max == -Infinity || boundaries.max == Infinity) {
     sendFinished(requestID, null);
     return null;
   }

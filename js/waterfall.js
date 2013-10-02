@@ -53,10 +53,6 @@ Waterfall.prototype = {
   },
 
   scheduleRender: function () {
-    var fn = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
-      window.webkitAnimationFrame || window.msRequestAnimationFrame;
-
-    //fn(this.display.bind(this));
   },
 
   dataIsOutdated: function() {
