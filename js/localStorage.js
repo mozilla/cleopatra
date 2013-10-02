@@ -167,13 +167,14 @@ ProfileLocalStorage.prototype = {
         profileList.shift();
       }
       profileList.push( {profileKey: profileKey, key: profileKey, name: name, date: date.getTime(), expire: time + PROFILE_EXPIRE_TIME, storedTime: time} );
-      self._storage.setValue(profileKey, profile);
-      self._storage.setValue("profileList", profileList);
-      if (callback)
-        callback();
-      if (self._profileListChangeCallback) {
-        self._profileListChangeCallback(profileList);
-      }
+      self._storage.setValue(profileKey, profile, function complete() {
+        self._storage.setValue("profileList", profileList);
+        if (callback)
+          callback();
+        if (self._profileListChangeCallback) {
+          self._profileListChangeCallback(profileList);
+        }
+      });
     });
   },
 
