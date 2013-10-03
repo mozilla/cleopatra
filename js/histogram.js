@@ -189,7 +189,26 @@ var HistogramContainer;
     this.data = [];
     this.threadId = threadId;
     this.boundaries = null;
+
+    this._contextMenu = document.createElement("menu");
+    this._contextMenu.setAttribute("type", "context");
+    this._contextMenu.id = "contextMenuForHisto" + HistogramView.instanceCounter++;
+    var self = this;
+    this.container.addEventListener("contextmenu", function(event) {
+      self._contextMenu.innerHTML = "";
+      var menuItem = "Add Comment";
+      var menuItemNode = document.createElement("menuitem");
+      menuItemNode.onclick = function () {
+      };
+      menuItemNode.label = menuItem;
+      self._contextMenu.appendChild(menuItemNode);
+      // Very important
+      self.container.setAttribute("contextmenu", self._contextMenu.id);
+    }, true);
+    container.appendChild(this._contextMenu);
+
   }
+  HistogramView.instanceCounter = 0;
 
   HistogramView.prototype = {
     getCanvas: function () {
