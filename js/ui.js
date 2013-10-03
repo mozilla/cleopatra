@@ -1389,7 +1389,7 @@ function setHighlightedCallstack(samples, heaviestSample) {
   gMarkerTreeManager.hide();
 
   gHighlightedCallstack = samples;
-  gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack);
+  gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack, gInvertCallstack);
   if (!gInvertCallstack) {
     // Always show heavy
     heaviestSample = heaviestSample.clone().reverse();

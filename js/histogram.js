@@ -135,8 +135,8 @@ var HistogramContainer;
       this.threads[0].threadHistogramView.showVideoFramePosition(frame);
     },
 
-    highlightedCallstackChanged: function (callstack) {
-      this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack) });
+    highlightedCallstackChanged: function (callstack, inverted) {
+      this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack, inverted) });
     },
 
     display: function (id, data, frameStart, widthSum, stack, boundaries) {
@@ -229,14 +229,14 @@ var HistogramContainer;
       this.busyCover.classList.remove("busy");
     },
 
-    scheduleRender: function (callstack) {
+    scheduleRender: function (callstack, inverted) {
       var fn = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
         window.webkitAnimationFrame || window.msRequestAnimationFrame;
 
-      fn(this.render.bind(this, callstack));
+      fn(this.render.bind(this, callstack, inverted));
     },
 
-    render: function (callstack) {
+    render: function (callstack, inverted) {
       var info = this.getCanvas();
       var ctx = info.context;
 
@@ -250,10 +250,10 @@ var HistogramContainer;
       this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
-      this._renderSamples(ctx, callstack, info.width, info.height - 15, info.step);
+      this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15, info.step);
     },
 
-    _renderSamples: function (ctx, callstack, width, height, step) {
+    _renderSamples: function (ctx, callstack, inverted, width, height, step) {
       var curr = this.boundaries.min, x = 0;
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, markers, value, color;
@@ -304,7 +304,7 @@ var HistogramContainer;
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
           ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
 
-          if (this.isStepSelected(slice, callstack)) {
+          if (this.isStepSelected(slice, callstack, inverted)) {
             ctx.fillStyle = "green";
           }
 
@@ -410,20 +410,26 @@ var HistogramContainer;
       });
     },
 
-    highlightedCallstackChanged: function (stack) {
-      this.scheduleRender(stack);
+    highlightedCallstackChanged: function (stack, inverted) {
+      this.scheduleRender(stack, inverted);
     },
 
-    isStepSelected: function (data, callstack) {
+    isStepSelected: function (data, callstack, inverted) {
       if (!callstack) {
         return false;
       }
 
-      var leaf = callstack[callstack.length - 1];
       for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < data[i].frames.length; j++) {
-          for (var k = 0; k < data[i].frames[j].length; k++) {
-            if (k < callstack.length && data[i].frames[j][k] !== callstack[k]) {
+          var compareStack = data[i].frames[j];
+          if (inverted) {
+            //dump("compare: " + JSON.stringify(compareStack) + "\n");
+            compareStack = compareStack.reverse();
+            //dump("compare inverted: " + JSON.stringify(compareStack) + "\n");
+          }
+          for (var k = 0; k < compareStack.length; k++) {
+            if (k < callstack.length && compareStack[k] !== callstack[k]) {
+              //dump("no match at index: " + k + " compare: " + JSON.stringify(compareStack) + " vs " + JSON.stringify(callstack) + "\n");
               return false;
             }
           }
