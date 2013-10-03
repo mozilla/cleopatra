@@ -447,7 +447,7 @@ var HistogramContainer;
     this.selectedRange = { start: 0, end: 0 };
     this.movedDuringClick = false;
 
-    this.higlighter = createElement("div", { className: "histogramHilite collapsed" });
+    this.higlighter = createElement("div", { className: "histogramMouseMarker histogramHilite collapsed" });
     this.container.appendChild(this.higlighter);
 
     this.mouseMarker = createElement("div", {
