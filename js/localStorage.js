@@ -149,15 +149,15 @@ ProfileLocalStorage.prototype = {
       }
       var tempProfileCount = 0;
       for (profileIndex in profileList) {
-        var profile = profileList[profileIndex];
-        if (profile.retain == false) {
+        var currProfile = profileList[profileIndex];
+        if (currProfile.retain == false) {
           tempProfileCount++; 
         }
       }
       var profilesToRemove = tempProfileCount - 5;
       for (profileIndex in profileList) {
-        var profile = profileList[profileIndex];
-        if (profile.retain == false && profilesToRemove > 0) {
+        var currProfile = profileList[profileIndex];
+        if (currProfile.retain == false && profilesToRemove > 0) {
           self._deleteLocalProfile(profileToRemove);
         }
       }
@@ -198,7 +198,9 @@ ProfileLocalStorage.prototype = {
   },
 
   getProfile: function ProfileLocalStorage_getProfile(profileKey, callback) {
-    this._storage.getValue(profileKey, callback); 
+    this._storage.getValue(profileKey, function(profile) {
+      callback(profile);  
+    }); 
   },
 
   // This version doesn't update the profileList entry
