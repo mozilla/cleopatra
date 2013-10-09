@@ -140,6 +140,9 @@ self.onmessage = function (msg) {
       case "changeWorseResponsiveness":
         kDelayUntilWorstResponsiveness = taskData.res;
         break;
+      case "addComment":
+        addComment(requestID, taskData.comment, taskData.time);
+        break;
       default:
         sendError(requestID, "Unknown task " + task);
         break;

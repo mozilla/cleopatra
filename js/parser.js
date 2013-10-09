@@ -303,4 +303,13 @@ var Parser = {
     });
     return request;
   },
+
+  addComment: function Parser_addComment(comment, time) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("addComment", {
+      comment: comment,
+      time: time,
+    });
+    return request;
+  },
 };

@@ -199,6 +199,7 @@ var HistogramContainer;
       var menuItem = "Add Comment";
       var menuItemNode = document.createElement("menuitem");
       menuItemNode.onclick = function () {
+        var commentStr = prompt("Comment:");
       };
       menuItemNode.label = menuItem;
       self._contextMenu.appendChild(menuItemNode);
@@ -608,13 +609,15 @@ var HistogramContainer;
       x = x - this.graph.parentNode.getBoundingClientRect().left;
       this.mouseMarker.style.left = x + "px";
 
+      this.mouseMarkerTime = this.histogram.pixelToTime(x);
+
       var str;
       try {
         if (gShowPowerInfo) {
           var index = this.histogram.pixelToIndex(x);
           str = this.histogram.data[index].power.toFixed(1) + " Watts"
         } else { // show time
-          str = Math.floor(this.histogram.pixelToTime(x)) + "ms";
+          str = Math.floor(this.mouseMarkerTime) + "ms";
         }
       } catch (e) {
         str = "Err" + e.message;
