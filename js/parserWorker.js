@@ -668,15 +668,11 @@ function parseRawProfile(requestID, params, rawProfile) {
            // If we parse the samples this may be a subprocess profile we need to merge in
            if (profile.threads[tid].threads != null) {
              var deltaTime = null;
-             dump("BENWA SUBTHREAD!\n");
              if (profile.meta.startTime && profile.threads[tid].meta.startTime) {
-               dump("found startTime\n");
                deltaTime = profile.threads[tid].meta.startTime - profile.meta.startTime;
                for (var sampleId = 0; sampleId < profile.threads[tid].threads[0].samples; sampleId++) {
-                 dump("going over sample\n");
                  var sample = profile.threads[tid].threads[0].samples[sampleId];
                  if (sample.time) {
-                   dump("has time\n");
                    sample.time += deltaTime;
                  }
                }
