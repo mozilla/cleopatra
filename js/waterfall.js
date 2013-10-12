@@ -59,6 +59,17 @@ Waterfall.prototype = {
     this.busyCover.classList.add("busy");
   },
 
+  formatStack: function(stack) {
+    var str = " ";
+    for (var i = 0; i < stack.length; i++) {
+      var frame = stack[i];
+      if (frame.line) {
+        str += frame.location + ", ";
+      }
+    }
+    return str; 
+  },
+
   display: function Waterfall_display(data) {
     this.busyCover.classList.remove("busy");
     var duration = data.boundaries.max - data.boundaries.min;
@@ -70,6 +81,9 @@ Waterfall.prototype = {
       var startX = (item.startTime - data.boundaries.min) * 100 / duration;
       var width = (item.endTime - data.boundaries.min) * 100 / duration - startX;
       var itemTitle = (item.endTime - item.startTime).toFixed(2) + " ms";
+      if (item.startTimerStack) {
+        itemTitle += this.formatStack(item.startTimerStack);
+      }
       var color = "rgb(250,100,40)";
 
       var startY = 0;
@@ -103,28 +117,5 @@ Waterfall.prototype = {
       this.container.appendChild(itemElem);
     }
 
-    return;
-
-
-    var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
-    this.canvas.width = width;
-    var ctx = this.canvas.getContext("2d");
-    ctx.fillStyle = "green";
-    for (var i = 0; i < data.items.length; i++) {
-      var item = data.items[i];
-      console.log("TEST: " + item.text);
-
-      if (item.text == "Paint") {
-        ctx.fillStyle = "red";
-      } else {
-        ctx.fillStyle = "green";
-      }
-      item.y = item.y || 0;
-      item.height = item.height || 30;
-      var startX = (item.startTime - data.boundaries.min) * this.canvas.width / duration;
-      var endX = (item.endTime - data.boundaries.min) * this.canvas.width / duration;
-      console.log(startX + "," + endX + "," + data.boundaries.min + "," + data.boundaries.max);
-      ctx.fillRect(startX, item.y, endX - startX, item.height);
-    }
   },
 };

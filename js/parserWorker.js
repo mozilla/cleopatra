@@ -1852,6 +1852,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var endScripts = null;
   var startRasterize = null;
   var startComposite = null;
+  var startTimerStack = null;
   while (true) {
     while (mainThreadPos < mainThread.length &&
         (mainThread[mainThreadPos].extraInfo.time == null ||
@@ -1886,6 +1887,12 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             marker.name == "Scripts" && marker.data.interval == "start") {
           startScripts = nextSample.extraInfo.time;
           endScripts = null;
+        } else if (marker.name == "StartTimer" && marker.data && marker.data.stack) {
+          dump("1\n");
+          if (marker.data.stack.samples && marker.data.stack.samples.length >= 1) {
+            dump("2\n");
+            startTimerStack = marker.data.stack.samples[0].frames;
+          }
         } else if (mainThreadState == "RDenter" &&
             startScripts &&
             marker.name == "Scripts" && marker.data.interval == "end") {
@@ -1906,7 +1913,9 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
               startTime: endScripts,
               endTime: nextSample.extraInfo.time,
               text: "Layout",
+              startTimerStack: startTimerStack,
             });
+            startTimerStack = null;
           }
           endScripts = null;
         } else if (mainThreadState == "RDenter" &&
