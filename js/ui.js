@@ -902,7 +902,6 @@ var tooltip = {
   "filterName" : "Show only samples with a frame containing the filter as a substring.",
   "invertCallstack" : "Invert the callstack (Heavy view) to find the most expensive leaf functions.",
   "upload" : "Upload the full performance profile to public cloud storage to share with others.",
-  "togetherjs" : "Use TogetherJS to ask for help in understanding the profile.",
   "upload_select" : "Upload only the selected view.",
   "download" : "Initiate a download of the full profile.",
 }
@@ -981,7 +980,6 @@ InfoBar.prototype = {
     infoText += "<h2>Share With URL</h2>\n";
     infoText += "<div id='upload_status' aria-live='polite'>No upload in progress</div><br>\n";
     infoText += "<input type='button' id='upload' value='Share'>\n";
-    infoText += "<input type='button' id='togetherjs' value='TogetherJS'>\n";
     // For now upload view is disabled because it's rarely what users want to do
     //infoText += "<input type='button' id='upload_select' value='Upload view'><br>\n";
     infoText += "<input type='button' id='download' value='Save to Local File'>\n";
@@ -1011,9 +1009,6 @@ InfoBar.prototype = {
     }
     document.getElementById('upload').onclick = function() {
       promptUploadProfile(false);
-    };
-    document.getElementById('togetherjs').onclick = function() {
-      TogetherJS(this); return false;
     };
     document.getElementById('download').onclick = downloadProfile;
     if (document.getElementById('upload_select') != null) {
