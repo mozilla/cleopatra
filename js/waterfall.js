@@ -63,9 +63,7 @@ Waterfall.prototype = {
     var str = " ";
     for (var i = 0; i < stack.length; i++) {
       var frame = stack[i];
-      if (frame.line) {
-        str += frame.location + ", ";
-      }
+      str += frame + "\n";
     }
     return str; 
   },

@@ -234,20 +234,6 @@ function sendFinishedInChunks(requestID, result, maxChunkCost, costOfElementCall
   });
 }
 
-// Markers before bug 867757 were just a simple string.
-// This will upgrade the marker if they are a string
-function prepareMarker(markerArray) {
-  for (var i = 0; i < markerArray.length; i++) {
-    var marker = markerArray[i];
-    if (typeof marker == "string") {
-      markerArray[i] = {
-        name: marker,
-      };
-    }
-  }
-
-}
-
 function makeSample(frames, extraInfo) {
   return {
     frames: frames,
@@ -571,6 +557,30 @@ function parseRawProfile(requestID, params, rawProfile) {
     return include;
   }
 
+  // Markers before bug 867757 were just a simple string.
+  // This will upgrade the marker if they are a string
+  function prepareMarker(markerArray) {
+    for (var i = 0; i < markerArray.length; i++) {
+      var marker = markerArray[i];
+      if (typeof marker == "string") {
+        markerArray[i] = {
+          name: marker,
+        };
+      }
+      if (marker.data && marker.data.stack && marker.data.stack.samples) {
+        for (var a = 0; a < marker.data.stack.samples.length; a++) {
+          var nestedSample = marker.data.stack.samples[a];
+          for (var b = 0; b < nestedSample.frames.length; b++) {
+            var frame = nestedSample.frames[b];
+            if (frame.location) {
+              markerArray[i].data.stack.samples[a].frames[b] = indexForSymbol(frame.location);
+            }
+          }
+        }
+      }
+    }
+  }
+
   function parseProfileString(data) {
     var extraInfo = {};
     var lines = data.split("\n");
@@ -702,7 +712,6 @@ function parseRawProfile(requestID, params, rawProfile) {
     if (meta.timelines) {
       for(var i in meta.timelines) {
         var timeline = meta.timelines[i];
-        dump("Got timeline: " + timeline.name + "\n");
         var fakeThread = {};
         fakeThread.name = timeline.name;
         fakeThread.samples = [];
@@ -793,7 +802,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         }
         if (sample.marker) {
           sample.extraInfo["marker"] = sample.marker;
-          prepareMarker(sample.marker);
+          prepareMarker(sample.extraInfo["marker"]);
         }
         if (sample.time) {
           sample.extraInfo["time"] = sample.time;
@@ -1365,9 +1374,6 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   var histogram = data
     .filter(function (step) { return step != null; })
     .map(function (step, i) {
-      if (step.extraInfo.marker) {
-        prepareMarker(step.extraInfo.marker);
-      }
       var movingHeight = getMovingHeight(prevStep, step);
       prevStep = step;
       return {
@@ -1869,6 +1875,15 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       break;
     }
 
+    function prepareSample(sample) {
+      var stack = [];
+      for (var i = 0; i < sample.frames.length; i++) {
+        var sym = profile.symbols[sample.frames[i]].functionName || profile.symbols[sample.frames[i]].symbolName;
+        stack.push(sym);
+      }
+      return stack;
+    }
+
     var nextSample = null;
     if (mainThreadPos < mainThread.length &&
         (compThreadPos == compThread.length ||
@@ -1880,18 +1895,15 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         var marker = paintMarkers[i];
         if (marker.name == "RD" && marker.data.interval == "start") {
           mainThreadState = "RDenter";
-        } else if (startScripts &&
-            marker.name == "RD" && marker.data.interval == "end") {
+        } else if (marker.name == "RD" && marker.data.interval == "end") {
           mainThreadState = "Waiting";
         } else if (mainThreadState == "RDenter" &&
             marker.name == "Scripts" && marker.data.interval == "start") {
           startScripts = nextSample.extraInfo.time;
           endScripts = null;
-        } else if (marker.name == "StartTimer" && marker.data && marker.data.stack) {
-          dump("1\n");
+        } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
           if (marker.data.stack.samples && marker.data.stack.samples.length >= 1) {
-            dump("2\n");
-            startTimerStack = marker.data.stack.samples[0].frames;
+            startTimerStack = prepareSample(marker.data.stack.samples[0]);
           }
         } else if (mainThreadState == "RDenter" &&
             startScripts &&
