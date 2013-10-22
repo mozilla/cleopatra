@@ -1816,20 +1816,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     return null;
   }
 
-  function computeLastPaintMarker(sample) {
-    if (sample.extraInfo == null ||
-        sample.extraInfo.marker == null)
-      return null;
-    for (var i = sample.extraInfo.marker.length - 1; i >= 0; i--) {
-      if (sample.extraInfo.marker[i].data &&
-          sample.extraInfo.marker[i].name != "Dirty" &&
-          sample.extraInfo.marker[i].data.category == "Paint") {
-        return sample.extraInfo.marker[i];
-      }
-    }
-    return null;
-  }
-
   function getPaintMarkers(sample) {
     if (sample.extraInfo == null ||
         sample.extraInfo.marker == null)
