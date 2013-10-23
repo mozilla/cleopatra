@@ -1366,6 +1366,18 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     return step.frames.length - nonMoving;
   }
 
+  function symbolicateMarkers(markers) {
+    var symMarkers = [];
+    for (var i = 0; i < markers.length; i++) {
+      var marker = JSON.parse(JSON.stringify(markers[i]));
+      if (marker.data && marker.data.stack) {
+        marker.data.stack = prepareSample(marker.data.stack, profile.symbols);
+      }
+      symMarkers.push(marker);
+    }
+    return symMarkers;
+  }
+
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
   var maxHeight = data.reduce(function (prev, curr, i, a) {
@@ -1385,7 +1397,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
         movingHeight: movingHeight / (maxHeight / 100),
         time: step.extraInfo.time,
         power: step.extraInfo.power,
-        markers: step.extraInfo.marker || [],
+        markers: symbolicateMarkers(step.extraInfo.marker || []),
         color: getStepColor(step)
       };
     });
@@ -1794,6 +1806,18 @@ function firstMatch(array, matchFunction) {
   return undefined;
 }
 
+function prepareSample(frames, symbols) {
+  var stack = [];
+  for (var i = 0; i < frames.length; i++) {
+    var sym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (sym.indexOf("mozilla_sampler_tracing(") == 0) {
+      break;
+    }
+    stack.push(sym);
+  }
+  return stack;
+}
+
 function calculateWaterfallData(requestID, profileID, boundaries) {
   var profile = gProfiles[profileID];
   var symbols = profile.functions;
@@ -1864,15 +1888,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       break;
     }
 
-    function prepareSample(frames) {
-      var stack = [];
-      for (var i = 0; i < frames.length; i++) {
-        var sym = profile.symbols[frames[i]].functionName || profile.symbols[frames[i]].symbolName;
-        stack.push(sym);
-      }
-      return stack;
-    }
-
     var nextSample = null;
     if (mainThreadPos < mainThread.length &&
         (compThreadPos == compThread.length ||
@@ -1891,7 +1906,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           startScripts = nextSample.extraInfo.time;
           endScripts = null;
         } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
-          startTimerStack = prepareSample(marker.data.stack);
+          startTimerStack = prepareSample(marker.data.stack, profile.symbols);
         } else if (mainThreadState == "RDenter" &&
             startScripts &&
             marker.name == "Scripts" && marker.data.interval == "end") {

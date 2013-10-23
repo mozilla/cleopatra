@@ -95,9 +95,6 @@ MarkerTreeManager.prototype = {
     var rootObj = {};
     rootObj.counter = 0;
     rootObj.time = "";
-    dump("POS: " + pos + "\n");
-    dump("POS: " + JSON.stringify(stack) + "\n");
-    dump("POS: " + stack[pos] + "\n");
     rootObj.name = stack[pos];
     rootObj.library = "";
     rootObj.children = [{getData: function() { return self._buildTreeForStackInternal(stack, pos+1); }}];
