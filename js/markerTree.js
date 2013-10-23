@@ -82,7 +82,29 @@ MarkerTreeManager.prototype = {
      '<span class="libraryName">' + node.library + '</span>' +
      '<input type="button" value="Focus Callstack" title="Focus Callstack" class="focusCallstackButton" tabindex="-1">'; 
   },
+  buildTreeForStack: function MarkerTreeManager_buildTreeForStack(stack, pos) {
+    var self = this;
+    return [{getData: function() { return self._buildTreeForStackInternal(stack, pos); }}];
+  },
+  _buildTreeForStackInternal: function MarkerTreeManager_buildTreeForStackInternal(stack, pos) {
+    pos = pos | 0;
+    if (pos >= stack.length) {
+      return null;
+    }
+    var self = this;
+    var rootObj = {};
+    rootObj.counter = 0;
+    rootObj.time = "";
+    dump("POS: " + pos + "\n");
+    dump("POS: " + JSON.stringify(stack) + "\n");
+    dump("POS: " + stack[pos] + "\n");
+    rootObj.name = stack[pos];
+    rootObj.library = "";
+    rootObj.children = [{getData: function() { return self._buildTreeForStackInternal(stack, pos+1); }}];
+    return rootObj;
+  },
   convertToJSTreeData: function MarkerTreeManager__convertToJSTreeData(markers) {
+    var self = this;
     function createMarkerTreeViewNode(marker, parent) {
       var currObj = {};
       currObj.parent = parent;
@@ -92,7 +114,6 @@ MarkerTreeManager.prototype = {
       currObj.library = "Main Thread";
       currObj.marker = marker;
       if (marker.marker.data && marker.marker.data.type == "innerHTML") {
-        dump("Innerhtml\n");
         currObj.children = [ {
           getData: function() {
             var child = {};
@@ -105,7 +126,22 @@ MarkerTreeManager.prototype = {
             return child;
           }
         }];
-
+      } else if (marker.marker.data && marker.marker.data.stack) {
+        currObj.children = self.buildTreeForStack(marker.marker.data.stack);
+          /*
+          [ {
+          getData: function() {
+            var child = {};
+            child.parent = currObj;
+            child.counter = 0;
+            child.time = marker.time;
+            child.name = "stack";
+            child.library = "";
+            child.marker = marker;
+            return child;
+          }
+        }];
+        */
       }
       return currObj;
     }

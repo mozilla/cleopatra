@@ -568,15 +568,18 @@ function parseRawProfile(requestID, params, rawProfile) {
         };
       }
       if (marker.data && marker.data.stack && marker.data.stack.samples) {
+        // the stack is actually a simple profile with one sample. Let's replace it by a single stack
+        var simpleStack = [];
         for (var a = 0; a < marker.data.stack.samples.length; a++) {
           var nestedSample = marker.data.stack.samples[a];
           for (var b = 0; b < nestedSample.frames.length; b++) {
             var frame = nestedSample.frames[b];
             if (frame.location) {
-              markerArray[i].data.stack.samples[a].frames[b] = indexForSymbol(frame.location);
+              simpleStack.push(indexForSymbol(frame.location));
             }
           }
         }
+        markerArray[i].data.stack = simpleStack;
       }
     }
   }
@@ -1861,10 +1864,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       break;
     }
 
-    function prepareSample(sample) {
+    function prepareSample(frames) {
       var stack = [];
-      for (var i = 0; i < sample.frames.length; i++) {
-        var sym = profile.symbols[sample.frames[i]].functionName || profile.symbols[sample.frames[i]].symbolName;
+      for (var i = 0; i < frames.length; i++) {
+        var sym = profile.symbols[frames[i]].functionName || profile.symbols[frames[i]].symbolName;
         stack.push(sym);
       }
       return stack;
@@ -1888,9 +1891,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           startScripts = nextSample.extraInfo.time;
           endScripts = null;
         } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
-          if (marker.data.stack.samples && marker.data.stack.samples.length >= 1) {
-            startTimerStack = prepareSample(marker.data.stack.samples[0]);
-          }
+          startTimerStack = prepareSample(marker.data.stack);
         } else if (mainThreadState == "RDenter" &&
             startScripts &&
             marker.name == "Scripts" && marker.data.interval == "end") {
