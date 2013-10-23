@@ -1910,38 +1910,32 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         } else if (mainThreadState == "RDenter" &&
             startScripts &&
             marker.name == "Scripts" && marker.data.interval == "end") {
-          if (startScripts != nextSample.extraInfo.time) {
-            result.items.push({
-              startTime: startScripts,
-              endTime: nextSample.extraInfo.time,
-              text: "Scripts",
-            });
-          }
+          result.items.push({
+            startTime: startScripts,
+            endTime: nextSample.extraInfo.time,
+            text: "Scripts",
+          });
           startScripts = null;
           endScripts = nextSample.extraInfo.time;
         } else if (mainThreadState == "RDenter" &&
             marker.name == "Rasterize" && marker.data.interval == "start") {
           startRasterize = nextSample.extraInfo.time;
-          if (endScripts != null && endScripts != nextSample.extraInfo.time) {
-            result.items.push({
-              startTime: endScripts,
-              endTime: nextSample.extraInfo.time,
-              text: "Layout",
-              startTimerStack: startTimerStack,
-            });
-            startTimerStack = null;
-          }
+          result.items.push({
+            startTime: endScripts,
+            endTime: nextSample.extraInfo.time,
+            text: "Layout",
+            startTimerStack: startTimerStack,
+          });
+          startTimerStack = null;
           endScripts = null;
         } else if (mainThreadState == "RDenter" &&
             startRasterize &&
             marker.name == "Rasterize" && marker.data.interval == "end") {
-          if (startRasterize != nextSample.extraInfo.time) {
-            result.items.push({
-              startTime: startRasterize,
-              endTime: nextSample.extraInfo.time,
-              text: "Rasterize",
-            });
-          }
+          result.items.push({
+            startTime: startRasterize,
+            endTime: nextSample.extraInfo.time,
+            text: "Rasterize",
+          });
           startRasterize = null;
         }
       }

@@ -110,6 +110,9 @@ MarkerTreeManager.prototype = {
       currObj.counter = 0;
       currObj.time = marker.time;
       currObj.name = marker.name;
+      //if (marker.marker.data && marker.marker.data.interval) {
+      //  currObj.name += marker.marker.data.interval;
+      //}
       currObj.library = "Main Thread";
       currObj.marker = marker;
       if (marker.marker.data && marker.marker.data.type == "innerHTML") {
