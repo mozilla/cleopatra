@@ -97,7 +97,9 @@ MarkerTreeManager.prototype = {
     rootObj.time = "";
     rootObj.name = stack[pos];
     rootObj.library = "";
-    rootObj.children = [{getData: function() { return self._buildTreeForStackInternal(stack, pos+1); }}];
+    if (pos+1 < stack.length) {
+      rootObj.children = [{getData: function() { return self._buildTreeForStackInternal(stack, pos+1); }}];
+    }
     return rootObj;
   },
   convertToJSTreeData: function MarkerTreeManager__convertToJSTreeData(markers) {
