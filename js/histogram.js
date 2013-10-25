@@ -305,11 +305,13 @@ var HistogramContainer;
           if (datum.markers.length) {
             for (var j = 0; j < datum.markers.length; j++) {
               var marker = datum.markers[j]
-              markers.push({
-                name: marker.name,
-                time: datum.time,
-                marker: marker,
-              });
+              if (!marker.data || !marker.data.category) {
+                markers.push({
+                  name: marker.name,
+                  time: datum.time,
+                  marker: marker,
+                });
+              }
               //threadMarkers.push(datum.markers[j]);
             }
           }
