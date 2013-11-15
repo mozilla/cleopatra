@@ -582,16 +582,21 @@ var HistogramContainer;
       this.higlighter.classList.add("finished");
 
       var range = this.getSampleRange(this.selectedRange);
-      var chain = gSampleFilters.concat({ type: "RangeSampleFilter", start: range.start, end: range.end });
+      this.selectRange(range.start, range.end);
+    },
+
+    selectRange: function (start, end) {
+      var chain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
       gBreadcrumbTrail.add({
-        title: "Sample Range [" + range.start + ", " + (range.end + 1) + "]",
+        title: "Sample Range [" + start + ", " + (end + 1) + "]",
         enterCallback: function () {
           gSampleFilters = chain;
           this.higlighter.classList.add("collapsed");
           this.higlighter.style.display = "none";
-          filtersChanged(range);
+          filtersChanged({ start: start, end: end });
         }.bind(this)
       })
+
     },
 
     getSampleRange: function (coords) {
