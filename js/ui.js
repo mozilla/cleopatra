@@ -1740,6 +1740,18 @@ function loadQueryData(queryData) {
     var filterChain = JSON.parse(queryData.filter);
     gSampleFilters = filterChain;
   }
+  if (queryData.select) {
+    var parts = queryData.select.split(',');
+    if (parts.length == 2) {
+      var start = parts[0];
+      var end = parts[1];
+      gSampleFilters.push({
+        type:"RangeSampleFilter",
+        start:parseInt(start),
+        end:parseInt(end)
+      });
+    }
+  }
   if (queryData.selection) {
     var selection = queryData.selection;
     gRestoreSelection = selection;

@@ -52,6 +52,10 @@ var HistogramContainer;
       }
     },
 
+    selectRange: function (start, end) {
+      this.threads[0].threadHistogramView.selectRange(start, end);
+    },
+
     updateThreads: function (threads) {
       var index = 0;
 
@@ -224,6 +228,10 @@ var HistogramContainer;
       var step = (this.boundaries.max - this.boundaries.min) / (width / this.barWidth);
 
       return { context: ctx, height: height, width: width, step: step };
+    },
+
+    selectRange: function(start, end) {
+      this.rangeSelector.selectRange(start, end);
     },
 
     display: function (data, boundaries) {
