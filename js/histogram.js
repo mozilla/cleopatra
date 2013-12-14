@@ -168,8 +168,8 @@ var HistogramContainer;
       }
       view.container.classList.add("histogramSelected");
       gSelectedThreadId = view.threadId;
-      viewOptionsChanged(cb);
-      diagnosticChanged();
+      AppUI.viewOptionsChanged(cb);
+      AppUI.diagnosticChanged();
     }
   };
 
@@ -431,10 +431,16 @@ var HistogramContainer;
       var frames = sample.frames;
       var list = gSampleBar.setSample(frames[0]);
 
-      setHighlightedCallstack(frames[0], frames[0]);
+      /**
+       * @todo Decouple AppUI
+       */
+      AppUI.setHighlightedCallstack(frames[0], frames[0]);
       gHistogramContainer.histogramSelected(this, function () {
         gTreeManager.setSelection(list);
-        setHighlightedCallstack(frames[0], frames[0]);
+        /**
+         * @todo Decouple AppUI
+         */
+        AppUI.setHighlightedCallstack(frames[0], frames[0]);
       });
     },
 
@@ -601,7 +607,12 @@ var HistogramContainer;
           gSampleFilters = chain;
           this.higlighter.classList.add("collapsed");
           this.higlighter.style.display = "none";
-          filtersChanged({ start: start, end: end });
+          window.dispatchEvent(new CustomEvent('filters-changed', {
+            detail: {
+              start: start,
+              end: end
+            }
+          }));
         }.bind(this)
       })
 
