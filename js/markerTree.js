@@ -49,7 +49,10 @@ MarkerTreeManager.prototype = {
     return this._container;
   },
   highlightFrame: function Treedisplay_highlightFrame(frameData) {
-    setHighlightedCallstack(this._getCallstackUpTo(frameData), this._getHeaviestCallstack(frameData));
+    /**
+     * @todo Decouple AppUI
+     */
+    AppUI.setHighlightedCallstack(this._getCallstackUpTo(frameData), this._getHeaviestCallstack(frameData));
   },
   dataIsOutdated: function MarkerTreeManager_dataIsOutdated() {
     this.treeView.dataIsOutdated();

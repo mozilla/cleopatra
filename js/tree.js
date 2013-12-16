@@ -138,7 +138,7 @@ TreeView.prototype = {
       this._select(this._horizontalScrollbox.firstChild);
       this._toggle(this._horizontalScrollbox.firstChild);
     }
-    changeFocus(this._container);
+    AppUI.changeFocus(this._container);
   },
   // Provide a snapshot of the reverse selection to restore with 'invert callback'
   getReverseSelectionSnapshot: function TreeView__getReverseSelectionSnapshot(isJavascriptOnly) {
@@ -613,7 +613,7 @@ TreeView.prototype = {
       this._scheduleScrollIntoView(functionName, 400);
       this._fireEvent("select", li.data);
     }
-    updateDocumentURL();
+    AppUI.updateDocumentURL();
   },
   _isCollapsed: function TreeView__isCollapsed(div) {
     return div.classList.contains("collapsed");
