@@ -160,9 +160,10 @@
       uploadButton.style.bottom = "10px";
       uploadButton.type = "button";
       uploadButton.value = "Upload";
+      var self = this;
       uploadButton.onclick = function() {
         document.body.removeChild(overlay);
-        uploadProfile(selected);
+        self.uploadProfile(selected);
       }
       contentDiv.appendChild(uploadButton);
 
