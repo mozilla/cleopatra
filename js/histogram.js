@@ -177,7 +177,7 @@ var HistogramContainer;
     var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
-    this.barWidth = 1;
+    this.barWidth = 1;//this should change before we display anything
     container.appendChild(this.canvas);
 
     this.rangeSelector = new RangeSelector(this.canvas, this);
@@ -229,9 +229,8 @@ var HistogramContainer;
       var ctx = this.canvas.getContext("2d");
       var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
       var height = this.canvas.height;
-      var step = (this.boundaries.max - this.boundaries.min) / (width / this.barWidth);
 
-      return { context: ctx, height: height, width: width, step: step };
+      return { context: ctx, height: height, width: width };
     },
 
     selectRange: function(start, end) {
@@ -282,22 +281,21 @@ var HistogramContainer;
       this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
-      this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15, info.step);
+      this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15);
     },
 
-    _renderSamples: function (ctx, callstack, inverted, width, height, step) {
+    _renderSamples: function (ctx, callstack, inverted, width, height) {
       var curr = this.boundaries.min, x = 0;
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, markers, value, color;
       var lastTimeLabel = null;
       var lastTimeNotch = null;
-      var barWidth = this.barWidth;
+      var barWidth, step;
 
-      // Don't show gaps smaller then 1ms
-      if (step < 1) {
-        barWidth = width / (this.boundaries.max - this.boundaries.min);
-        step = 1;
-      }
+      // bar width in px / sample
+      barWidth = gMeta.interval /* ms/sample */ * width /* px */ / (this.boundaries.max - this.boundaries.min) /* ms */;
+      // bar width in ms / sample
+      step = gMeta.interval;
 
       if (barWidth <= 0)
         return;
