@@ -297,6 +297,12 @@ var HistogramContainer;
       // bar width in ms / sample
       step = gMeta.interval;
 
+      // don't render less than 1px lines
+      if (barWidth < 1) {
+        step = (this.boundaries.max - this.boundaries.min) / width
+        barWidth = 1;
+      }
+
       if (barWidth <= 0)
         return;
 
