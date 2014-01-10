@@ -337,9 +337,24 @@ var HistogramContainer;
         }
 
         if (slice.length !== 0) {
-          value = slice.reduce(function (prev, curr) { return Math.max(prev, curr.height) }, 0);
-          movingValue = slice.reduce(function (prev, curr) { return Math.max(prev, curr.movingHeight) }, 0);
-          color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
+
+          // calculate what to display for a set of data which falls under the same
+          // pixel / bar
+          var s = slice[0];
+          value = s.height;
+          movingValue = s.movingHeight;
+          color = 0;
+          for (var i = 0; i < slice.length; i++) {
+            s = slice[i];
+            // max value
+            value = Math.max(value, s.height);
+            // max moving value
+            movingValue = Math.max(movingValue, s.movingHeight);
+            // total unresponsiveness
+            color += s.color;
+          }
+          // average unresponsiveness
+          color = color / slice.length;
           ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
 
           if (this.isStepSelected(slice, callstack, inverted)) {
