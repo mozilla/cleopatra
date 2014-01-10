@@ -304,11 +304,13 @@ var Parser = {
     return request;
   },
 
-  addComment: function Parser_addComment(comment, time) {
+  addComment: function Parser_addComment(comment, sampleId, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("addComment", {
+      profileID: 0,
+      threadId: threadId,
       comment: comment,
-      time: time,
+      sampleId: sampleId,
     });
     return request;
   },

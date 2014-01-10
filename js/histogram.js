@@ -199,11 +199,15 @@ var HistogramContainer;
     this._contextMenu.id = "contextMenuForHisto" + HistogramView.instanceCounter++;
     var self = this;
     this.container.addEventListener("contextmenu", function(event) {
+      var x = event.layerX;
       self._contextMenu.innerHTML = "";
       var menuItem = "Add Comment";
       var menuItemNode = document.createElement("menuitem");
       menuItemNode.onclick = function () {
         var commentStr = prompt("Comment:");
+        // update the stored data
+        Parser.addComment(commentStr, self.pixelToIndex(x), self.threadId);
+        window.AppUI.filtersChanged();
       };
       menuItemNode.label = menuItem;
       self._contextMenu.appendChild(menuItemNode);
@@ -350,18 +354,40 @@ var HistogramContainer;
           if (markers.length) {
             var str = "";
             var id = 1;
-            markers.forEach(function (marker) {
-              if (markers.length > 1) {
-                str += (id++) + ": " + marker.name + " ";
-              } else {
-                str = marker.name;
-              }
-            });
+            var hasComment = false;
+            var hasNonComment = false;
+            var marker, i;
+
+            // construct marker div with a click event
             var markerDiv = createElement("div", { className: "marker" });
-            markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
             markerDiv.markers = markers;
+
+            // figure out what markers are contained in the list and add them to the marker div
+            var label;
+            for (var i = 0; i < markers.length; i++) {
+              marker = markers[i];
+              if (marker.marker.type == 'comment') {
+                hasComment = true;
+                label = createElement("span", {
+                  style: { color: "#3F9922" },
+                });
+              } else {
+                hasNonComment = true;
+                label = createElement("span", {
+                  style: { color: "#BF0039" },
+                });
+              }
+              if (markers.length > 1) {
+                label.textContent = (id++) + ": " +  marker.name + " ";
+              } else {
+                label.textContent = marker.name;
+              }
+              markerDiv.appendChild(label);
+            }
+
+            // add a click event to the marker div that runs the marker click callback if defined
             (function(markers) {
               markerDiv.addEventListener("click", function() {
                 if (self.manager._onMarkerClick) {
@@ -369,6 +395,7 @@ var HistogramContainer;
                 }
               });
             })(markers);
+            // each marker gets a list of the thread markers
             markers.forEach(function (marker) {
               threadMarkers.push({
                 div: markerDiv,
@@ -377,9 +404,23 @@ var HistogramContainer;
                 time: marker.time,
               });
             });
+
+            // add marker div on top of the canvas
             self.container.appendChild(markerDiv);
-            ctx.fillStyle = "rgb(255,0,0)";
-            ctx.fillRect(x, 0, 1, 20);
+
+            // draw notch for marker
+            if (hasComment && hasNonComment) {
+              ctx.fillStyle = "rgb(0,255,0)";
+              ctx.fillRect(x, 10, 1, 10);
+              ctx.fillStyle = "rgb(255,0,0)";
+              ctx.fillRect(x, 0, 1, 10);
+            } else if (hasComment) {
+              ctx.fillStyle = "rgb(0,255,0)";
+              ctx.fillRect(x, 0, 1, 20);
+            } else {
+              ctx.fillStyle = "rgb(255,0,0)";
+              ctx.fillRect(x, 0, 1, 20);
+            }
             //ctx.fillText(markers[0], x + 2, 10);
           }
         }
