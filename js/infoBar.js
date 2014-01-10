@@ -10,6 +10,10 @@
   InfoBar.prototype = {
     handleEvent: function InfoBar_handleEvent(evt) {
       switch (evt.target.id) {
+        case 'download':
+          this.downloadProfile();
+          break;
+
         case 'upload':
         case 'upload_select':
           this.promptUploadProfile();
