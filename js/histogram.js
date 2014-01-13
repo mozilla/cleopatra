@@ -368,17 +368,11 @@ var HistogramContainer;
             var label;
             for (var i = 0; i < markers.length; i++) {
               marker = markers[i];
-              if (marker.marker.type == 'comment') {
-                hasComment = true;
-                label = createElement("span", {
-                  style: { color: "#3F9922" },
-                });
-              } else {
-                hasNonComment = true;
-                label = createElement("span", {
-                  style: { color: "#BF0039" },
-                });
-              }
+              hasComment |= marker.marker.type == 'comment';
+              hasNonComment |= marker.marker.type != 'comment';
+              label = createElement("span", {
+                style: { color: marker.marker.type == 'comment' ? "#3F9922" : '#BF0039'},
+              });
               if (markers.length > 1) {
                 label.textContent = (id++) + ": " +  marker.name + " ";
               } else {
@@ -409,17 +403,16 @@ var HistogramContainer;
             self.container.appendChild(markerDiv);
 
             // draw notch for marker
-            if (hasComment && hasNonComment) {
-              ctx.fillStyle = "rgb(0,255,0)";
-              ctx.fillRect(x, 10, 1, 10);
+            var yPos = 0;
+            var yEnd = 20;
+            if (hasNonComment) {
               ctx.fillStyle = "rgb(255,0,0)";
-              ctx.fillRect(x, 0, 1, 10);
-            } else if (hasComment) {
+              ctx.fillRect(x, yPos, 1, yEnd - yPos);
+              yPos += 10;
+            }
+            if (hasComment) {
               ctx.fillStyle = "rgb(0,255,0)";
-              ctx.fillRect(x, 0, 1, 20);
-            } else {
-              ctx.fillStyle = "rgb(255,0,0)";
-              ctx.fillRect(x, 0, 1, 20);
+              ctx.fillRect(x, yPos, 1, yEnd - yPos);
             }
             //ctx.fillText(markers[0], x + 2, 10);
           }
