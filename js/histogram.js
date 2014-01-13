@@ -286,7 +286,7 @@ var HistogramContainer;
 
     _renderSamples: function (ctx, callstack, inverted, width, height) {
       var curr = this.boundaries.min, x = 0;
-      var data = JSON.parse(JSON.stringify(this.data));
+      var dataIndex = 0;
       var slice, markers, value, color;
       var lastTimeLabel = null;
       var lastTimeNotch = null;
@@ -312,12 +312,15 @@ var HistogramContainer;
         slice = [];
         markers = [];
 
-        for (var i = 0, datum; datum = data[i]; i++) {
+        // iterate over all data starting where we left over last time and
+        // ending when the time of the current datum exceeds our current time + the step size
+        for (var i = dataIndex, datum; datum = this.data[i]; i++) {
           if (datum.time > curr + step) {
             break;
           }
 
           slice.push(datum);
+          dataIndex += 1;
           if (datum.markers.length) {
             for (var j = 0; j < datum.markers.length; j++) {
               var marker = datum.markers[j]
@@ -334,7 +337,6 @@ var HistogramContainer;
         }
 
         if (slice.length !== 0) {
-          data = data.slice(slice.length);
           value = slice.reduce(function (prev, curr) { return Math.max(prev, curr.height) }, 0);
           movingValue = slice.reduce(function (prev, curr) { return Math.max(prev, curr.movingHeight) }, 0);
           color = slice.reduce(function (prev, curr) { return prev + curr.color }, 0) / slice.length;
