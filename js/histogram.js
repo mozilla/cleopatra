@@ -287,7 +287,7 @@ var HistogramContainer;
     _renderSamples: function (ctx, callstack, inverted, width, height) {
       var curr = this.boundaries.min, x = 0;
       var dataIndex = 0;
-      var slice, markers, value, color;
+      var slice, markers, value, red, green;
       var lastTimeLabel = null;
       var lastTimeNotch = null;
       var barWidth, step;
@@ -343,7 +343,7 @@ var HistogramContainer;
           var s = slice[0];
           value = s.height;
           movingValue = s.movingHeight;
-          color = 0;
+          red = 0;
           for (var i = 0; i < slice.length; i++) {
             s = slice[i];
             // max value
@@ -351,15 +351,15 @@ var HistogramContainer;
             // max moving value
             movingValue = Math.max(movingValue, s.movingHeight);
             // total unresponsiveness
-            color += s.color;
+            red += s.color;
           }
           // average unresponsiveness
-          color = color / slice.length;
-          ctx.fillStyle = "rgb(" + Math.round(color) + ",0,0)";
-
-          if (this.isStepSelected(slice, callstack, inverted)) {
-            ctx.fillStyle = "green";
-          }
+          red = Math.round(red / slice.length);
+          green = Math.floor(this.percentSelected(slice, callstack, inverted) * 255);
+          // turn off green when there is red because otherwise it becomes yellow
+          red = (green ? 0 : red);
+          // red is unresponsiveness, green is selected %
+          ctx.fillStyle = "rgb(" + red + "," + green + ",0)";
 
           var h = (height / 100) * value;
           ctx.fillRect(x, height - h, barWidth, h);
@@ -503,10 +503,12 @@ var HistogramContainer;
       this.scheduleRender(stack, inverted);
     },
 
-    isStepSelected: function (data, callstack, inverted) {
+    percentSelected: function (data, callstack, inverted) {
       if (!callstack) {
-        return false;
+        return 0;
       }
+
+      var dataSelected = 0;
 
       for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < data[i].frames.length; j++) {
@@ -516,16 +518,21 @@ var HistogramContainer;
             compareStack = compareStack.reverse();
             //dump("compare inverted: " + JSON.stringify(compareStack) + "\n");
           }
+          var match = true;
           for (var k = 0; k < compareStack.length; k++) {
+            // no match
             if (k < callstack.length && compareStack[k] !== callstack[k]) {
-              //dump("no match at index: " + k + " compare: " + JSON.stringify(compareStack) + " vs " + JSON.stringify(callstack) + "\n");
-              return false;
+              match = false;
+              break;
             }
+          }
+          if (match) {
+            dataSelected++;
           }
         }
       }
 
-      return true;
+      return dataSelected / data.length;
     }
   };
 
