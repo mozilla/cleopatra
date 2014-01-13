@@ -141,7 +141,7 @@ self.onmessage = function (msg) {
         kDelayUntilWorstResponsiveness = taskData.res;
         break;
       case "addComment":
-        addComment(requestID, taskData.comment, taskData.time);
+        addComment(requestID, taskData.profileID, taskData.threadId, taskData.sampleId, taskData.comment);
         break;
       default:
         sendError(requestID, "Unknown task " + task);
@@ -191,6 +191,22 @@ function sendLog() {
     type: "log",
     params: Array.slice.call(null, arguments)
   });
+}
+
+function addComment(requestID, profileID, threadId, sampleId, comment) {
+  var profile = gProfiles[profileID];
+  var samples = profile.threads[threadId].samples;
+  var extraInfo = samples[sampleId].extraInfo;
+
+  if (!("marker" in extraInfo)) {
+    extraInfo.marker = [];
+  }
+  extraInfo.marker.push({
+    name: comment,
+    type: 'comment'
+  });
+
+  sendFinished(requestID, true);
 }
 
 function bucketsBySplittingArray(array, maxCostPerBucket, costOfElementCallback) {

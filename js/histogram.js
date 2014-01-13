@@ -177,7 +177,7 @@ var HistogramContainer;
     var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
-    this.barWidth = 1;
+    this.barWidth = 1;//this should change before we display anything
     container.appendChild(this.canvas);
 
     this.rangeSelector = new RangeSelector(this.canvas, this);
@@ -199,11 +199,15 @@ var HistogramContainer;
     this._contextMenu.id = "contextMenuForHisto" + HistogramView.instanceCounter++;
     var self = this;
     this.container.addEventListener("contextmenu", function(event) {
+      var x = event.layerX;
       self._contextMenu.innerHTML = "";
       var menuItem = "Add Comment";
       var menuItemNode = document.createElement("menuitem");
       menuItemNode.onclick = function () {
         var commentStr = prompt("Comment:");
+        // update the stored data
+        Parser.addComment(commentStr, self.pixelToIndex(x), self.threadId);
+        window.AppUI.filtersChanged();
       };
       menuItemNode.label = menuItem;
       self._contextMenu.appendChild(menuItemNode);
@@ -225,9 +229,8 @@ var HistogramContainer;
       var ctx = this.canvas.getContext("2d");
       var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
       var height = this.canvas.height;
-      var step = (this.boundaries.max - this.boundaries.min) / (width / this.barWidth);
 
-      return { context: ctx, height: height, width: width, step: step };
+      return { context: ctx, height: height, width: width };
     },
 
     selectRange: function(start, end) {
@@ -278,21 +281,26 @@ var HistogramContainer;
       this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
-      this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15, info.step);
+      this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15);
     },
 
-    _renderSamples: function (ctx, callstack, inverted, width, height, step) {
+    _renderSamples: function (ctx, callstack, inverted, width, height) {
       var curr = this.boundaries.min, x = 0;
       var data = JSON.parse(JSON.stringify(this.data));
       var slice, markers, value, color;
       var lastTimeLabel = null;
       var lastTimeNotch = null;
-      var barWidth = this.barWidth;
+      var barWidth, step;
 
-      // Don't show gaps smaller then 1ms
-      if (step < 1) {
-        barWidth = width / (this.boundaries.max - this.boundaries.min);
-        step = 1;
+      // bar width in px / sample
+      barWidth = gMeta.interval /* ms/sample */ * width /* px */ / (this.boundaries.max - this.boundaries.min) /* ms */;
+      // bar width in ms / sample
+      step = gMeta.interval;
+
+      // don't render less than 1px lines
+      if (barWidth < 1) {
+        step = (this.boundaries.max - this.boundaries.min) / width
+        barWidth = 1;
       }
 
       if (barWidth <= 0)
@@ -350,18 +358,34 @@ var HistogramContainer;
           if (markers.length) {
             var str = "";
             var id = 1;
-            markers.forEach(function (marker) {
-              if (markers.length > 1) {
-                str += (id++) + ": " + marker.name + " ";
-              } else {
-                str = marker.name;
-              }
-            });
+            var hasComment = false;
+            var hasNonComment = false;
+            var marker, i;
+
+            // construct marker div with a click event
             var markerDiv = createElement("div", { className: "marker" });
-            markerDiv.textContent = str;
             markerDiv.style.left = x + "px";
             markerDiv.style.top = "0px";
             markerDiv.markers = markers;
+
+            // figure out what markers are contained in the list and add them to the marker div
+            var label;
+            for (var i = 0; i < markers.length; i++) {
+              marker = markers[i];
+              hasComment |= marker.marker.type == 'comment';
+              hasNonComment |= marker.marker.type != 'comment';
+              label = createElement("span", {
+                style: { color: marker.marker.type == 'comment' ? "#3F9922" : '#BF0039'},
+              });
+              if (markers.length > 1) {
+                label.textContent = (id++) + ": " +  marker.name + " ";
+              } else {
+                label.textContent = marker.name;
+              }
+              markerDiv.appendChild(label);
+            }
+
+            // add a click event to the marker div that runs the marker click callback if defined
             (function(markers) {
               markerDiv.addEventListener("click", function() {
                 if (self.manager._onMarkerClick) {
@@ -369,6 +393,7 @@ var HistogramContainer;
                 }
               });
             })(markers);
+            // each marker gets a list of the thread markers
             markers.forEach(function (marker) {
               threadMarkers.push({
                 div: markerDiv,
@@ -377,9 +402,22 @@ var HistogramContainer;
                 time: marker.time,
               });
             });
+
+            // add marker div on top of the canvas
             self.container.appendChild(markerDiv);
-            ctx.fillStyle = "rgb(255,0,0)";
-            ctx.fillRect(x, 0, 1, 20);
+
+            // draw notch for marker
+            var yPos = 0;
+            var yEnd = 20;
+            if (hasNonComment) {
+              ctx.fillStyle = "rgb(255,0,0)";
+              ctx.fillRect(x, yPos, 1, yEnd - yPos);
+              yPos += 10;
+            }
+            if (hasComment) {
+              ctx.fillStyle = "rgb(0,255,0)";
+              ctx.fillRect(x, yPos, 1, yEnd - yPos);
+            }
             //ctx.fillText(markers[0], x + 2, 10);
           }
         }
