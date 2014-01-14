@@ -354,12 +354,11 @@ var HistogramContainer;
             red += s.color;
           }
           // average unresponsiveness
-          red = Math.round(red / slice.length);
-          green = Math.floor(this.percentSelected(slice, callstack, inverted) * 255);
-          // turn off green when there is red because otherwise it becomes yellow
-          red = (green ? 0 : red);
+          red = red / slice.length;
+          green = this.percentSelected(slice, callstack, inverted) * 255;
+          console.log(red, green);
           // red is unresponsiveness, green is selected %
-          ctx.fillStyle = "rgb(" + red + "," + green + ",0)";
+          ctx.fillStyle = "rgb(" + Math.round(red / (1+green/255)) + "," + Math.round( green ) + ",0)";
 
           var h = (height / 100) * value;
           ctx.fillRect(x, height - h, barWidth, h);
