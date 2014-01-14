@@ -141,7 +141,7 @@ self.onmessage = function (msg) {
         kDelayUntilWorstResponsiveness = taskData.res;
         break;
       case "addComment":
-        addComment(requestID, taskData.profileID, taskData.threadId, taskData.sampleId, taskData.comment);
+        addComment(requestID, taskData.profileID, taskData.threadId, taskData.time, taskData.comment);
         break;
       default:
         sendError(requestID, "Unknown task " + task);
@@ -193,10 +193,23 @@ function sendLog() {
   });
 }
 
-function addComment(requestID, profileID, threadId, sampleId, comment) {
+function timeToIndex(data, time) {
+  // Speed up using binary search if required, but make sure the first item
+  // in case of equality.
+
+  for (var i = 0; i < data.length - 1; i++) {
+    if (data[i+1].extraInfo && data[i+1].extraInfo.time && data[i+1].extraInfo.time > time) {
+      return i;
+    }
+  }
+
+  return data.length - 1;
+}
+
+function addComment(requestID, profileID, threadId, time, comment) {
   var profile = gProfiles[profileID];
   var samples = profile.threads[threadId].samples;
-  var extraInfo = samples[sampleId].extraInfo;
+  var extraInfo = samples[timeToIndex(samples, time)].extraInfo;
 
   if (!("marker" in extraInfo)) {
     extraInfo.marker = [];

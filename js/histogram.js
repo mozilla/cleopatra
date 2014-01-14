@@ -206,7 +206,7 @@ var HistogramContainer;
       menuItemNode.onclick = function () {
         var commentStr = prompt("Comment:");
         // update the stored data
-        Parser.addComment(commentStr, self.pixelToIndex(x), self.threadId);
+        Parser.addComment(commentStr, self.pixelToTime(x), self.threadId);
         window.AppUI.filtersChanged();
       };
       menuItemNode.label = menuItem;
