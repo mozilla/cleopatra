@@ -518,16 +518,17 @@ var HistogramContainer;
             compareStack = compareStack.reverse();
             //dump("compare inverted: " + JSON.stringify(compareStack) + "\n");
           }
-          var match = true;
-          for (var k = 0; k < compareStack.length; k++) {
-            // no match
-            if (k < callstack.length && compareStack[k] !== callstack[k]) {
-              match = false;
-              break;
+          if ( compareStack.length >= callstack.length ) {
+            var match = true;
+            for (var k = 0; k < compareStack.length && k < callstack.length; k++) {
+              if (compareStack[k] !== callstack[k]) {
+                match = false;
+                break;
+              }
             }
-          }
-          if (match) {
-            dataSelected++;
+            if (match) {
+              dataSelected++;
+            }
           }
         }
       }
