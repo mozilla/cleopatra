@@ -112,15 +112,8 @@
       var finishedProfilePaneBackgroundCover = document.createElement("div");
       finishedProfilePaneBackgroundCover.className = "finishedProfilePaneBackgroundCover";
 
-      var finishedProfilePane = document.createElement("table");
-      var rowIndex = 0;
+      var finishedProfilePane = document.createElement("div");
       var currRow;
-      finishedProfilePane.style.width = "100%";
-      finishedProfilePane.style.height = "100%";
-      finishedProfilePane.border = "0";
-      finishedProfilePane.cellPadding = "0";
-      finishedProfilePane.cellSpacing = "0";
-      finishedProfilePane.borderCollapse = "collapse";
       finishedProfilePane.className = "finishedProfilePane";
       var self = this;
       setTimeout(function() {
@@ -133,8 +126,9 @@
       }, 100);
 
       gBreadcrumbTrail = new BreadcrumbTrail();
-      currRow = finishedProfilePane.insertRow(rowIndex++);
-      currRow.insertCell(0).appendChild(gBreadcrumbTrail.getContainer());
+      currRow = document.createElement("div");
+      finishedProfilePane.appendChild(currRow);
+      currRow.appendChild(gBreadcrumbTrail.getContainer());
 
       gHistogramContainer = new HistogramContainer();
       gHistogramContainer.updateThreads(gThreadsDesc);
@@ -146,15 +140,17 @@
           gMarkerTreeManager.selectMarker(selectedMarker);
         }
       });
-      currRow = finishedProfilePane.insertRow(rowIndex++);
-      currRow.insertCell(0).appendChild(gHistogramContainer.container);
+      currRow = document.createElement("div");
+      finishedProfilePane.appendChild(currRow);
+      currRow.appendChild(gHistogramContainer.container);
       gHistogramContainer.container.parentNode.className = "histogramContainerParent";
 
       if (false && gLocation.indexOf("file:") == 0) {
         // Local testing for frameView
         gFrameView = new FrameView();
-        currRow = finishedProfilePane.insertRow(rowIndex++);
-        currRow.insertCell(0).appendChild(gFrameView.getContainer());
+        currRow = document.createElement("div");
+        finishedProfilePane.appendChild(currRow);
+        currRow.appendChild(gFrameView.getContainer());
       }
 
       // For testing:
@@ -165,8 +161,9 @@
       if (gMeta && gMeta.videoCapture) {
         gVideoPane = new VideoPane(gMeta.videoCapture);
         //gVideoPane.onTimeChange(videoPaneTimeChange);
-        currRow = finishedProfilePane.insertRow(rowIndex++);
-        currRow.insertCell(0).appendChild(gVideoPane.getContainer());
+        currRow = document.createElement("div");
+        finishedProfilePane.appendChild(currRow);
+        currRow.appendChild(gVideoPane.getContainer());
       }
 
       var treeContainerDiv = document.createElement("div");
@@ -175,10 +172,11 @@
       treeContainerDiv.style.height = "100%";
 
       gTreeManager = new ProfileTreeManager();
-      currRow = finishedProfilePane.insertRow(rowIndex++);
+      currRow = document.createElement("div");
+      currRow.style.flex = 1;
+      finishedProfilePane.appendChild(currRow);
       currRow.style.height = "100%";
-      var cell = currRow.insertCell(0);
-      cell.appendChild(treeContainerDiv);
+      currRow.appendChild(treeContainerDiv);
       treeContainerDiv.appendChild(gTreeManager.getContainer());
 
       gSampleBar = new SampleBar();
