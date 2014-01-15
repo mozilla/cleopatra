@@ -27,9 +27,8 @@ var HistogramContainer;
 
   HistogramContainer = function () {
     this.threads = [];
-    this.container = createElement("table", {
+    this.container = createElement("div", {
       className: "histogramContainer",
-      style: { width: "100%", height: "100%" },
       border: "0",
       borderCollapse: "collapse",
       cellPadding: "0",
@@ -57,30 +56,48 @@ var HistogramContainer;
     },
 
     updateThreads: function (threads) {
-      var index = 0;
 
       this.container.innerHTML = "";
 
       // Timeline
-      this.waterfallRow = this.container.insertRow(index++);
-      this.waterfallRow.style.display = "none";
-      var container = this.waterfallRow.insertCell(0);
-      container.className = "threadHistogramDescription";
-      container.innerHTML = "Frames";
-      var cell = this.waterfallRow.insertCell(1);
+      this.waterfallRow = createElement("div", {
+        className: "waterfallOrThreadRow",
+        style: {display: "none"}
+      });
+      this.container.appendChild(this.waterfallRow);
+
+      var container = createElement("div", {
+        className: "threadHistogramDescription",
+        innerHTML: "Frames"
+      });
+      this.waterfallRow.appendChild(container);
+
+      var cell = createElement("div", {
+        style: {flex: 1},
+        className: "threadHistogramContent"
+      });
       this.waterfall = new Waterfall();
+      this.waterfallRow.appendChild(cell);
+
       cell.appendChild(this.waterfall.getContainer());
 
       Object.keys(threads).forEach(function (id) {
         var thread = threads[id];
-        var row = this.container.insertRow(index++);
-        var container = row.insertCell(0);
+        var row = createElement("div", {
+          className: "waterfallOrThreadRow"
+        });
+        this.container.appendChild(row);
+        var container = createElement("div", {
+          className: "threadHistogramDescription",
+          innerHTML: thread.name + "<br>", //TODO: fix XSS
+          title: "Thread Name"
+        });
+        row.appendChild(container);
 
-        container.className = "threadHistogramDescription";
-        container.innerHTML = thread.name + "<br>";
-        container.title = "Thread Name";
-
-        var minimizeButton = createElement("input", {type:"button", value:"Bottom"});
+        var minimizeButton = createElement("input", {
+          type:"button",
+          value:"Bottom"
+        });
         container.appendChild(minimizeButton);
         var self = this;
         minimizeButton.onclick = function() {
@@ -111,7 +128,10 @@ var HistogramContainer;
           gMainArea.appendChild(view.getContainer());
         })
 
-        var cell = row.insertCell(1);
+        var cell = createElement("div", {
+          className: "threadHistogramContent"
+        });
+        row.appendChild(cell);
         cell.appendChild(thread.threadHistogramView.container);
         cell.appendChild(thread.diagnosticBar.getContainer());
 
