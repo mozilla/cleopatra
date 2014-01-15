@@ -93,7 +93,7 @@
 
       var filterNameInputOld = document.getElementById("filterName");
       infoText += "<a>Filter:\n";
-      infoText += "<input type='search' id='filterName' oninput='filterOnChange()'/></a>\n";
+      infoText += "<input type='search' id='filterName' oninput='window.AppUI.filterOnChange()'/></a>\n";
 
       infoText += "<h2>Post Filtering</h2>\n";
       infoText += "<label><input type='checkbox' id='showJank' " + (gJankOnly ?" checked='true' ":" ") + " />Show Jank only</label>\n";
