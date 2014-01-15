@@ -356,7 +356,7 @@ var HistogramContainer;
           // average unresponsiveness
           red = red / slice.length;
           green = this.percentSelected(slice, callstack, inverted) * 255;
-          console.log(red, green);
+          green = green == 0 ? 0 : Math.max(150, green);
           // red is unresponsiveness, green is selected %
           ctx.fillStyle = "rgb(" + Math.round(red / (1+green/255)) + "," + Math.round( green ) + ",0)";
 
