@@ -63,6 +63,8 @@ body {
   background-color: rgba(0, 0, 0, 0.5);
 }
 .finishedProfilePane {
+  display: flex;
+  flex-direction: column;
   -webkit-animation: appear 300ms ease-out;
   -moz-animation: appear 300ms ease-out;
 }
@@ -301,6 +303,10 @@ body {
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
 }
+.waterfallOrThreadRow {
+  display: flex;
+  width: 100%;
+}
 .waterfallContainer {
   overflow: hidden;
 }
@@ -337,6 +343,11 @@ body {
   margin: -2px -1px;
 }
 .rangeSelectorContainer {
+}
+.histogramContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 .histogramContainerParent {
   display: block;
@@ -490,7 +501,7 @@ iframe {
   height: 100%;
 }
 .threadHistogramDescription {
-  height: 60px;
+  align-self: stretch;
   width: 150px;
   font-size: 16px;
   font-family: "Lucida Grande",sans-serif;
@@ -498,6 +509,9 @@ iframe {
   background: none repeat scroll 0% 0% rgb(219, 223, 231);
   border-right: solid 1px white;
   padding-left: 5px;
+}
+.threadHistogramContent {
+  flex: 1;
 }
 .adjustable {
   cursor: ns-resize;
