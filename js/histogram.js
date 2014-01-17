@@ -675,6 +675,7 @@ var HistogramContainer;
 
       this.graph.addEventListener("mouseout", function (ev) {
         this.clearMouseMarker();
+        isMouseDown = false;
       }.bind(this), false);
     },
 
