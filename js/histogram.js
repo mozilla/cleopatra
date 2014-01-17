@@ -51,6 +51,12 @@ var HistogramContainer;
       }
     },
 
+    invertionChanged: function (inverted) {
+      for (var i = 0; i < this.threads.length; i++) {
+        this.threads[i].threadHistogramView.invertionChanged(inverted);
+      }
+    },
+
     selectRange: function (start, end) {
       this.threads[0].threadHistogramView.selectRange(start, end);
     },
@@ -163,8 +169,8 @@ var HistogramContainer;
       this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack, inverted) });
     },
 
-    display: function (id, data, frameStart, widthSum, stack, boundaries) {
-      this.threads[id].threadHistogramView.display(data, boundaries);
+    display: function (id, data, frameStart, widthSum, stack, boundaries, inverted) {
+      this.threads[id].threadHistogramView.display(data, boundaries, inverted);
     },
 
     displayWaterfall: function(data) {
@@ -211,6 +217,7 @@ var HistogramContainer;
     this.debugName = debugName || "NoName";
     this.container = container;
     this.data = [];
+    this.inverted = false;
     this.threadId = threadId;
     this.boundaries = null;
 
@@ -257,10 +264,11 @@ var HistogramContainer;
       this.rangeSelector.selectRange(start, end);
     },
 
-    display: function (data, boundaries) {
+    display: function (data, boundaries, inverted) {
       this.data = data;
       this.boundaries = boundaries;
       this.scheduleRender();
+      this.inverted = inverted;
 
       var timeout;
       var throttler = function () {
@@ -278,6 +286,10 @@ var HistogramContainer;
       window.addEventListener("resize", throttler, false);
 
       this.busyCover.classList.remove("busy");
+    },
+
+    invertionChanged: function (inverted) {
+      this.inverted = inverted;
     },
 
     scheduleRender: function (callstack, inverted) {
@@ -504,17 +516,19 @@ var HistogramContainer;
       var sample = this.data[index];
       var frames = sample.frames;
       var list = gSampleBar.setSample(frames[0]);
+      var inverted = this.inverted;
+      var stack = inverted ? frames[0].clone().reverse() : frames[0];
 
       /**
        * @todo Decouple AppUI
        */
-      AppUI.setHighlightedCallstack(frames[0], frames[0]);
+      AppUI.setHighlightedCallstack(stack, stack);
       gHistogramContainer.histogramSelected(this, function () {
-        gTreeManager.setSelection(list);
+        gTreeManager.setSelection(list, inverted);
         /**
          * @todo Decouple AppUI
          */
-        AppUI.setHighlightedCallstack(frames[0], frames[0]);
+        AppUI.setHighlightedCallstack(stack, stack);
       });
     },
 
@@ -532,15 +546,11 @@ var HistogramContainer;
       for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < data[i].frames.length; j++) {
           var compareStack = data[i].frames[j];
-          if (inverted) {
-            //dump("compare: " + JSON.stringify(compareStack) + "\n");
-            compareStack = compareStack.reverse();
-            //dump("compare inverted: " + JSON.stringify(compareStack) + "\n");
-          }
           if ( compareStack.length >= callstack.length ) {
             var match = true;
-            for (var k = 0; k < compareStack.length && k < callstack.length; k++) {
-              if (compareStack[k] !== callstack[k]) {
+            for (var k = 0; k < Math.min(compareStack.length, callstack.length); k++) {
+              if ((inverted && compareStack[compareStack.length - k - 1] !== callstack[k]) ||
+                 (!inverted && compareStack[k]                           !== callstack[k])) {
                 match = false;
                 break;
               }
