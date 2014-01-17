@@ -326,8 +326,7 @@
           var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
           histogramRequest.addEventListener("finished", function (data) {
             start = Date.now();
-            gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
-              boundaries);
+            gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack, boundaries, gInvertCallstack);
             if (gFrameView)
               gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
                 boundaries);
@@ -517,6 +516,7 @@
       }, gSelectedThreadId);
       updateViewOptionsRequest.addEventListener("finished", function (calltree) {
         var start = Date.now();
+        gHistogramContainer.invertionChanged(gInvertCallstack);
         gTreeManager.display(calltree, gSymbols, gFunctions, gResources, gMergeFunctions, filterNameInput && filterNameInput.value);
         console.log("tree displaying: " + (Date.now() - start) + "ms.");
         if (finished_cb) {

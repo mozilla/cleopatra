@@ -69,8 +69,8 @@
     _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot, allowNonContigous) {
       return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
     },
-    setSelection: function ProfileTreeManager_setSelection(frames) {
-      return this.treeView.setSelection(frames);
+    setSelection: function ProfileTreeManager_setSelection(frames, inverted) {
+      return this.treeView.setSelection(frames, inverted);
     },
     _getCallstackUpTo: function ProfileTreeManager__getCallstackUpTo(frame) {
       var callstack = [];
