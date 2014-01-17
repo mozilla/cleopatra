@@ -198,7 +198,7 @@ function timeToIndex(data, time) {
   // in case of equality.
 
   for (var i = 0; i < data.length - 1; i++) {
-    if (data[i+1].extraInfo && data[i+1].extraInfo.time && data[i+1].extraInfo.time > time) {
+    if (data[i+1].extraInfo && data[i+1].extraInfo.time && Math.floor(data[i+1].extraInfo.time) > time) {
       return i;
     }
   }

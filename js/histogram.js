@@ -482,9 +482,9 @@ var HistogramContainer;
     timeToIndex: function (time) {
       // Speed up using binary search if required, but make sure the first item
       // in case of equality.
-      
+
       for (var i = 0; i < this.data.length - 1; i++) {
-        if (this.data[i+1].time > time) {
+        if (Math.floor(this.data[i+1].time) > time) {
           return i;
         }
       }
