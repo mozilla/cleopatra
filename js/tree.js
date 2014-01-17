@@ -176,8 +176,8 @@ TreeView.prototype = {
 
     return snapshot.reverse();
   },
-  setSelection: function TreeView_setSelection(frames) {
-    this.restoreSelectionSnapshot(frames, false);
+  setSelection: function TreeView_setSelection(frames, inverted) {
+    this.restoreSelectionSnapshot( inverted ? frames.clone().reverse() : frames, false);
   },
   // Take a selection snapshot and restore the selection
   restoreSelectionSnapshot: function TreeView_restoreSelectionSnapshot(snapshot, allowNonContigious) {
@@ -689,7 +689,7 @@ TreeView.prototype = {
       } else {
         // Do KEY_DOWN
         var nextSib = this._getNextSib(selected);
-        var child = this._getFirstChild(selected); 
+        var child = this._getFirstChild(selected);
         if (child != null) {
           this._select(child);
         } else if (nextSib) {
