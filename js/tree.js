@@ -687,13 +687,10 @@ TreeView.prototype = {
         this._toggle(selected);
         this._syncProcessPendingActionProcessing();
       } else {
-        // Do KEY_DOWN
-        var nextSib = this._getNextSib(selected);
+        // Do KEY_DOWN only if the next element is a child
         var child = this._getFirstChild(selected);
         if (child != null) {
           this._select(child);
-        } else if (nextSib) {
-          this._select(nextSib);
         }
       }
     } else if (event.keyCode == 40) { // KEY_DOWN
