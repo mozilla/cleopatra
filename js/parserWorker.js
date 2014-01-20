@@ -1409,10 +1409,13 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
-  var maxHeight = data.reduce(function (prev, curr, i, a) {
-    curr = getHeight(curr);
-    return curr > prev ? curr : prev;
-  }, 0) + 1;
+  var maxHeight = 0;
+  for (var i in profile.filteredThreadSamples) {
+    maxHeight = Math.max(maxHeight, profile.filteredThreadSamples[i].reduce(function (prev, curr, i, a) {
+      curr = getHeight(curr);
+      return curr > prev ? curr : prev;
+    }, 0) + 1);
+  }
 
   var prevStep = null;
   var histogram = data
