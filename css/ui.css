@@ -348,11 +348,11 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
+  overflow-x: hidden;
 }
 .histogramContainerParent {
   display: block;
   overflow-y: scroll;
-  overflow-y: hidden;
   max-height: 300px;
 }
 .histogramSelected {
