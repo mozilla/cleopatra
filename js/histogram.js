@@ -95,7 +95,7 @@ var HistogramContainer;
         this.container.appendChild(row);
         var container = createElement("div", {
           className: "threadHistogramDescription",
-          innerHTML: thread.name + "<br>", //TODO: fix XSS
+          innerHTML: "<div class='threadHistogramDescriptionText'>" + thread.name + "</div>", //TODO: fix XSS
           title: "Thread Name"
         });
         row.appendChild(container);
