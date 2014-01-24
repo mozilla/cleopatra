@@ -112,7 +112,7 @@ MarkerTreeManager.prototype = {
       currObj.parent = parent;
       currObj.counter = 0;
       currObj.time = marker.time;
-      currObj.name = marker.name;
+      currObj.name = marker.name + (marker.marker.data.filename ? ': ' + marker.marker.data.filename : '');
       //if (marker.marker.data && marker.marker.data.interval) {
       //  currObj.name += marker.marker.data.interval;
       //}
