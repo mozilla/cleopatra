@@ -33,7 +33,7 @@ function MarkerTreeManager() {
       var markers = markerDiv.markers;
       for (var j = 0; j < markers.length; j++) {
         var marker = markers[j];
-        if (marker.name == markerData.name && marker.time == markerData.time) {
+        if (MarkerTreeManager.prototype.markerName(marker) == markerData.name && marker.time == markerData.time) {
           selectMarkerDiv(markerDiv);
           return;
         }
@@ -73,7 +73,7 @@ MarkerTreeManager.prototype = {
     return this.treeView.getTreeHeader();
   },
   selectMarker: function MarkerTreeManager_selectMarker(marker) {
-    this.treeView.setSelection(["(markers)", marker.name]);
+    this.treeView.setSelection(["(markers)", this.markerName(marker)]);
   },
   _HTMLForFunction: function MarkerTreeManager__HTMLForFunction(node) {
     return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
@@ -84,6 +84,16 @@ MarkerTreeManager.prototype = {
      '<span class="functionName">' + node.name + '</span>' +
      '<span class="libraryName">' + node.library + '</span>' +
      '<input type="button" value="Focus Callstack" title="Focus Callstack" class="focusCallstackButton" tabindex="-1">'; 
+  },
+  markerName: function markerName(marker){
+    if (marker.marker &&
+        marker.marker.data &&
+        marker.marker.data.filename) {
+      return marker.name + ': ' + marker.marker.data.filename;
+    }
+    else {
+      return marker.name;
+    }
   },
   buildTreeForStack: function MarkerTreeManager_buildTreeForStack(stack, pos) {
     var self = this;
@@ -112,7 +122,7 @@ MarkerTreeManager.prototype = {
       currObj.parent = parent;
       currObj.counter = 0;
       currObj.time = marker.time;
-      currObj.name = marker.name;
+      currObj.name = MarkerTreeManager.prototype.markerName(marker);
       //if (marker.marker.data && marker.marker.data.interval) {
       //  currObj.name += marker.marker.data.interval;
       //}
