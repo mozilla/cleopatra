@@ -75,15 +75,17 @@ MarkerTreeManager.prototype = {
   selectMarker: function MarkerTreeManager_selectMarker(marker) {
     this.treeView.setSelection(["(markers)", marker.name]);
   },
-  _HTMLForFunction: function MarkerTreeManager__HTMLForFunction(node) {
-    return '<input type="button" value="Expand / Collapse" class="expandCollapseButton" tabindex="-1"> ' +
-     '<span class="sampleCount">Marker</span> ' +
-     '<span class="samplePercentage"></span> ' +
-     '<span class="selfSampleCount">' + Math.round(node.time) + '</span> ' +
-     '<span class="resourceIcon" data-resource="' + node.library + '"></span> ' +
-     '<span class="functionName">' + node.name + '</span>' +
-     '<span class="libraryName">' + node.library + '</span>' +
-     '<input type="button" value="Focus Callstack" title="Focus Callstack" class="focusCallstackButton" tabindex="-1">'; 
+  _HTMLForFunction: function MarkerTreeManager__HTMLForFunction(node, depth) {
+     //TODO: fix xss
+     return '' +
+       '<span class="sampleCount rowLabel">Marker</span> ' +
+       '<span class="samplePercentage rowLabel"></span> ' +
+       '<span class="selfSampleCount rowLabel">' + Math.round(node.time) + '</span> ' +
+       '<span class="resourceIcon rowLabel" data-resource="' + node.library + '"></span> ' +
+       '<span title="Expand / Collapse" class="expandCollapseButton" style="margin-left:' + (depth+1) + 'em"></span>' +
+       '<span class="functionName">' + node.name + '</span>' +
+       '<span class="libraryName">' + node.library + '</span>' +
+       '<span title="Focus Callstack" title="Focus Callstack" class="focusCallstackButton">';
   },
   buildTreeForStack: function MarkerTreeManager_buildTreeForStack(stack, pos) {
     var self = this;
