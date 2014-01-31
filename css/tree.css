@@ -65,80 +65,73 @@
   right: 0;
 }
 
-.treeViewVerticalScrollbox {
+.treeViewTreeOuterContainer {
   position: absolute;
   top: 16px;
   left: 0;
   right: 0;
   bottom: 0;
-  overflow-y: scroll;
-  overflow-x: hidden;
+  overflow: auto;
 }
 
 .treeViewNode,
-.treeViewHorizontalScrollbox {
+.treeViewTreeInnerContainer {
   display: block;
   margin: 0;
   padding: 0;
 }
 
 .treeViewNode {
-  min-width: -moz-min-content;
   white-space: nowrap;
 }
 
-.treeViewHorizontalScrollbox {
-  padding-left: 171px;
-  overflow-x: scroll;
-  overflow-y: hidden;
+.treeViewTreeInnerContainer {
+  min-width: intrinsic;
+  min-width: -moz-max-content;
+  min-height: 100%;
 }
 
-.treeViewVerticalScrollbox,
-.treeViewHorizontalScrollbox {
+.treeViewTreeInnerContainer {
   background: -moz-linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
   background: -webkit-linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
   background: linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
   background-size: 100px 32px;
 }
-
-.leftColumnBackground {
-  background: -moz-linear-gradient(left, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px, transparent 146px, #CCC 146px, #CCC 147px, transparent 147px),
-    -moz-linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
-  background: -webkit-linear-gradient(left, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px, transparent 146px, #CCC 146px, #CCC 147px, transparent 147px),
-    -webkit-linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
-  background: linear-gradient(left, transparent 98px, #CCC 98px, #CCC 99px, transparent 99px, transparent 146px, #CCC 146px, #CCC 147px, transparent 147px),
-    linear-gradient(white, white 50%, #F0F5FF 50%, #F0F5FF);
-  background-size: auto, 100px 32px;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 167px;
-  min-height: 100%;
-  border-right: 1px solid #CCC;
+.treeViewTreeInnerContainer>:nth-child(2n+1) {
+  background-color: white;
+}
+.treeViewTreeInnerContainer>:nth-child(2n) {
+  background-color: #f0f5ff;
 }
 
-.sampleCount,
-.samplePercentage,
-.selfSampleCount,
-.resourceIcon {
-  position: absolute;
+.treeLine {
+  background-color: inherit;
+}
+.rowLabel {
+  background-color: inherit;
+  position: -webkit-sticky;
+  position: sticky;
+  flex: none;
   text-align: right;
 }
 
 .sampleCount {
-  left: 2px;
+  padding-left: 2px;
+  padding-right: 3px;
+  left: 0;
   width: 50px;
 }
 
 .samplePercentage {
   left: 55px;
+  padding-right:3px;
   width: 40px;
 }
 
 .selfSampleCount {
   left: 98px;
   width: 45px;
-  padding-right: 2px;
+  padding-right: 1px;
   border: solid #CCC;
   border-width: 0 1px;
 }
@@ -169,22 +162,13 @@
 }
 
 .treeLine {
-  /* extend the selection background almost infinitely to the left */
-  margin-left: -10000px;
-  padding-left: 10000px;
+  display: flex;
+  width: 100%;
 }
 
 .treeLine.selected {
   color: black;
   background-color: -moz-dialog;
-}
-
-.treeLine.selected > .sampleCount {
-  background-color: inherit;
-  margin-left: -2px;
-  padding-left: 2px;
-  padding-right: 115px;
-  margin-right: -115px;
 }
 
 .treeViewContainer:focus .treeLine.selected {
@@ -207,7 +191,6 @@
   overflow: hidden;
   vertical-align: top;
   color: transparent;
-  font-size: 0;
 }
 
 .expandCollapseButton {

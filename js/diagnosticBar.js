@@ -61,13 +61,16 @@ DiagnosticBar.prototype = {
   hide: function HistogramContainer_hide() {
     this._container.style.display = "none";
   },
-  display: function DiagnosticBar_display(diagnosticItems) {
+  display: function DiagnosticBar_display(diagnosticItems, boundaries) {
     var self = this;
     this._container.style.display = "none";
     this._container.innerHTML = "";
 
     var addedAnyDiagnosticItem = diagnosticItems.map(function addOneItem(item) {
-      return self._addDiagnosticItem(item.x, item.width, item.imageFile, item.title, item.details, item.onclickDetails);
+      var x1 = (item.start - boundaries.min) / (boundaries.max - boundaries.min);
+      var x2 = (item.end - boundaries.min) / (boundaries.max - boundaries.min);
+      var width = (item.start - boundaries.min) / (boundaries.max - boundaries.min);
+      return self._addDiagnosticItem(x1, x2-x1, item.imageFile, item.title, item.details, item.onclickDetails);
     }).some(function (didAdd) { return didAdd; });
 
     if (!addedAnyDiagnosticItem) {

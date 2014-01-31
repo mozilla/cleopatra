@@ -125,11 +125,23 @@ self.onmessage = function (msg) {
       case "getSerializedProfile":
         getSerializedProfile(requestID, taskData.profileID, taskData.complete);
         break;
+      case "getHistogramBoundaries":
+        getHistogramBoundaries(requestID, taskData.profileID, taskData.showMissedSample, taskData.threadId);
+        break;
       case "calculateHistogramData":
         calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
+      case "calculateWaterfallData":
+        calculateWaterfallData(requestID, taskData.profileID, taskData.boundaries);
+        break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
+        break;
+      case "changeWorseResponsiveness":
+        kDelayUntilWorstResponsiveness = taskData.res;
+        break;
+      case "addComment":
+        addComment(requestID, taskData.profileID, taskData.threadId, taskData.time, taskData.comment);
         break;
       default:
         sendError(requestID, "Unknown task " + task);
@@ -172,6 +184,42 @@ function sendFinished(requestID, result) {
     result: result,
     log: gLogLines
   });
+}
+
+function sendLog() {
+  self.postMessage({
+    type: "log",
+    params: Array.slice.call(null, arguments)
+  });
+}
+
+function timeToIndex(data, time) {
+  // Speed up using binary search if required, but make sure the first item
+  // in case of equality.
+
+  for (var i = 0; i < data.length - 1; i++) {
+    if (data[i+1].extraInfo && data[i+1].extraInfo.time && Math.floor(data[i+1].extraInfo.time) > time) {
+      return i;
+    }
+  }
+
+  return data.length - 1;
+}
+
+function addComment(requestID, profileID, threadId, time, comment) {
+  var profile = gProfiles[profileID];
+  var samples = profile.threads[threadId].samples;
+  var extraInfo = samples[timeToIndex(samples, time)].extraInfo;
+
+  if (!("marker" in extraInfo)) {
+    extraInfo.marker = [];
+  }
+  extraInfo.marker.push({
+    name: comment,
+    type: 'comment'
+  });
+
+  sendFinished(requestID, true);
 }
 
 function bucketsBySplittingArray(array, maxCostPerBucket, costOfElementCallback) {
@@ -253,7 +301,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       throw "rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.";
     }
   }
-
 
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
@@ -509,70 +556,6 @@ function parseRawProfile(requestID, params, rawProfile) {
     return symbolicationTable[symbol] || symbol;
   }
 
-  function syncThreads(threads) {
-
-    var threadCount = Object.keys(threads).length;
-    if (threadCount <= 1)
-      return;
-
-    var startPoint;
-    var endPoint;
-    for (var threadId in threads) {
-      var thread = threads[threadId];
-      var samples = thread.samples;
-
-      if (!samples || samples.length < 2) {
-        continue;
-      }
-
-      if (!startPoint || startPoint > samples[0].extraInfo["time"]) {
-        startPoint = samples[0].extraInfo["time"];
-      }
-      if (!endPoint || endPoint < samples[samples.length-2].extraInfo["time"]) {
-        endPoint = samples[samples.length-2].extraInfo["time"];
-      }
-    }
-
-    /*
-    var rootId = indexForSymbol("(root)");
-    for (var threadId in threads) {
-      var thread = threads[threadId];
-      var samples = thread.samples;
-      for (sampleId in samples) {
-        var sample = samples[sampleId];
-        if (sample.frames[0] != rootId) {
-          sample.frames.splice(0, 0, rootId);
-        }
-      }
-    }
-    */
-    var sampleId = 0;
-    for (var time = startPoint; time < endPoint; time+=10) {
-      for (var threadId in threads) {
-        var thread = threads[threadId];
-        var samples = thread.samples;
-
-        if (!samples || samples.length < 2) {
-          continue;
-        }
-
-        if (sampleId >= samples.length) {
-          // This thread's doesn't have enough samples, insert one
-          samples.push(makeMissedSample(samples[0].frames[0], time));
-        } else if (samples[sampleId].extraInfo["time"] > time) {
-          samples.splice(sampleId, 0, makeMissedSample(samples[0].frames[0], time));
-          //if (threadId == 1)
-          //  dump("inserting for: " + time + " @ " + sampleId + " next: " + samples[sampleId+1].extraInfo["time"] + "\n");
-        }
-      }
-      sampleId++;
-    }
-    //var jSamples = threads[1].samples;
-    //for (var sid in jSamples) {
-    //  dump("Sync: " + jSamples[sid].extraInfo["time"] + "\n");
-    //}
-  }
-
   function makeMissedSample(parentIndex, time) {
     return makeSample(
         [parentIndex, indexForSymbol("Missed")],
@@ -603,6 +586,33 @@ function parseRawProfile(requestID, params, rawProfile) {
     return include;
   }
 
+  // Markers before bug 867757 were just a simple string.
+  // This will upgrade the marker if they are a string
+  function prepareMarker(markerArray) {
+    for (var i = 0; i < markerArray.length; i++) {
+      var marker = markerArray[i];
+      if (typeof marker == "string") {
+        markerArray[i] = {
+          name: marker,
+        };
+      }
+      if (marker.data && marker.data.stack && marker.data.stack.samples) {
+        // the stack is actually a simple profile with one sample. Let's replace it by a single stack
+        var simpleStack = [];
+        for (var a = 0; a < marker.data.stack.samples.length; a++) {
+          var nestedSample = marker.data.stack.samples[a];
+          for (var b = 0; b < nestedSample.frames.length; b++) {
+            var frame = nestedSample.frames[b];
+            if (frame.location) {
+              simpleStack.push(indexForSymbol(frame.location));
+            }
+          }
+        }
+        markerArray[i].data.stack = simpleStack;
+      }
+    }
+  }
+
   function parseProfileString(data) {
     var extraInfo = {};
     var lines = data.split("\n");
@@ -630,6 +640,7 @@ function parseRawProfile(requestID, params, rawProfile) {
           extraInfo.marker = [];
         }
         extraInfo.marker.push(info);
+        prepareMarker(extraInfo.marker);
         break;
       case 's':
         // sample
@@ -698,6 +709,16 @@ function parseRawProfile(requestID, params, rawProfile) {
            profile.threads[tid] = JSON.parse(profile.threads[tid]);
            // If we parse the samples this may be a subprocess profile we need to merge in
            if (profile.threads[tid].threads != null) {
+             var deltaTime = null;
+             if (profile.meta.startTime && profile.threads[tid].meta.startTime) {
+               deltaTime = profile.threads[tid].meta.startTime - profile.meta.startTime;
+               for (var sampleId = 0; sampleId < profile.threads[tid].threads[0].samples; sampleId++) {
+                 var sample = profile.threads[tid].threads[0].samples[sampleId];
+                 if (sample.time) {
+                   sample.time += deltaTime;
+                 }
+               }
+             }
              profile.threads[tid] = profile.threads[tid].threads[0];
            }
          }
@@ -718,6 +739,55 @@ function parseRawProfile(requestID, params, rawProfile) {
         name: "Main",
         samples: samples,
       };
+    }
+
+    if (meta.timelines) {
+      for(var i in meta.timelines) {
+        var timeline = meta.timelines[i];
+        var fakeThread = {};
+        fakeThread.name = timeline.name;
+        fakeThread.samples = [];
+
+        function bytesToString(val) {
+          if (val > 1024 * 1024 * 1024) {
+            return Math.round(val / 1024 / 1024 / 1024) + " GB";
+          } else {
+            return Math.round(val / 1024 / 1024) + " MB";
+          }
+        }
+
+        for (var id in threads[0].samples) {
+          var sample = threads[0].samples[id];
+          var time = sample.extraInfo.time;
+
+          var reported = false;
+          for (var sampleID in timeline.samples) {
+            if (time < timeline.samples[sampleID].time && sampleID > 0) {
+              var timelineSample = timeline.samples[sampleID-1];
+              fakeThread.samples.push({
+                frames: [ "Main", bytesToString(timelineSample.data) ],
+                extraInfo: {
+                  time: time,
+                  height: timelineSample.data,
+                },
+              });
+              reported = true;
+              break;
+            }
+          }
+          if (!reported) {
+            fakeThread.samples.push({
+              frames: [ "Main", "Unknown" ],
+              extraInfo: {
+                time: time,
+                height: 0,
+              },
+            });
+          }
+        }
+        threads["timeline"+i] = fakeThread;
+        dump("Done timeline: " + timeline.name + "\n");
+      }
     }
 
     function parseJSONSamples(profileSamples) {
@@ -764,6 +834,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         }
         if (sample.marker) {
           sample.extraInfo["marker"] = sample.marker;
+          prepareMarker(sample.extraInfo["marker"]);
         }
         if (sample.time) {
           sample.extraInfo["time"] = sample.time;
@@ -798,8 +869,6 @@ function parseRawProfile(requestID, params, rawProfile) {
       name: thread.name,
     };
   }
-
-  syncThreads(threads);
 
   progressReporter.finish();
   // Don't increment the profile ID now because (1) it's buggy
@@ -1147,7 +1216,9 @@ function RangeSampleFilter(start, end) {
 }
 RangeSampleFilter.prototype = {
   filter: function RangeSampleFilter_filter(samples, symbols, functions) {
-    return samples.slice(this._start, this._end);
+    return samples.filter(function (sample) {
+      return sample && sample.extraInfo.time >= this._start && sample.extraInfo.time <= this._end;
+    }.bind(this));
   }
 }
 
@@ -1224,112 +1295,148 @@ function updateViewOptions(requestID, profileID, options, threadId) {
   sendFinished(requestID, treeData);
 }
 
-// The responsiveness threshold (in ms) after which the sample shuold become
+function findTimelineStart(profileID) {
+  var profile = gProfiles[profileID];
+  var min = null;
+  for (var threadID in profile.filteredThreadSamples) {
+    var thread = profile.filteredThreadSamples[threadID];
+    if (thread == null)
+      continue;
+    if (thread[0].extraInfo.time && 
+        (min == null || thread[0].extraInfo.time < min)) {
+      min = thread[0].extraInfo.time;
+    }
+  }
+
+  if (min == null) {
+    dump("Bad min\n");
+  }
+  return min;
+}
+
+function findTimelineEnd(profileID) {
+  var profile = gProfiles[profileID];
+  var max = null;
+  for (var threadID in profile.filteredThreadSamples) {
+    var thread = profile.filteredThreadSamples[threadID];
+    if (thread == null)
+      continue;
+    var len = thread.length;
+    if (thread[len-2].extraInfo.time && 
+        (max == null || thread[len-2].extraInfo.time > max)) {
+      max = thread[len-2].extraInfo.time;
+    }
+  }
+
+  if (max == null) {
+    dump("Bad max\n");
+  }
+  return max;
+}
+
+// The responsiveness threshold (in ms) after which the sample should become
 // completely red in the histogram.
 var kDelayUntilWorstResponsiveness = 1000;
 
-function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
+function getHistogramBoundaries(requestID, profileID, showMissedSample) {
+  function flatten(arr) {
+    return arr.reduce(function(a, b) { return a.concat(b) });
+  }
 
+  var samples = gProfiles[profileID].filteredThreadSamples;
+  var times = flatten(Object.keys(samples).map(function (id) {
+    return Object.keys(samples[id]).map(function (stepId) {
+      if (!samples[id][stepId]) {
+        return Number.NaN;
+      }
+      return Math.floor(samples[id][stepId].extraInfo.time);
+    });
+  }));
+
+  // Filter out all entries with no time.
+  times = times.filter(function (time) { return !isNaN(time); });
+
+  sendFinished(requestID, {
+    minima: Math.min.apply(null, times),
+    maxima: Math.max.apply(null, times)
+  });
+}
+
+function calculateHistogramData(requestID, profileID, showMissedSample, options, threadId) {
   function getStepColor(step) {
+    var res;
+
     if (options.showPowerInfo) {
-      var res = step.extraInfo.power;
-      var redComponent = Math.round(255 * Math.min(1, res / 0.1));
-      return "rgb(" + redComponent + ",0,0)";
+      res = step.extraInfo.power;
+      return Math.round(255 * Math.min(1, res / options.peakPower));
     } else if (step.extraInfo && "responsiveness" in step.extraInfo) {
-      var res = step.extraInfo.responsiveness;
-      var redComponent = Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
-      return "rgb(" + redComponent + ",0,0)";
+      res = step.extraInfo.responsiveness;
+      return Math.round(255 * Math.min(1, res / kDelayUntilWorstResponsiveness));
     }
 
-    return "rgb(0,0,0)";
+    return 0;
+  }
+
+  function getHeight(step) {
+    if (!step) {
+      return 0;
+    }
+    return step.extraInfo.height || step.frames.length;
+  }
+
+  function getMovingHeight(prevStep, step) {
+    var nonMoving = 0;
+    if (prevStep) {
+      var len = Math.min(prevStep.frames.length, step.frames.length);
+      for (var i = 0; i < len; i++) {
+        if (prevStep.frames[i] == step.frames[i]) {
+           nonMoving++;
+        }
+      }
+    }
+    return step.frames.length - nonMoving;
+  }
+
+  function symbolicateMarkers(markers) {
+    var symMarkers = [];
+    for (var i = 0; i < markers.length; i++) {
+      var marker = JSON.parse(JSON.stringify(markers[i]));
+      if (marker.data && marker.data.stack) {
+        marker.data.stack = prepareSample(marker.data.stack, profile.symbols);
+      }
+      symMarkers.push(marker);
+    }
+    return symMarkers;
   }
 
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
-  var expectedInterval = null;
-  if (showMissedSample === true && profile.meta && profile.meta.interval) {
-    expectedInterval = profile.meta.interval; 
-  }
-  var histogramData = [];
   var maxHeight = 0;
-  for (var i = 0; i < data.length; ++i) {
-    if (!data[i])
-      continue;
-    var value = data[i].frames.length;
-    if (maxHeight < value)
-      maxHeight = value;
+  for (var i in profile.filteredThreadSamples) {
+    maxHeight = Math.max(maxHeight, profile.filteredThreadSamples[i].reduce(function (prev, curr, i, a) {
+      curr = getHeight(curr);
+      return curr > prev ? curr : prev;
+    }, 0) + 1);
   }
-  maxHeight += 1;
-  var nextX = 0;
-  // The number of data items per histogramData rects.
-  // Except when seperated by a marker.
-  // This is used to cut down the number of rects, since
-  // there's no point in having more rects then pixels
-  var samplesPerStep = Math.max(1, Math.floor(data.length / 2000));
-  var frameStart = {};
-  for (var i = 0; i < data.length; i++) {
-    var step = data[i];
-    if (!step) {
-      // Add a gap for the sample that was filtered out.
-      nextX += 1 / samplesPerStep;
-      continue;
-    }
-    if (expectedInterval != null && i > 0 && data[i-1] != null &&
-        data[i-1].extraInfo.time != null && step.extraInfo.time != null &&
-        step.extraInfo.time > data[i-1].extraInfo.time + expectedInterval) {
-      var samplesSkipped = Math.floor((step.extraInfo.time - data[i-1].extraInfo.time) / expectedInterval) - 1;
-      nextX += 1 * samplesSkipped / samplesPerStep;
-    }
-    nextX = Math.ceil(nextX);
-    var value = step.frames.length / maxHeight;
-    var frames = step.frames;
-    var currHistogramData = histogramData[histogramData.length-1];
-    if (step.extraInfo && "marker" in step.extraInfo) {
-      // A new marker boundary has been discovered.
-      histogramData.push({
-        frames: "marker",
-        x: nextX,
-        width: 2,
-        value: 1,
-        marker: step.extraInfo.marker,
-        color: "fuchsia"
-      });
-      nextX += 2;
-      histogramData.push({
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
-        color: getStepColor(step),
-      });
-      nextX += 1;
-    } else if (currHistogramData != null &&
-      currHistogramData.frames.length < samplesPerStep &&
-      !(step.extraInfo && "frameNumber" in step.extraInfo)) {
-      currHistogramData.frames.push(step.frames);
-      // When merging data items take the average:
-      currHistogramData.value =
-        (currHistogramData.value * (currHistogramData.frames.length - 1) + value) /
-        currHistogramData.frames.length;
-      // Merge the colors? For now we keep the first color set.
-    } else {
-      // A new name boundary has been discovered.
-      currHistogramData = {
-        frames: [step.frames],
-        x: nextX,
-        width: 1,
-        value: value,
-        color: getStepColor(step),
+
+  var prevStep = null;
+  var histogram = data
+    .filter(function (step) { return step != null; })
+    .map(function (step, i) {
+      var movingHeight = getMovingHeight(prevStep, step);
+      prevStep = step;
+      return {
+        frames: [ step.frames ],
+        height: getHeight(step) / (maxHeight / 100),
+        movingHeight: movingHeight / (maxHeight / 100),
+        time: step.extraInfo.time,
+        power: step.extraInfo.power,
+        markers: symbolicateMarkers(step.extraInfo.marker || []),
+        color: getStepColor(step)
       };
-      if (step.extraInfo && "frameNumber" in step.extraInfo) {
-        currHistogramData.frameNumber = step.extraInfo.frameNumber;
-        frameStart[step.extraInfo.frameNumber] = histogramData.length;
-      }
-      histogramData.push(currHistogramData);
-      nextX += 1;
-    }
-  }
-  sendFinished(requestID, { threadId: threadId, histogramData: histogramData, frameStart: frameStart, widthSum: Math.ceil(nextX) });
+    });
+
+  sendFinished(requestID, { threadId: threadId, histogramData: histogram });
 }
 
 var diagnosticList = [
@@ -1561,6 +1668,7 @@ var diagnosticList = [
     title: "Cycle Collect",
     check: function(frames, symbols, meta) {
       return stepContains('nsCycleCollector::Collect', frames, symbols)
+          || stepContains('CC:CycleCollectNow', frames, symbols) // Label
           || stepContains('CycleCollect__', frames, symbols) // Label
           || stepContains('nsCycleCollectorRunner::Collect', frames, symbols) // Label
           ;
@@ -1590,7 +1698,15 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContains('__getdirentries64', frames, symbols) 
           || stepContains('__open', frames, symbols) 
+
+          // Window IO Functions
+          || stepContains('NtClose', frames, symbols) 
           || stepContains('NtFlushBuffersFile', frames, symbols) 
+          || stepContains('NtSetInformationFile', frames, symbols) 
+          || stepContains('NtWriteFile', frames, symbols) 
+          || stepContains('ZwCreateFile', frames, symbols) 
+          || stepContains('ZwQueryFullAttributesFile', frames, symbols) 
+
           || stepContains('storage:::Statement::ExecuteStep', frames, symbols) 
           || stepContains('__unlink', frames, symbols) 
           || stepContains('fsync', frames, symbols) 
@@ -1724,15 +1840,171 @@ function firstMatch(array, matchFunction) {
   return undefined;
 }
 
-function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
-  /*
-  if (!histogramData || histogramData.length < 1) {
-    sendFinished(requestID, []);
-    return;
-  }*/
+function prepareSample(frames, symbols) {
+  var stack = [];
+  for (var i = 0; i < frames.length; i++) {
+    var sym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (sym.indexOf("mozilla_sampler_tracing(") == 0) {
+      break;
+    }
+    stack.push(sym);
+  }
+  return stack;
+}
 
+function calculateWaterfallData(requestID, profileID, boundaries) {
   var profile = gProfiles[profileID];
-  //var symbols = profile.symbols;
+  var symbols = profile.functions;
+
+  var mainThread = null;
+  var compThread = null;
+  for (var threadId in profile.threads) {
+    var thread = profile.threads[threadId];
+    if (thread.name &&
+       (thread.name.lastIndexOf("Gecko") == 0 ||
+        thread.name.lastIndexOf("GeckoMain") == 0)) {
+      mainThread = thread.samples;
+    } else if (thread.name &&
+        thread.name.lastIndexOf("Compositor") == 0) {
+      compThread = thread.samples;
+    }
+  }
+
+  if (!mainThread || !compThread ||
+      boundaries.min == -Infinity || boundaries.min == Infinity ||
+      boundaries.max == -Infinity || boundaries.max == Infinity) {
+    sendFinished(requestID, null);
+    return null;
+  }
+
+  function getPaintMarkers(sample) {
+    if (sample.extraInfo == null ||
+        sample.extraInfo.marker == null)
+      return [];
+
+    var markers = [];
+    for (var i = 0; i < sample.extraInfo.marker.length; i++) {
+      if (sample.extraInfo.marker[i].data &&
+          sample.extraInfo.marker[i].data.category == "Paint") {
+        markers.push(sample.extraInfo.marker[i]);
+      }
+    }
+    return markers;
+  }
+  
+  var result = {
+    boundaries: boundaries,
+    items: [],
+  };
+  var mainThreadState = "Waiting";
+  var mainThreadPos = 0;
+  var compThreadState = "Waiting";
+  var compThreadPos = 0;
+  var time = boundaries.minima;
+  var startScripts = null;
+  var endScripts = null;
+  var startRasterize = null;
+  var startComposite = null;
+  var startTimerStack = null;
+  while (true) {
+    while (mainThreadPos < mainThread.length &&
+        (mainThread[mainThreadPos].extraInfo.time == null ||
+         time > mainThread[mainThreadPos].extraInfo.time)) {
+      mainThreadPos++;
+    }
+    while (compThreadPos < compThread.length &&
+        (compThread[compThreadPos].extraInfo.time == null ||
+         time > compThread[compThreadPos].extraInfo.time)) {
+      compThreadPos++;
+    }
+    if (mainThreadPos >= mainThread.length &&
+        compThreadPos >= compThread.length) {
+      break;
+    }
+
+    var nextSample = null;
+    if (mainThreadPos < mainThread.length &&
+        (compThreadPos == compThread.length ||
+         mainThread[mainThreadPos].extraInfo.time <= compThread[compThreadPos].extraInfo.time)) {
+      nextSample = mainThread[mainThreadPos];
+      mainThreadPos++;
+      var paintMarkers = getPaintMarkers(nextSample);
+      for (var i = 0; i < paintMarkers.length; i++) {
+        var marker = paintMarkers[i];
+        if (marker.name == "RD" && marker.data.interval == "start") {
+          mainThreadState = "RDenter";
+        } else if (marker.name == "RD" && marker.data.interval == "end") {
+          mainThreadState = "Waiting";
+        } else if (mainThreadState == "RDenter" &&
+            marker.name == "Scripts" && marker.data.interval == "start") {
+          startScripts = nextSample.extraInfo.time;
+          endScripts = null;
+        } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
+          startTimerStack = prepareSample(marker.data.stack, profile.symbols);
+        } else if (mainThreadState == "RDenter" &&
+            startScripts &&
+            marker.name == "Scripts" && marker.data.interval == "end") {
+          result.items.push({
+            startTime: startScripts,
+            endTime: nextSample.extraInfo.time,
+            text: "Scripts",
+          });
+          startScripts = null;
+          endScripts = nextSample.extraInfo.time;
+        } else if (mainThreadState == "RDenter" &&
+            marker.name == "Rasterize" && marker.data.interval == "start") {
+          startRasterize = nextSample.extraInfo.time;
+          result.items.push({
+            startTime: endScripts,
+            endTime: nextSample.extraInfo.time,
+            text: "Layout",
+            startTimerStack: startTimerStack,
+          });
+          startTimerStack = null;
+          endScripts = null;
+        } else if (mainThreadState == "RDenter" &&
+            startRasterize &&
+            marker.name == "Rasterize" && marker.data.interval == "end") {
+          result.items.push({
+            startTime: startRasterize,
+            endTime: nextSample.extraInfo.time,
+            text: "Rasterize",
+          });
+          startRasterize = null;
+        }
+      }
+    } else {
+      nextSample = compThread[compThreadPos];
+      compThreadPos++;
+      var paintMarkers = getPaintMarkers(nextSample);
+      for (var i = 0; i < paintMarkers.length; i++) {
+        var marker = paintMarkers[i];
+        if (marker.name == "Composite" && marker.data.interval == "start" &&
+            !startComposite) {
+          startComposite = nextSample.extraInfo.time;
+        } else if (marker.name == "Composite" && marker.data.interval == "end") {
+          if (mainThreadPos != 0 &&
+              startComposite != null && startComposite != nextSample.extraInfo.time) {
+            result.items.push({
+              startTime: startComposite,
+              endTime: nextSample.extraInfo.time,
+              text: "Composite",
+            });
+          }
+          startComposite = null;
+        }
+      }
+    }
+    
+    time = nextSample.extraInfo.time;
+  }
+  
+
+  sendFinished(requestID, result);
+}
+
+function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
+  var profile = gProfiles[profileID];
   var symbols = profile.functions;
   var data = profile.filteredThreadSamples[threadId];
 
@@ -1742,13 +2014,15 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
 
   var diagnosticItems = [];
 
-  function finishPendingDiagnostic(endX) {
+  function finishPendingDiagnostic(step, endX) {
     if (!pendingDiagnosticInfo)
       return;
 
     var diagnostic = pendingDiagnosticInfo.diagnostic;
     var currDiagnostic = {
       x: pendingDiagnosticInfo.x / widthSum,
+      start: pendingDiagnosticInfo.start,
+      end: step.extraInfo.time,
       width: (endX - pendingDiagnosticInfo.x) / widthSum,
       imageFile: pendingDiagnosticInfo.diagnostic.image,
       title: pendingDiagnosticInfo.diagnostic.title,
@@ -1782,7 +2056,7 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
     }
 
     if (!diagnostic) {
-      finishPendingDiagnostic(x);
+      finishPendingDiagnostic(step, x);
       return;
     }
 
@@ -1796,18 +2070,19 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
       }
 
       // We have left the old diagnostic and found a new one. Finish the old one.
-      finishPendingDiagnostic(x);
+      finishPendingDiagnostic(step, x);
     }
 
     pendingDiagnosticInfo = {
       diagnostic: diagnostic,
       x: x,
+      start: step.extraInfo.time,
       details: details,
       onclickDetails: diagnostic.onclickDetails ? diagnostic.onclickDetails(frames, symbols, meta, step) : null
     };
   });
   if (pendingDiagnosticInfo)
-    finishPendingDiagnostic(data.length);
+    finishPendingDiagnostic(data[data.length-1], data.length);
 
   sendFinished(requestID, diagnosticItems);
 }

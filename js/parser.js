@@ -86,11 +86,14 @@ function WorkerRequest(worker) {
           self._fireEvent("finished", partialResult);
           worker.removeEventListener("message", onMessageFromWorker);
           break;
+        case "log":
+          console.log.apply(console, data.params);
+          break;
       }
       // dump log if present
       if (data.log) {
-        for (var line in data.log) {
-          PROFILERLOG(line);
+        for (var i = 0; i < data.log.length; i++) {
+          PROFILERLOG(data.log[i]);
         }
       }
     }
@@ -226,6 +229,14 @@ var Parser = {
     return request;
   },
 
+  changeWorseResponsiveness: function Parser_changeWorseResponsiveness(res) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("changeWorseResponsiveness", {
+      res: res
+    });
+    return request;
+  },
+
   updateViewOptions: function Parser_updateViewOptions(options, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("updateViewOptions", {
@@ -245,6 +256,15 @@ var Parser = {
     request.addEventListener("finished", callback);
   },
 
+  getHistogramBoundaries: function Parser_getHistogramBoundaries(showMissedSample) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("getHistogramBoundaries", {
+      profileID: 0,
+      showMissedSample: showMissedSample,
+    });
+    return request;
+  },
+
   calculateHistogramData: function Parser_calculateHistogramData(showMissedSample, options, threadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("calculateHistogramData", {
@@ -252,6 +272,15 @@ var Parser = {
       threadId: threadId,
       options: options,
       showMissedSample: showMissedSample,
+    });
+    return request;
+  },
+
+  calculateWaterfallData: function Parser_caculateWaterfallData(boundaries) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("calculateWaterfallData", {
+      profileID: 0,
+      boundaries: boundaries,
     });
     return request;
   },
@@ -271,6 +300,17 @@ var Parser = {
     request.send("initWorker", {
       debugLog: gDebugLog,
       debugTrace: gDebugTrace,
+    });
+    return request;
+  },
+
+  addComment: function Parser_addComment(comment, time, threadId) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("addComment", {
+      profileID: 0,
+      threadId: threadId,
+      comment: comment,
+      time: time,
     });
     return request;
   },
