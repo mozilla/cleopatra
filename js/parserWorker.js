@@ -1253,17 +1253,19 @@ function updateFilters(requestID, profileID, filters, threadId) {
   if (filters.mergeFunctions) {
     samples = discardLineLevelInformation(samples, symbols, functions);
   }
-  if (filters.nameFilter) {
-    try {
-      samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
-    } catch (e) {
-      dump("Could not filer by name: " + e + "\n");
-    }
-  }
+
   samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
     if (currentFilter===null) return filteredSamples;
     return currentFilter.filter(filteredSamples, symbols, functions, filters.mergeFunctions);
   }, samples);
+
+  if (filters.nameFilter) {
+    try {
+      samples = filterByName(samples, symbols, functions, filters.nameFilter, filters.mergeFunctions);
+    } catch (e) {
+      dump("Could not filter by name: " + e + "\n");
+    }
+  }
   if (filters.jankOnly) {
     samples = filterByJank(samples, gJankThreshold);
   }

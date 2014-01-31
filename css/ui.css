@@ -280,6 +280,10 @@ body {
   margin: 2px 0;
   padding-left: 18px;
 }
+#filterName {
+  padding: 0;
+  height: 12px;
+}
 .pluginview {
   position: absolute;
   right: 0;
