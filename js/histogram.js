@@ -620,6 +620,7 @@ var HistogramContainer;
 
         this.graph.style.cursor = "col-resize";
         isMouseDown = true;
+        this.graph.setCapture();
 
         // Begin histogram selection
         this.higlighter.classList.remove("finished");
@@ -671,11 +672,6 @@ var HistogramContainer;
         }
 
         this.updateMouseMarker(ev.pageX);
-      }.bind(this), false);
-
-      this.graph.addEventListener("mouseout", function (ev) {
-        this.clearMouseMarker();
-        isMouseDown = false;
       }.bind(this), false);
     },
 
