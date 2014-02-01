@@ -83,7 +83,6 @@ function TreeView() {
   this._treeOuterContainer.addEventListener("contextmenu", function(event) {
     self._populateContextMenu(event);
   }, true);
-  this._setUpScrolling();
 };
 TreeView.instanceCounter = 0;
 
@@ -292,34 +291,6 @@ TreeView.prototype = {
     this._eventListeners[eventName].forEach(function (callbackFunction) {
       callbackFunction(eventObject);
     });
-  },
-  _setUpScrolling: function TreeView__setUpScrolling() {
-    var waitingForPaint = false;
-    var accumulatedDeltaX = 0;
-    var accumulatedDeltaY = 0;
-    var self = this;
-    function scrollListener(e) {
-      if (!waitingForPaint) {
-        requestAnimationFrame(function () {
-          self._treeInnerContainer.scrollLeft += accumulatedDeltaX;
-          self._treeOuterContainer.scrollTop += accumulatedDeltaY;
-          accumulatedDeltaX = 0;
-          accumulatedDeltaY = 0;
-          waitingForPaint = false;
-        });
-        waitingForPaint = true;
-      }
-      if (e.axis == e.HORIZONTAL_AXIS) {
-        accumulatedDeltaX += e.detail;
-      } else {
-        accumulatedDeltaY += e.detail;
-      }
-      e.preventDefault();
-    }
-    this._treeOuterContainer.addEventListener("MozMousePixelScroll", scrollListener, false);
-    this._treeOuterContainer.cleanUp = function () {
-      self._treeOuterContainer.removeEventListener("MozMousePixelScroll", scrollListener, false);
-    };
   },
   _createTree: function TreeView__createTree(parentElement, parentNode, data) {
     var div = document.createElement("div");
