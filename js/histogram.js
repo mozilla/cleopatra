@@ -253,11 +253,7 @@ var HistogramContainer;
       }
 
       var r = this.canvas.getBoundingClientRect();
-      var scale = window.devicePixelRatio || 1;
-      this.canvas.width = r.width * scale;
-      this.canvas.height = r.height * scale;
       var ctx = this.canvas.getContext("2d");
-      ctx.scale(scale, scale);
 
       return { context: ctx, height: r.height, width: r.width };
     },
@@ -312,6 +308,10 @@ var HistogramContainer;
         markerDiv.parentNode.removeChild(markerDiv);
       }
 
+      var scale = window.devicePixelRatio || 1;
+      ctx.canvas.width = info.width * scale;
+      ctx.canvas.height = info.height * scale;
+      ctx.scale(scale, scale);
       ctx.clearRect(0, 0, info.width, info.height);
 
       this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15);
