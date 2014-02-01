@@ -3,9 +3,8 @@ var HistogramContainer;
 (function () {
   function createCanvas() {
     var canvas = document.createElement("canvas");
-    canvas.height = 60;
     canvas.style.width = "100%";
-    canvas.style.height = "100%";
+    canvas.style.height = "60px";
     return canvas;
   }
 
@@ -253,11 +252,14 @@ var HistogramContainer;
         throw new Error("You need to call HistogramView.display first.");
       }
 
+      var r = this.canvas.getBoundingClientRect();
+      var scale = window.devicePixelRatio || 1;
+      this.canvas.width = r.width * scale;
+      this.canvas.height = r.height * scale;
       var ctx = this.canvas.getContext("2d");
-      var width = parseInt(getComputedStyle(this.canvas, null).getPropertyValue("width"));
-      var height = this.canvas.height;
+      ctx.scale(scale, scale);
 
-      return { context: ctx, height: height, width: width };
+      return { context: ctx, height: r.height, width: r.width };
     },
 
     selectRange: function(start, end) {
@@ -310,7 +312,6 @@ var HistogramContainer;
         markerDiv.parentNode.removeChild(markerDiv);
       }
 
-      this.canvas.width = info.width;
       ctx.clearRect(0, 0, info.width, info.height);
 
       this._renderSamples(ctx, callstack, inverted, info.width, info.height - 15);
