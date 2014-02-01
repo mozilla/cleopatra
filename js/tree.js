@@ -533,22 +533,20 @@ TreeView.prototype = {
     if (maxImportantWidth === undefined)
       maxImportantWidth = Infinity;
 
-    var visibleRect = {
-      left: this._treeInnerContainer.getBoundingClientRect().left + 150, // TODO: un-hardcode 150
-      top: this._treeOuterContainer.getBoundingClientRect().top,
-      right: this._treeInnerContainer.getBoundingClientRect().right,
-      bottom: this._treeOuterContainer.getBoundingClientRect().bottom
-    }
+    var horizontalPadding = 20;
+    var fixedOverlayColumnsWidth = 170; // TODO: un-hardcode this
+
+    var visibleRect = this._treeOuterContainer.getBoundingClientRect();
     var r = element.getBoundingClientRect();
-    var right = Math.min(r.right, r.left + maxImportantWidth);
-    var leftCutoff = visibleRect.left - r.left;
+    var right = Math.min(r.right, r.left + maxImportantWidth) + horizontalPadding;
+    var leftCutoff = visibleRect.left - (r.left - horizontalPadding) + fixedOverlayColumnsWidth;
     var rightCutoff = right - visibleRect.right;
     var topCutoff = visibleRect.top - r.top;
     var bottomCutoff = r.bottom - visibleRect.bottom;
     if (leftCutoff > 0)
-      this._treeInnerContainer.scrollLeft -= leftCutoff;
+      this._treeOuterContainer.scrollLeft -= leftCutoff;
     else if (rightCutoff > 0)
-      this._treeInnerContainer.scrollLeft += Math.min(rightCutoff, -leftCutoff);
+      this._treeOuterContainer.scrollLeft += Math.min(rightCutoff, -leftCutoff);
     if (topCutoff > 0)
       this._treeOuterContainer.scrollTop -= topCutoff;
     else if (bottomCutoff > 0)
