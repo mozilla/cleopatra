@@ -12,15 +12,11 @@
   user-select: none;
 }
 
-.diagnosticItemEven {
+.diagnosticItem {
   background: -moz-linear-gradient(#900, #E00);
   background: -webkit-linear-gradient(#900, #E00);
   background: linear-gradient(#900, #E00);
-}
-
-.diagnosticItemOdd {
-  background: -moz-linear-gradient(#300, #500);
-  background: -webkit-linear-gradient(#300, #500);
-  background: linear-gradient(#300, #500);
+  border: 1px solid;
+  border-radius: 3px;
 }
 

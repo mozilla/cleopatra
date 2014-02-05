@@ -1442,6 +1442,15 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 var diagnosticList = [
   // *************** Known bugs first (highest priority)
   {
+    image: "eye.png",
+    title: "visibility_monitor.js - Bug 967884",
+    check: function(frames, symbols, meta) {
+
+      return stepContains('@ tag_visibility_monitor', frames, symbols) 
+          ;
+    },
+  },
+  {
     image: "io.png",
     title: "Main Thread IO - Bug 765135 - TISCreateInputSourceList",
     check: function(frames, symbols, meta) {

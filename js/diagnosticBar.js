@@ -1,7 +1,6 @@
 function DiagnosticBar() {
   this._container = document.createElement("div");
   this._container.className = "diagnostic";
-  this._colorCode = 0;
 }
 
 DiagnosticBar.prototype = {
@@ -19,11 +18,7 @@ DiagnosticBar.prototype = {
       width = 0.1;
 
     var diagnosticGradient = document.createElement("a");
-    if (this._colorCode % 2 == 0) {
-      diagnosticGradient.className = "diagnosticItemEven";
-    } else {
-      diagnosticGradient.className = "diagnosticItemOdd";
-    }
+    diagnosticGradient.className = "diagnosticItem";
 
     var diagnostic = document.createElement("a");
 
@@ -43,7 +38,6 @@ DiagnosticBar.prototype = {
     diagnosticGradient.style.backgroundPosition = "center";
     diagnosticGradient.style.left = x + "%";
 
-
     if (onclickDetails) {
       diagnostic.onclick = function() {
         if (self._detailsListener) {
@@ -53,8 +47,6 @@ DiagnosticBar.prototype = {
     }
     diagnosticGradient.appendChild(diagnostic);
     this._container.appendChild(diagnosticGradient);
-
-    this._colorCode++;
 
     return true;
   },
