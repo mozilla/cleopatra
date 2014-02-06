@@ -1444,9 +1444,26 @@ var diagnosticList = [
   {
     image: "eye.png",
     title: "visibility_monitor.js - Bug 967884",
-    check: function(frames, symbols, meta) {
+    bugNumber: "967884",
+    check: function(frames, symbols, meta, step, thread) {
+      if (thread.name.indexOf("(Communications:") == -1) {
+        return false;
+      }
 
       return stepContains('@ tag_visibility_monitor', frames, symbols) 
+          ;
+    },
+  },
+  {
+    image: "text.png",
+    title: "[Contacts] nsDiplayText overhead is too high - Bug 967292",
+    bugNumber: "967292",
+    check: function(frames, symbols, meta, step, thread) {
+      if (thread.name.indexOf("(Communications:") == -1) {
+        return false;
+      }
+
+      return stepContains('nsDisplayText', frames, symbols) 
           ;
     },
   },
@@ -2060,7 +2077,7 @@ function calculateDiagnosticItems(requestID, profileID, meta, threadId) {
       var frames = step.frames;
 
       var diagnostic = firstMatch(diagnosticList, function (diagnostic) {
-        return diagnostic.check(frames, symbols, meta, step);
+        return diagnostic.check(frames, symbols, meta, step, profile.threads[threadId]);
       });
     }
 
