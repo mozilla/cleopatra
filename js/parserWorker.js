@@ -1695,6 +1695,7 @@ var diagnosticList = [
     check: function(frames, symbols, meta) {
       return stepContains('nsCycleCollector::Collect', frames, symbols)
           || stepContains('CC:CycleCollectNow', frames, symbols) // Label
+          || stepContains('CC::RunCycleCollectorSlice', frames, symbols) // Label
           || stepContains('CycleCollect__', frames, symbols) // Label
           || stepContains('nsCycleCollectorRunner::Collect', frames, symbols) // Label
           ;
