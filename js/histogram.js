@@ -674,6 +674,11 @@ var HistogramContainer;
 
         this.updateMouseMarker(ev.pageX);
       }.bind(this), false);
+      this.graph.addEventListener("mouseout", function (ev) {
+        if (!isMouseDown) {
+          this.clearMouseMarker();
+        }
+      }.bind(this), false);
     },
 
     finishHistogramSelection: function (isSelected) {
