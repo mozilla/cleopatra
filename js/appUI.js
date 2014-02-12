@@ -326,7 +326,7 @@
           var histogramRequest = Parser.calculateHistogramData(gShowMissedSample, options, threadId);
           histogramRequest.addEventListener("finished", function (data) {
             start = Date.now();
-            gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack, boundaries, gInvertCallstack);
+            gHistogramContainer.display(data.threadId, data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack, boundaries, gInvertCallstack, data.markers);
             if (gFrameView)
               gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
                 boundaries);

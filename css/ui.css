@@ -521,6 +521,7 @@ iframe {
   padding-left: 5px;
 }
 .threadHistogramContent {
+  overflow: hidden;
   flex: 1;
 }
 .adjustable {
