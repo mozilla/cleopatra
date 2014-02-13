@@ -1943,12 +1943,12 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
     if (thread.name &&
-       (thread.name === "Gecko" ||
-        thread.name === "GeckoMain")) {
+       (/^Gecko(?![\w\d])|^Gecko$/.test(thread.name) ||
+        /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) {
       mainThread = thread.samples;
       mainThreadMarkers = thread.markers;
     } else if (thread.name &&
-        thread.name.lastIndexOf("Compositor") == 0) {
+        /^Compositor(?![\w\d])|^Compositor$/.test(thread.name)) {
       compThread = thread.samples;
       compThreadMarkers = thread.markers;
     }
