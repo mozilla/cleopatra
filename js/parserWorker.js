@@ -198,7 +198,7 @@ function timeToIndex(data, time) {
   // in case of equality.
 
   for (var i = 0; i < data.length - 1; i++) {
-    if (data[i+1].extraInfo && data[i+1].extraInfo.time && Math.floor(data[i+1].extraInfo.time) > time) {
+    if (data[i+1].time && Math.floor(data[i+1].time) > time) {
       return i;
     }
   }
@@ -207,16 +207,15 @@ function timeToIndex(data, time) {
 }
 
 function addComment(requestID, profileID, threadId, time, comment) {
-  var profile = gProfiles[profileID];
-  var samples = profile.threads[threadId].samples;
-  var extraInfo = samples[timeToIndex(samples, time)].extraInfo;
+  var thread = gProfiles[profileID].threads[threadId];
+  thread.markers = thread.markers || [];
+  var markers = thread.markers;
+  var index = timeToIndex(markers, time);
 
-  if (!("marker" in extraInfo)) {
-    extraInfo.marker = [];
-  }
-  extraInfo.marker.push({
+  markers.splice(index, 0, {
     name: comment,
-    type: 'comment'
+    type: 'comment',
+    time: time
   });
 
   sendFinished(requestID, true);
@@ -727,10 +726,18 @@ function parseRawProfile(requestID, params, rawProfile) {
            // TODO Remove 'samples' and use thread[0].samples for the main thread
            samples = threadSamples;
          }
+         // If we are using a recent profile there is a separate markers array
+         // We don't need to do anything interesting with it, just pass it on
+         var markers = profile.threads[tid].markers || [];
+         // If there is no separate markers array, we are in legacy mode, so
+         // we need to find the markers inside the thread samples and pull them out into
+         // a separate array
+         markers = markers.concat(parseOldJSONMarkers(profile.threads[tid].samples));
          var defaultThreadName = (tid == 0) ? "Gecko Main Thread" : "NoName";
          threads[tid] = {
            name: profile.threads[tid].name || defaultThreadName,
            samples: threadSamples,
+           markers: markers,
          };
       }
     } else {
@@ -738,6 +745,7 @@ function parseRawProfile(requestID, params, rawProfile) {
       threads[0] = {
         name: "Main",
         samples: samples,
+        markers: parseOldJSONMarkers(profile),
       };
     }
 
@@ -790,6 +798,35 @@ function parseRawProfile(requestID, params, rawProfile) {
       }
     }
 
+    //TODO: test with REALLY old profiles
+    // in the old formats the markers are in the same array as the samples
+    function parseOldJSONMarkers(profileSamples) {
+      var markers = [];
+      if (!profileSamples) return markers;
+      for (var i = 0; i < profileSamples.length; i++) {
+        var sample = profileSamples[i];
+        if (!sample) {
+          // This sample was filtered before saving
+          continue;
+        }
+        // there's a list of markers per sample
+        var markersInSample = sample.extraInfo.marker;
+        if (markersInSample) {
+          // this function must be called exactly once on each list of markers in a sample
+          // sample.marker is actually an array and this function manipulates each marker inside
+          prepareMarker(markersInSample);
+          for (var j = 0; j < markersInSample.length; j++) {
+            var marker = markersInSample[j];
+            marker.time = sample.extraInfo.time;
+            markers.push(marker);
+          }
+        }
+        // parsing markers is the second half
+        progressReporter.setProgress((i + 1) / profileSamples.length / 2 + 0.5);
+      }
+
+      return markers;
+    }
     function parseJSONSamples(profileSamples) {
       var samples = [];
       for (var j = 0; j < profileSamples.length; j++) {
@@ -798,7 +835,8 @@ function parseRawProfile(requestID, params, rawProfile) {
         if (!sample) {
           // This sample was filtered before saving
           samples.push(null);
-          progressReporter.setProgress((j + 1) / profileSamples.length);
+          // parsing samples is the first half
+          progressReporter.setProgress((j + 1) / profileSamples.length / 2);
           continue;
         }
         for (var k = 0; sample.frames && k < sample.frames.length; k++) {
@@ -832,10 +870,6 @@ function parseRawProfile(requestID, params, rawProfile) {
           sample.extraInfo["power"] = sample.power;
           meta.hasPowerInfo = true;
         }
-        if (sample.marker) {
-          sample.extraInfo["marker"] = sample.marker;
-          prepareMarker(sample.extraInfo["marker"]);
-        }
         if (sample.time) {
           sample.extraInfo["time"] = sample.time;
         }
@@ -845,7 +879,8 @@ function parseRawProfile(requestID, params, rawProfile) {
           frameStart[sample.frameNumber] = samples.length;
         }
         samples.push(makeSample(indicedFrames, sample.extraInfo));
-        progressReporter.setProgress((j + 1) / profileSamples.length);
+        // parsing samples is the first half
+        progressReporter.setProgress((j + 1) / profileSamples.length / 2);
       }
       if (insertCommonRoot) {
         var rootIndex = indexForSymbol("(root)");
@@ -1247,6 +1282,7 @@ function updateFilters(requestID, profileID, filters, threadId) {
   var threadId = threadId || 0;
   var profile = gProfiles[profileID];
   var samples = profile.threads[threadId].samples;
+  var markers = profile.threads[threadId].markers;
   var symbols = profile.symbols;
   var functions = profile.functions;
 
@@ -1273,11 +1309,26 @@ function updateFilters(requestID, profileID, filters, threadId) {
     samples = chargeNonJSToCallers(samples, symbols, functions, filters.mergeFunctions);
   }
 
+  // Apply only RangeSampleFilter to markers
+  for (var i in filters.sampleFilters) {
+    var filter = filters.sampleFilters[i];
+    if (filter.type == 'RangeSampleFilter') {
+      markers = markers.filter(function(marker){
+        return marker.time > filter.start && marker.time < filter.end;
+      });
+      break;
+    }
+  }
+
   gProfiles[profileID].filterSettings = filters;
   if (gProfiles[profileID].filteredThreadSamples == null) {
     gProfiles[profileID].filteredThreadSamples = {};
   }
+  if (gProfiles[profileID].filteredThreadMarkers == null) {
+    gProfiles[profileID].filteredThreadMarkers = {};
+  }
   gProfiles[profileID].filteredThreadSamples[threadId] = samples;
+  gProfiles[profileID].filteredThreadMarkers[threadId] = markers;
   gProfiles[profileID].selectedThread = threadId;
   sendFinishedInChunks(requestID, samples, 40000,
                        function (sample) { return sample ? sample.frames.length : 1; });
@@ -1411,6 +1462,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
 
   var profile = gProfiles[profileID];
   var data = profile.filteredThreadSamples[threadId];
+  var markers = symbolicateMarkers(profile.filteredThreadMarkers[threadId]);
   var maxHeight = 0;
   for (var i in profile.filteredThreadSamples) {
     maxHeight = Math.max(maxHeight, profile.filteredThreadSamples[i].reduce(function (prev, curr, i, a) {
@@ -1431,12 +1483,11 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
         movingHeight: movingHeight / (maxHeight / 100),
         time: step.extraInfo.time,
         power: step.extraInfo.power,
-        markers: symbolicateMarkers(step.extraInfo.marker || []),
         color: getStepColor(step)
       };
     });
 
-  sendFinished(requestID, { threadId: threadId, histogramData: histogram });
+  sendFinished(requestID, { threadId: threadId, histogramData: histogram, markers: markers });
 }
 
 var diagnosticList = [
@@ -1879,21 +1930,27 @@ function prepareSample(frames, symbols) {
   return stack;
 }
 
+// Within each marker type the returned markers should be sorted in ascending order
+// by time and be non-overlapping
 function calculateWaterfallData(requestID, profileID, boundaries) {
   var profile = gProfiles[profileID];
   var symbols = profile.functions;
 
   var mainThread = null;
+  var mainThreadMarkers = null;
   var compThread = null;
+  var compThreadMarkers = null;
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
     if (thread.name &&
-       (thread.name.lastIndexOf("Gecko") == 0 ||
-        thread.name.lastIndexOf("GeckoMain") == 0)) {
+       (thread.name === "Gecko" ||
+        thread.name === "GeckoMain")) {
       mainThread = thread.samples;
+      mainThreadMarkers = thread.markers;
     } else if (thread.name &&
         thread.name.lastIndexOf("Compositor") == 0) {
       compThread = thread.samples;
+      compThreadMarkers = thread.markers;
     }
   }
 
@@ -1904,19 +1961,15 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     return null;
   }
 
-  function getPaintMarkers(sample) {
-    if (sample.extraInfo == null ||
-        sample.extraInfo.marker == null)
-      return [];
-
-    var markers = [];
-    for (var i = 0; i < sample.extraInfo.marker.length; i++) {
-      if (sample.extraInfo.marker[i].data &&
-          sample.extraInfo.marker[i].data.category == "Paint") {
-        markers.push(sample.extraInfo.marker[i]);
+  function getPaintMarkers(markersIn) {
+    var markersOut = [];
+    for (var i = 0; i < markersIn.length; i++) {
+      if (markersIn[i].data &&
+          markersIn[i].data.category == "Paint") {
+        markersOut.push(markersIn[i]);
       }
     }
-    return markers;
+    return markersOut;
   }
   
   var result = {
@@ -1924,7 +1977,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     items: [],
   };
   var mainThreadState = "Waiting";
-  var mainThreadPos = 0;
   var compThreadState = "Waiting";
   var compThreadPos = 0;
   var time = boundaries.minima;
@@ -1933,99 +1985,69 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var startRasterize = null;
   var startComposite = null;
   var startTimerStack = null;
-  while (true) {
-    while (mainThreadPos < mainThread.length &&
-        (mainThread[mainThreadPos].extraInfo.time == null ||
-         time > mainThread[mainThreadPos].extraInfo.time)) {
-      mainThreadPos++;
-    }
-    while (compThreadPos < compThread.length &&
-        (compThread[compThreadPos].extraInfo.time == null ||
-         time > compThread[compThreadPos].extraInfo.time)) {
-      compThreadPos++;
-    }
-    if (mainThreadPos >= mainThread.length &&
-        compThreadPos >= compThread.length) {
-      break;
-    }
 
-    var nextSample = null;
-    if (mainThreadPos < mainThread.length &&
-        (compThreadPos == compThread.length ||
-         mainThread[mainThreadPos].extraInfo.time <= compThread[compThreadPos].extraInfo.time)) {
-      nextSample = mainThread[mainThreadPos];
-      mainThreadPos++;
-      var paintMarkers = getPaintMarkers(nextSample);
-      for (var i = 0; i < paintMarkers.length; i++) {
-        var marker = paintMarkers[i];
-        if (marker.name == "RD" && marker.data.interval == "start") {
-          mainThreadState = "RDenter";
-        } else if (marker.name == "RD" && marker.data.interval == "end") {
-          mainThreadState = "Waiting";
-        } else if (mainThreadState == "RDenter" &&
-            marker.name == "Scripts" && marker.data.interval == "start") {
-          startScripts = nextSample.extraInfo.time;
-          endScripts = null;
-        } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
-          startTimerStack = prepareSample(marker.data.stack, profile.symbols);
-        } else if (mainThreadState == "RDenter" &&
-            startScripts &&
-            marker.name == "Scripts" && marker.data.interval == "end") {
-          result.items.push({
-            startTime: startScripts,
-            endTime: nextSample.extraInfo.time,
-            text: "Scripts",
-          });
-          startScripts = null;
-          endScripts = nextSample.extraInfo.time;
-        } else if (mainThreadState == "RDenter" &&
-            marker.name == "Rasterize" && marker.data.interval == "start") {
-          startRasterize = nextSample.extraInfo.time;
-          result.items.push({
-            startTime: endScripts,
-            endTime: nextSample.extraInfo.time,
-            text: "Layout",
-            startTimerStack: startTimerStack,
-          });
-          startTimerStack = null;
-          endScripts = null;
-        } else if (mainThreadState == "RDenter" &&
-            startRasterize &&
-            marker.name == "Rasterize" && marker.data.interval == "end") {
-          result.items.push({
-            startTime: startRasterize,
-            endTime: nextSample.extraInfo.time,
-            text: "Rasterize",
-          });
-          startRasterize = null;
-        }
-      }
-    } else {
-      nextSample = compThread[compThreadPos];
-      compThreadPos++;
-      var paintMarkers = getPaintMarkers(nextSample);
-      for (var i = 0; i < paintMarkers.length; i++) {
-        var marker = paintMarkers[i];
-        if (marker.name == "Composite" && marker.data.interval == "start" &&
-            !startComposite) {
-          startComposite = nextSample.extraInfo.time;
-        } else if (marker.name == "Composite" && marker.data.interval == "end") {
-          if (mainThreadPos != 0 &&
-              startComposite != null && startComposite != nextSample.extraInfo.time) {
-            result.items.push({
-              startTime: startComposite,
-              endTime: nextSample.extraInfo.time,
-              text: "Composite",
-            });
-          }
-          startComposite = null;
-        }
-      }
+  var paintMarkers, i, marker;
+
+  paintMarkers = getPaintMarkers(mainThreadMarkers);
+  for (i = 0; i < paintMarkers.length; i++) {
+    marker = paintMarkers[i];
+    if (marker.name == "RD" && marker.data.interval == "start") {
+      mainThreadState = "RDenter";
+    } else if (marker.name == "RD" && marker.data.interval == "end") {
+      mainThreadState = "Waiting";
+    } else if (mainThreadState == "RDenter" &&
+        marker.name == "Scripts" && marker.data.interval == "start") {
+      startScripts = marker.time;
+      endScripts = null;
+    } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
+      startTimerStack = prepareSample(marker.data.stack, profile.symbols);
+    } else if (mainThreadState == "RDenter" &&
+        startScripts &&
+        marker.name == "Scripts" && marker.data.interval == "end") {
+      result.items.push({
+        startTime: startScripts,
+        endTime: marker.time,
+        text: "Scripts",
+      });
+      startScripts = null;
+      endScripts = marker.time;
+    } else if (mainThreadState == "RDenter" &&
+        marker.name == "Rasterize" && marker.data.interval == "start") {
+      startRasterize = marker.time;
+      result.items.push({
+        startTime: endScripts,
+        endTime: marker.time,
+        text: "Layout",
+        startTimerStack: startTimerStack,
+      });
+      startTimerStack = null;
+      endScripts = null;
+    } else if (mainThreadState == "RDenter" &&
+        startRasterize &&
+        marker.name == "Rasterize" && marker.data.interval == "end") {
+      result.items.push({
+        startTime: startRasterize,
+        endTime: marker.time,
+        text: "Rasterize",
+      });
+      startRasterize = null;
     }
-    
-    time = nextSample.extraInfo.time;
   }
-  
+  paintMarkers = getPaintMarkers(compThreadMarkers);
+  for (i = 0; i < paintMarkers.length; i++) {
+    marker = paintMarkers[i];
+    if (marker.name == "Composite" && marker.data.interval == "start" &&
+        !startComposite) {
+      startComposite = marker.time;
+    } else if (marker.name == "Composite" && marker.data.interval == "end") {
+      result.items.push({
+        startTime: startComposite,
+        endTime: marker.time,
+        text: "Composite",
+      });
+      startComposite = null;
+    }
+  }
 
   sendFinished(requestID, result);
 }

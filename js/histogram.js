@@ -168,8 +168,8 @@ var HistogramContainer;
       this.eachThread(function (thread) { thread.threadHistogramView.highlightedCallstackChanged(callstack, inverted) });
     },
 
-    display: function (id, data, frameStart, widthSum, stack, boundaries, inverted) {
-      this.threads[id].threadHistogramView.display(data, boundaries, inverted);
+    display: function (id, data, frameStart, widthSum, stack, boundaries, inverted, markers) {
+      this.threads[id].threadHistogramView.display(data, boundaries, inverted, markers);
     },
 
     displayWaterfall: function(data) {
@@ -202,7 +202,6 @@ var HistogramContainer;
     var container = createElement("div", { className: "histogram" });
 
     this.canvas = createCanvas();
-    this.barWidth = 1;//this should change before we display anything
     container.appendChild(this.canvas);
 
     this.rangeSelector = new RangeSelector(this.canvas, this);
@@ -216,6 +215,7 @@ var HistogramContainer;
     this.debugName = debugName || "NoName";
     this.container = container;
     this.data = [];
+    this.markers = [];
     this.inverted = false;
     this.threadId = threadId;
     this.boundaries = null;
@@ -262,8 +262,9 @@ var HistogramContainer;
       this.rangeSelector.selectRange(start, end);
     },
 
-    display: function (data, boundaries, inverted) {
+    display: function (data, boundaries, inverted, markers) {
       this.data = data;
+      this.markers = markers;
       this.boundaries = boundaries;
       this.scheduleRender();
       this.inverted = inverted;
@@ -290,11 +291,11 @@ var HistogramContainer;
       this.inverted = inverted;
     },
 
-    scheduleRender: function (callstack, inverted) {
+    scheduleRender: function (callstack, inverted, markers) {
       var fn = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
         window.webkitAnimationFrame || window.msRequestAnimationFrame;
 
-      fn(this.render.bind(this, callstack, inverted));
+      fn(this.render.bind(this, callstack, inverted, markers));
     },
 
     render: function (callstack, inverted) {
@@ -318,7 +319,7 @@ var HistogramContainer;
     },
 
     _renderSamples: function (ctx, callstack, inverted, width, height) {
-      var curr = this.boundaries.min, x = 0;
+      var curr = this.boundaries.min;
       var dataIndex = 0;
       var slice, markers, value, red, green;
       var lastTimeLabel = null;
@@ -339,11 +340,8 @@ var HistogramContainer;
       if (barWidth <= 0)
         return;
 
-      var threadMarkers = [];
-
-      while (x <= width) {
+      for (var x = 0; x <= width; x += barWidth) {
         slice = [];
-        markers = [];
 
         // iterate over all data starting where we left over last time and
         // ending when the time of the current datum exceeds our current time + the step size
@@ -354,19 +352,6 @@ var HistogramContainer;
 
           slice.push(datum);
           dataIndex += 1;
-          if (datum.markers.length) {
-            for (var j = 0; j < datum.markers.length; j++) {
-              var marker = datum.markers[j]
-              if (!marker.data || !marker.data.category || marker.data.stack) {
-                markers.push({
-                  name: marker.name,
-                  time: datum.time,
-                  marker: marker,
-                });
-              }
-              //threadMarkers.push(datum.markers[j]);
-            }
-          }
         }
 
         if (slice.length !== 0) {
@@ -402,78 +387,11 @@ var HistogramContainer;
             ctx.fillStyle = "rgba(70, 10, 200, 180)";
             ctx.fillRect(x, height - h, barWidth, nonH);
           }
-
-          var self = this;
-          if (markers.length) {
-            var str = "";
-            var id = 1;
-            var hasComment = false;
-            var hasNonComment = false;
-            var marker, i;
-
-            // construct marker div with a click event
-            var markerDiv = createElement("div", { className: "marker" });
-            markerDiv.style.left = x + "px";
-            markerDiv.style.top = "0px";
-            markerDiv.markers = markers;
-
-            // figure out what markers are contained in the list and add them to the marker div
-            var label;
-            for (var i = 0; i < markers.length; i++) {
-              marker = markers[i];
-              hasComment |= marker.marker.type == 'comment';
-              hasNonComment |= marker.marker.type != 'comment';
-              label = createElement("span", {
-                style: { color: marker.marker.type == 'comment' ? "#3F9922" : '#BF0039'},
-              });
-              if (markers.length > 1) {
-                label.textContent = (id++) + ": " +  marker.name + " ";
-              } else {
-                label.textContent = marker.name;
-              }
-              markerDiv.appendChild(label);
-            }
-
-            // add a click event to the marker div that runs the marker click callback if defined
-            (function(markers) {
-              markerDiv.addEventListener("click", function() {
-                if (self.manager._onMarkerClick) {
-                  self.manager._onMarkerClick(threadMarkers, markers[0]);
-                }
-              });
-            })(markers);
-            // each marker gets a list of the thread markers
-            markers.forEach(function (marker) {
-              threadMarkers.push({
-                div: markerDiv,
-                marker: marker.marker,
-                name: marker.name,
-                time: marker.time,
-              });
-            });
-
-            // add marker div on top of the canvas
-            self.container.appendChild(markerDiv);
-
-            // draw notch for marker
-            var yPos = 0;
-            var yEnd = 20;
-            if (hasNonComment) {
-              ctx.fillStyle = "rgb(255,0,0)";
-              ctx.fillRect(x, yPos, 1, yEnd - yPos);
-              yPos += 10;
-            }
-            if (hasComment) {
-              ctx.fillStyle = "rgb(0,255,0)";
-              ctx.fillRect(x, yPos, 1, yEnd - yPos);
-            }
-            //ctx.fillText(markers[0], x + 2, 10);
-          }
         }
 
         if (lastTimeLabel === null ||
             lastTimeLabel !== null && x > lastTimeLabel + 100) {
-          ctx.fillStyle = "rgb(255,0,0)";
+          ctx.fillStyle = "rgb(0,0,0)";
           ctx.fillRect(x, height, 1, 5);
           ctx.fillText(Math.round(curr,0) + " ms", x + 2, height+10);
           lastTimeLabel = x;
@@ -484,8 +402,98 @@ var HistogramContainer;
         }
 
         curr += step;
-        x += barWidth;
       }
+
+      var self = this;
+      var markerSets = [];
+      var threadMarkers = [];
+
+      // markers are supposed to be sorted by time
+      // markers are combined if they are at the same time
+      var lastMarkerTime = -1;
+      if (this.markers) {
+        for (var j = 0; j < this.markers.length; j++) {
+          var marker = this.markers[j];
+          // ignore markers that have stacks or data
+          if (!marker.data || !marker.data.category || marker.data.stack) {
+            if (lastMarkerTime == marker.time) {
+              markerSets[markerSets.length - 1].push(marker);
+            } else {
+              markerSets.push([marker]);
+              lastMarkerTime = marker.time;
+            }
+          }
+        }
+      }
+
+      // render markers
+      for (var z = 0; z < markerSets.length; z++) {
+        var markers = markerSets[z];
+        var str = "";
+        var id = 1;
+        var hasComment = false;
+        var hasNonComment = false;
+        var marker, i;
+        var x = (markers[0].time - this.boundaries.min) /* ms */ * width /* px */ / (this.boundaries.max - this.boundaries.min) /* ms */;
+
+        // construct marker div with a click event
+        var markerDiv = createElement("div", { className: "marker" });
+        markerDiv.style.left = x + "px";
+        markerDiv.style.top = "0px";
+        markerDiv.markers = markers;
+
+        // figure out what markers are contained in the list and add them to the marker div
+        var label;
+        for (var i = 0; i < markers.length; i++) {
+          marker = markers[i];
+          hasComment |= marker.type == 'comment';
+          hasNonComment |= marker.type != 'comment';
+          label = createElement("span", {
+            style: { color: marker.type == 'comment' ? "#3F9922" : '#BF0039'},
+          });
+          if (markers.length > 1) {
+            label.textContent = (id++) + ": " +  marker.name + " ";
+          } else {
+            label.textContent = marker.name;
+          }
+          markerDiv.appendChild(label);
+        }
+
+        // add a click event to the marker div that runs the marker click callback if defined
+        (function(markers) {
+          markerDiv.addEventListener("click", function() {
+            if (self.manager._onMarkerClick) {
+              self.manager._onMarkerClick(threadMarkers, markers[0]);
+            }
+          });
+        })(markers);
+        // each marker gets a list of the thread markers
+        markers.forEach(function (marker) {
+          threadMarkers.push({
+            div: markerDiv,
+            marker: marker,
+            name: marker.name,
+            time: marker.time,
+          });
+        });
+
+        // add marker div on top of the canvas
+        self.container.appendChild(markerDiv);
+
+        // draw notch for marker
+        var yPos = 0;
+        var yEnd = 20;
+        if (hasNonComment) {
+          ctx.fillStyle = "rgb(255,0,0)";
+          ctx.fillRect(x, yPos, 1, yEnd - yPos);
+          yPos += 10;
+        }
+        if (hasComment) {
+          ctx.fillStyle = "rgb(0,255,0)";
+          ctx.fillRect(x, yPos, 1, yEnd - yPos);
+        }
+      }
+
     },
 
     pixelToTime: function (pixel) {
