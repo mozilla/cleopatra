@@ -10,10 +10,7 @@
 
     gLocalStorage.getProfile(profileKey, function(profile) {
       subreporters.fileLoading.finish();
-      /**
-       * @todo Decouple AppUI
-       */
-      AppUI.loadRawProfile(subreporters.parsing, profile, profileKey);
+      Cleopatra.loadRawProfile(subreporters.parsing, profile, profileKey);
     });
     subreporters.fileLoading.begin("Reading local storage...");
   }
