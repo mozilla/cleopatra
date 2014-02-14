@@ -810,7 +810,7 @@ function parseRawProfile(requestID, params, rawProfile) {
           continue;
         }
         // there's a list of markers per sample
-        var markersInSample = sample.extraInfo.marker;
+        var markersInSample = sample.marker;
         if (markersInSample) {
           // this function must be called exactly once on each list of markers in a sample
           // sample.marker is actually an array and this function manipulates each marker inside
@@ -1942,13 +1942,16 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var compThreadMarkers = null;
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
+    // In these regexes we look for any thread named X by checking if
+    // X is either followed by something other than a character or digit
+    // or is the whole name
     if (thread.name &&
-       (thread.name === "Gecko" ||
-        thread.name === "GeckoMain")) {
+       (/^Gecko(?![\w\d])|^Gecko$/.test(thread.name) ||
+        /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) {
       mainThread = thread.samples;
       mainThreadMarkers = thread.markers;
     } else if (thread.name &&
-        thread.name.lastIndexOf("Compositor") == 0) {
+        /^Compositor(?![\w\d])|^Compositor$/.test(thread.name)) {
       compThread = thread.samples;
       compThreadMarkers = thread.markers;
     }
