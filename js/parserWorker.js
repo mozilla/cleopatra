@@ -810,7 +810,7 @@ function parseRawProfile(requestID, params, rawProfile) {
           continue;
         }
         // there's a list of markers per sample
-        var markersInSample = sample.extraInfo.marker;
+        var markersInSample = sample.marker;
         if (markersInSample) {
           // this function must be called exactly once on each list of markers in a sample
           // sample.marker is actually an array and this function manipulates each marker inside
