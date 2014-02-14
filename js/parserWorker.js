@@ -1942,6 +1942,9 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var compThreadMarkers = null;
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
+    // In these regexes we look for any thread named X by checking if
+    // X is either followed by something other than a character or digit
+    // or is the whole name
     if (thread.name &&
        (/^Gecko(?![\w\d])|^Gecko$/.test(thread.name) ||
         /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) {
