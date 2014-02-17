@@ -25,7 +25,7 @@ function ProfileComparator(topLevelDiv) {
 
   // create an iframe for side2
   this._side2iFrame = document.createElement("iframe");
-  this._side2iFrame.src = "file:///Volumes/Guest OS/Users/bgirard/ben/sps/cleopatra/index.html?";
+  this._side2iFrame.src = "index.html?";
   this._side2iFrame.onload = function() {
     //self._side2iFrame.contentWindow.enterProgressUI();
   }
