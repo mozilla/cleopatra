@@ -629,7 +629,6 @@ var HistogramContainer;
 
         this.graph.style.cursor = "col-resize";
         isMouseDown = true;
-        this.graph.setCapture();
 
         // Begin histogram selection
         this.higlighter.classList.remove("finished");
@@ -648,39 +647,41 @@ var HistogramContainer;
         updateSelectionMarker(coord.x, coord.y);
         this.movedDuringClick = false;
         ev.preventDefault();
-      }.bind(this), false);
 
-      this.graph.addEventListener("mouseup", function (ev) {
-        this.graph.style.cursor = "default";
-
-        var x, index;
-        if (!this.movedDuringClick) {
-          // Handle as a click on the histogram and select the sample.
-          x = Math.min(ev.pageX, this.graph.parentNode.getBoundingClientRect().right);
-          x = x - this.graph.parentNode.getBoundingClientRect().left;
-
-          index = this.histogram.pixelToIndex(x);
-
-          isMouseDown = false;
-          return void this.histogram.histogramClick(index);
-        }
-
-        if (isMouseDown) {
+        var handleMouseDrag = function (ev) {
+          this.movedDuringClick = true;
+          this.clearMouseMarker();
           updateSelectionMarker(ev.pageX, ev.pageY);
-          this.finishHistogramSelection(coord.x !== ev.pageX);
+        }.bind(this);
+
+        var handleMouseUp = function (ev) {
+          window.removeEventListener("mousemove", handleMouseDrag, false);
+          window.removeEventListener("mouseup", handleMouseUp, false);
+          this.graph.style.cursor = "default";
           isMouseDown = false;
-        }
+
+          if (this.movedDuringClick) {
+            updateSelectionMarker(ev.pageX, ev.pageY);
+            this.finishHistogramSelection(coord.x !== ev.pageX);
+          } else {
+            // Handle as a click on the histogram and select the sample.
+            var x = Math.min(ev.pageX, this.graph.parentNode.getBoundingClientRect().right);
+            x -= this.graph.parentNode.getBoundingClientRect().left;
+
+            var index = this.histogram.pixelToIndex(x);
+            this.histogram.histogramClick(index);
+          }
+        }.bind(this);
+
+        window.addEventListener("mousemove", handleMouseDrag, false);
+        window.addEventListener("mouseup", handleMouseUp, false);
+
       }.bind(this), false);
 
       this.graph.addEventListener("mousemove", function (ev) {
-        this.movedDuringClick = true;
-        if (isMouseDown) {
-          this.clearMouseMarker();
-          updateSelectionMarker(ev.pageX, ev.pageY);
-          return;
+        if (!isMouseDown) {
+          this.updateMouseMarker(ev.pageX);
         }
-
-        this.updateMouseMarker(ev.pageX);
       }.bind(this), false);
       this.graph.addEventListener("mouseout", function (ev) {
         if (!isMouseDown) {
