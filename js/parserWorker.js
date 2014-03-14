@@ -1984,7 +1984,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var compThreadPos = 0;
   var time = boundaries.minima;
   var startScripts = null;
-  var endScripts = null;
+  var layoutStartTime = null;
   var startRasterize = null;
   var startComposite = null;
   var startTimerStack = null;
@@ -2001,7 +2001,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     } else if (mainThreadState == "RDenter" &&
         marker.name == "Scripts" && marker.data.interval == "start") {
       startScripts = marker.time;
-      endScripts = null;
+      layoutStartTime = null;
     } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
       startTimerStack = prepareSample(marker.data.stack, profile.symbols);
     } else if (mainThreadState == "RDenter" &&
@@ -2013,12 +2013,12 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         text: "Scripts",
       });
       startScripts = null;
-      endScripts = marker.time;
+      layoutStartTime = marker.time;
     } else if (mainThreadState == "RDenter" &&
         marker.name == "Rasterize" && marker.data.interval == "start") {
       startRasterize = marker.time;
       result.items.push({
-        startTime: endScripts,
+        startTime: layoutStartTime,
         endTime: marker.time,
         text: "Layout",
         startTimerStack: startTimerStack,
@@ -2033,6 +2033,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         endTime: marker.time,
         text: "Rasterize",
       });
+      layoutStartTime = marker.time;
       startRasterize = null;
     }
   }
