@@ -418,7 +418,7 @@ var HistogramContainer;
           if (!marker.data || !marker.data.category || marker.data.stack) {
             // if the previous first marker of a set and this marker are
             //  within the same pixel, combine them
-            if (lastMarkerTime + step / barWidth > marker.time) {
+            if (lastMarkerTime != -1 && (lastMarkerTime + step / barWidth > marker.time)) {
               markerSets[markerSets.length - 1].push(marker);
             } else {
               markerSets.push([marker]);
