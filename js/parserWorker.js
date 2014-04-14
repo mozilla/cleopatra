@@ -1407,9 +1407,33 @@ function getHistogramBoundaries(requestID, profileID, showMissedSample) {
   // Filter out all entries with no time.
   times = times.filter(function (time) { return !isNaN(time); });
 
+  function calc_max(array) {
+    var max = 0;
+    var n = array.length;
+    var i = 0;
+    var value;
+    for (i = 1; i < n; i++) {
+      value = array[i];
+      if (value > max) max = value;
+    }
+    return max;
+  };
+
+  function calc_min(array) {
+    var min = array && array[0] || 0;
+    var n = array.length;
+    var i = 0;
+    var value;
+    for (i = 1; i < n; i++) {
+      value = array[i];
+      if (value < min) min = value;
+    }
+    return min;
+  };
+
   sendFinished(requestID, {
-    minima: Math.min.apply(null, times),
-    maxima: Math.max.apply(null, times)
+    minima: calc_min(times),
+    maxima: calc_max(times)
   });
 }
 
