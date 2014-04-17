@@ -29,7 +29,7 @@
         '<textarea rows=20 cols=80 id=data autofocus spellcheck=false></textarea>' +
         '<p><button id="parse">Parse</button></p>' +
         '<h1>Or, provide a URL serving the profile that has <a href="https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS">CORS headers</a>:</h1>' +
-        '<input type="text" id="url">' +
+        '<input type="text" id="url-value">' +
         '<input value="Open" type="button" id="url">' +
         '';
 
@@ -52,7 +52,7 @@
           break;
 
         case 'url':
-          this.loadProfileURL(document.getElementById('url').value);
+          this.loadProfileURL(document.getElementById('url-value').value);
           break;
       }
     },
@@ -96,6 +96,12 @@
       };
       reader.readAsText(file, "utf-8");
       subreporters.fileLoading.begin("Reading local file...");
+    },
+
+    loadProfileURL: function AppUI_loadProfileURL(url) {
+      if (!url)
+        return;
+      Cleopatra.loadProfileURL(url);
     },
 
     saveProfileToLocalStorage: function AppUI_saveProfileToLocalStorage() {
