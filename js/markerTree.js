@@ -143,8 +143,7 @@ MarkerTreeManager.prototype = {
             return child;
           }
         }];
-      } else if (marker.marker.data && marker.marker.data.stack &&
-                 marker.marker.data.stack.length > 0) {
+      } else if (marker.marker.data && marker.marker.data.stack) {
         currObj.children = self.buildTreeForStack(marker.marker.data.stack);
           /*
           [ {

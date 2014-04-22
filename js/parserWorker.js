@@ -1476,8 +1476,9 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     var symMarkers = [];
     for (var i = 0; i < markers.length; i++) {
       var marker = JSON.parse(JSON.stringify(markers[i]));
-      if (marker.data && marker.data.stack) {
-        marker.data.stack = prepareSample(marker.data.stack, profile.symbols);
+      if (marker.data && marker.data.stack && marker.data.stack.samples.length > 0) {
+        dump(JSON.stringify( marker.data.stack) + "\n");
+        marker.data.stack = prepareSample(marker.data.stack.samples[0].frames, profile.symbols);
       }
       symMarkers.push(marker);
     }
@@ -1945,7 +1946,12 @@ function firstMatch(array, matchFunction) {
 function prepareSample(frames, symbols) {
   var stack = [];
   for (var i = 0; i < frames.length; i++) {
-    var sym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
+    if (!(frames[i].location in symbols)) {
+      stack.push(frames[i].location);
+      continue;
+    }
+    var sym = symbols[frames[i].location].functionName || symbols[frames[i].location].symbolName;
+    dump("Prepare sample:" + sym + " \n");
     if (sym.indexOf("mozilla_sampler_tracing(") == 0) {
       break;
     }
@@ -2027,7 +2033,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       startScripts = marker.time;
       layoutStartTime = null;
     } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
-      startTimerStack = prepareSample(marker.data.stack, profile.symbols);
+      startTimerStack = prepareSample(marker.data.stack.samples[0].frames, profile.symbols);
     } else if (mainThreadState == "RDenter" &&
         startScripts &&
         marker.name == "Scripts" && marker.data.interval == "end") {
