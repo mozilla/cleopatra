@@ -587,7 +587,7 @@ function parseRawProfile(requestID, params, rawProfile) {
 
   // Markers before bug 867757 were just a simple string.
   // This will upgrade the marker if they are a string
-  function prepareMarker(markerArray) {
+  function prepareMarkers(markerArray) {
     for (var i = 0; i < markerArray.length; i++) {
       var marker = markerArray[i];
       if (typeof marker == "string") {
@@ -639,7 +639,7 @@ function parseRawProfile(requestID, params, rawProfile) {
           extraInfo.marker = [];
         }
         extraInfo.marker.push(info);
-        prepareMarker(extraInfo.marker);
+        prepareMarkers(extraInfo.marker);
         break;
       case 's':
         // sample
@@ -734,6 +734,9 @@ function parseRawProfile(requestID, params, rawProfile) {
          // a separate array
          markers = markers.concat(parseOldJSONMarkers(profile.threads[tid].samples));
          var defaultThreadName = (tid == 0) ? "Gecko Main Thread" : "NoName";
+
+         prepareMarkers(markers);
+
          threads[tid] = {
            name: profile.threads[tid].name || defaultThreadName,
            samples: threadSamples,
@@ -814,7 +817,7 @@ function parseRawProfile(requestID, params, rawProfile) {
         if (markersInSample) {
           // this function must be called exactly once on each list of markers in a sample
           // sample.marker is actually an array and this function manipulates each marker inside
-          prepareMarker(markersInSample);
+          prepareMarkers(markersInSample);
           for (var j = 0; j < markersInSample.length; j++) {
             var marker = markersInSample[j];
             marker.time = sample.extraInfo.time;
@@ -1476,9 +1479,8 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
     var symMarkers = [];
     for (var i = 0; i < markers.length; i++) {
       var marker = JSON.parse(JSON.stringify(markers[i]));
-      if (marker.data && marker.data.stack && marker.data.stack.samples.length > 0) {
-        dump(JSON.stringify( marker.data.stack) + "\n");
-        marker.data.stack = prepareSample(marker.data.stack.samples[0].frames, profile.symbols);
+      if (marker.data && marker.data.stack) {
+        marker.data.stack = prepareSample(marker.data.stack, profile.symbols);
       }
       symMarkers.push(marker);
     }
@@ -1946,12 +1948,11 @@ function firstMatch(array, matchFunction) {
 function prepareSample(frames, symbols) {
   var stack = [];
   for (var i = 0; i < frames.length; i++) {
-    if (!(frames[i].location in symbols)) {
-      stack.push(frames[i].location);
+    if (!(frames[i] in symbols)) {
+      stack.push(frames[i]);
       continue;
     }
-    var sym = symbols[frames[i].location].functionName || symbols[frames[i].location].symbolName;
-    dump("Prepare sample:" + sym + " \n");
+    var sym = symbols[frames[i]].functionName || symbols[frames[i]].symbolName;
     if (sym.indexOf("mozilla_sampler_tracing(") == 0) {
       break;
     }
@@ -2033,7 +2034,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       startScripts = marker.time;
       layoutStartTime = null;
     } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
-      startTimerStack = prepareSample(marker.data.stack.samples[0].frames, profile.symbols);
+      startTimerStack = prepareSample(marker.data.stack, profile.symbols);
     } else if (mainThreadState == "RDenter" &&
         startScripts &&
         marker.name == "Scripts" && marker.data.interval == "end") {
