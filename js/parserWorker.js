@@ -1319,7 +1319,6 @@ function updateFilters(requestID, profileID, filters, threadId) {
       markers = markers.filter(function(marker){
         return marker.time > filter.start && marker.time < filter.end;
       });
-      break;
     }
   }
 
