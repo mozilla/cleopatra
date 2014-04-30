@@ -171,12 +171,17 @@
       treeContainerDiv.style.width = "100%";
       treeContainerDiv.style.height = "100%";
 
-      gTreeManager = new ProfileTreeManager();
+      var tabWidget = new TabWidget();
+      tabWidget.addTab("Samples", treeContainerDiv);
+      tabWidget.addTab("Frames", document.createElement("div"));
+
       currRow = document.createElement("div");
       currRow.style.flex = 1;
-      finishedProfilePane.appendChild(currRow);
       currRow.style.height = "100%";
-      currRow.appendChild(treeContainerDiv);
+      currRow.appendChild(tabWidget.getContainer());
+      finishedProfilePane.appendChild(currRow);
+
+      gTreeManager = new ProfileTreeManager();
       treeContainerDiv.appendChild(gTreeManager.getContainer());
 
       gSampleBar = new SampleBar();
