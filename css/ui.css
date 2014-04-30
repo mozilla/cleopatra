@@ -307,6 +307,20 @@ body {
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
 }
+.waterfallFrame {
+  position: absolute;
+  overflow: hidden;
+  border-left: solid 1px;
+  border-right: solid 1px;
+  top: 0px !important;
+  height: 58px !important;
+}
+.waterfallItem {
+  position: absolute;
+  overflow: hidden;
+  border: solid 1px;
+  border-radius: 3px;
+}
 .waterfallOrThreadRow {
   display: flex;
   width: 100%;

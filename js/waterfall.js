@@ -61,7 +61,7 @@ Waterfall.prototype = {
 
   formatStack: function(stack) {
     var str = " ";
-    for (var i = 0; i < stack.length; i++) {
+    for (var i = stack.length - 1; i >= 0; i--) {
       var frame = stack[i];
       str += frame + "\n";
     }
@@ -78,8 +78,10 @@ Waterfall.prototype = {
     var maxCloseness = 0.1;
     var maxWidth = 0.1;
 
-    var typeOrder = ['Scripts', 'Layout', 'Rasterize', 'Composite', 'Other'];
-    var colorList = ['rgb(250,100,40)', 'rgb(150,40,100)', 'rgb(100,250,40)', 'rgb(100,40,250)', 'rgb(200,0,0)'];
+    var typeOrder = ['RD', 'Scripts', 'Styles', 'Reflow', 'DisplayList', 'Rasterize', 'Composite', 'Other'];
+    var cssClasses = ['waterfallFrame', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem'];
+    var colorList = ['rgba(0,200,0,0.5)', 'rgb(250,100,40)', 'rgb(40,40,100)', 'rgb(40,40,100)', 'rgb(150,40,100)', 'rgb(100,250,40)', 'rgb(100,40,250)', 'rgb(200,0,0)'];
+    var barHeight = [0.5, 0, 1, 1, 1, 2, 3, 0];
 
     var filtered = {};
     for (i = 0; i < typeOrder.length; i++) {
@@ -92,49 +94,45 @@ Waterfall.prototype = {
       if (item.startTime > data.boundaries.min && item.startTime < data.boundaries.max ||
           item.endTime > data.boundaries.min && item.endTime < data.boundaries.max) {
         // if the item is in the list, put it in the corresponding category, otherwise in the "Other"
-        if (~typeOrder.indexOf(item.text)) {
-          filtered[item.text].push(item);
+        if (~typeOrder.indexOf(item.type)) {
+          filtered[item.type].push(item);
         } else {
           filtered['Other'].push(item);
         }
       }
     }
 
-    function makeWaterfallBar(text, title, startX, startY, width, color) {
+    function makeWaterfallBar(cssClass, text, title, startX, startY, width, color) {
       return createElement("div", {
-        className: "waterfallItem",
+        className: cssClass,
         innerHTML: "<center>" + text + "</center>", //TODO XSS filter
         title: title,
         style: {
-          overflow: "hidden",
-          position: "absolute",
           left: startX + "%",
           top: startY + "px",
           width: width + "%",
-          border: "solid 1px",
           background: color,
-          borderRadius: "3px",
         },
       });
     }
 
     // this state machine combines contiguous blocks of elements with width less than maxWidth % and
     // distance between them of less than maxCloseness
-    function appendFilteredMarkers(container, markers, startY, maxCloseness, maxWidth, color) {
+    function appendFilteredMarkers(container, markers, cssClass, startY, maxCloseness, maxWidth, color) {
       var i, item;
       var duration = data.boundaries.max - data.boundaries.min;
       var mergeLength = 0, mergeStartTime, mergeEndTime, mergeSumOfdurations;
-      var prevtext, prevItemTitle, prevStartX, prevWidth;
+      var prevText, prevItemTitle, prevStartX, prevWidth;
       var startX, width, itemTitle, text;
 
       // if there is one element in the merge, display that element, otherwise combine all elements inside
       function endMerge() {
           // if there's only one item merged, display it as if it wasn't merged
           if (mergeLength == 1) {
-            container.appendChild(makeWaterfallBar(prevText, prevItemTitle, prevStartX, startY, prevWidth, color));
+            container.appendChild(makeWaterfallBar(cssClass, prevText, prevItemTitle, prevStartX, startY, prevWidth, color));
           } else {
             // draw the merged bar
-            container.appendChild(makeWaterfallBar("&nbsp;", text + " x" + mergeLength + " over " + mergeSumOfdurations.toFixed(2) + " ms", mergeStartTime, startY, mergeEndTime - mergeStartTime, "#000"));
+            container.appendChild(makeWaterfallBar(cssClass, "&nbsp;", text + " x" + mergeLength + " over " + mergeSumOfdurations.toFixed(2) + " ms", mergeStartTime, startY, mergeEndTime - mergeStartTime, "#000"));
           }
           // mark the merge as processed and reset its duration
           mergeLength = 0;
@@ -149,10 +147,10 @@ Waterfall.prototype = {
         width = (item.endTime - data.boundaries.min) * 100 / duration - startX;
 
         // set the marker's text and title
-        itemTitle = (item.endTime - item.startTime).toFixed(2) + " ms";
+        itemTitle = item.text + " " + (item.endTime - item.startTime).toFixed(2) + " ms";
         text = item.text;
-        if (item.startTimerStack) {
-          itemTitle += self.formatStack(item.startTimerStack);
+        if (item.causeStack) {
+          itemTitle += "\n" + self.formatStack(item.causeStack);
         }
 
         // if there was a merge happening and we are too far or too wide to join, end it
@@ -163,7 +161,7 @@ Waterfall.prototype = {
         // if this element is big enough to be visible on its own we just draw it
         if (width > maxWidth) {
           // render the current element because it can stand on its own
-          container.appendChild(makeWaterfallBar(text, itemTitle, startX, startY, width, color));
+          container.appendChild(makeWaterfallBar(cssClass, text, itemTitle, startX, startY, width, color));
         } else {
           // since our bar is too small we create or join a merge
           if (mergeLength == 0) {
@@ -188,8 +186,7 @@ Waterfall.prototype = {
       var type = typeOrder[i];
       if (filtered[type]) {
         //TODO: possible optimization: createFragment
-        appendFilteredMarkers(this.container, filtered[type], startY, maxCloseness, maxWidth, colorList[i]);
-        startY += 15;
+        appendFilteredMarkers(this.container, filtered[type], cssClasses[i], barHeight[i]*15, maxCloseness, maxWidth, colorList[i]);
       }
     }
 

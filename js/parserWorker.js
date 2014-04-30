@@ -2021,52 +2021,108 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
 
   var paintMarkers, i, marker;
 
+  var startTime = {};
+  var stack = {};
+  var isInRefreshDriver = false;
+  var trivialFrame;
+  var frameNumber = 0;
+
   paintMarkers = getPaintMarkers(mainThreadMarkers);
   for (i = 0; i < paintMarkers.length; i++) {
     marker = paintMarkers[i];
     if (marker.name == "RD" && marker.data.interval == "start") {
-      mainThreadState = "RDenter";
-    } else if (marker.name == "RD" && marker.data.interval == "end") {
-      mainThreadState = "Waiting";
-    } else if (mainThreadState == "RDenter" &&
-        marker.name == "Scripts" && marker.data.interval == "start") {
-      startScripts = marker.time;
-      layoutStartTime = null;
-    } else if (marker.name == "ReflowCause" && marker.data && marker.data.stack) {
-      startTimerStack = prepareSample(marker.data.stack, profile.symbols);
-    } else if (mainThreadState == "RDenter" &&
-        startScripts &&
-        marker.name == "Scripts" && marker.data.interval == "end") {
-      result.items.push({
-        startTime: startScripts,
-        endTime: marker.time,
-        text: "Scripts",
-      });
-      startScripts = null;
-      layoutStartTime = marker.time;
-    } else if (mainThreadState == "RDenter" &&
-        marker.name == "Rasterize" && marker.data.interval == "start") {
-      startRasterize = marker.time;
-      result.items.push({
-        startTime: layoutStartTime,
-        endTime: marker.time,
-        text: "Layout",
-        startTimerStack: startTimerStack,
-      });
-      startTimerStack = null;
-      endScripts = null;
-    } else if (mainThreadState == "RDenter" &&
-        startRasterize &&
-        marker.name == "Rasterize" && marker.data.interval == "end") {
-      result.items.push({
-        startTime: startRasterize,
-        endTime: marker.time,
-        text: "Rasterize",
-      });
-      layoutStartTime = marker.time;
-      startRasterize = null;
+      isInRefreshDriver = true;
+      trivialFrame = true;
+      startTime[marker.name] = marker.time;
+    } else if(isInRefreshDriver && marker.name == "RD" && marker.data.interval == "end") {
+      isInRefreshDriver = false;
+      if (!trivialFrame && startTime[marker.name]) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: "Refresh " + frameNumber++,
+          type: "RD",
+        });
+      }
+      startTime[marker.name] = null;
+    } else if (isInRefreshDriver) {
+      if (marker.name == "Scripts" && marker.data.interval == "start") {
+        startTime[marker.name] = marker.time;
+      } else if (marker.name == "Scripts" && marker.data.interval == "end" && startTime[marker.name]) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: "Scripts",
+          type: "Scripts",
+        });
+        startTime[marker.name] = null;
+      } else if (marker.name == "Styles" && marker.data.interval == "start") {
+        startTime[marker.name] = marker.time;
+        stack[marker.name] = marker.data.stack;
+      } else if (marker.name == "Styles" && marker.data.interval == "end" && startTime[marker.name]) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: "Styles",
+          type: "Styles",
+        });
+        if (stack[marker.name]) {
+          result.items[result.items.length - 1].causeStack = prepareSample(stack[marker.name], profile.symbols);
+          stack[marker.name] = null;
+        }
+        startTime[marker.name] = null;
+      } else if (marker.name == "Reflow" && marker.data.interval == "start") {
+        startTime[marker.name] = marker.time;
+        stack[marker.name] = marker.data.stack;
+        dump("STACK: " + JSON.stringify(marker.data.stack) + "\n");
+      } else if (marker.name == "Reflow" && marker.data.interval == "end" && startTime[marker.name]) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: marker.name,
+          type: marker.name,
+        });
+        if (stack[marker.name]) {
+          result.items[result.items.length - 1].causeStack = prepareSample(stack[marker.name], profile.symbols);
+          stack[marker.name] = null;
+        }
+        startTime[marker.name] = null;
+      } else if (marker.name == "DisplayList" && marker.data.interval == "start") {
+        startTime[marker.name] = marker.time;
+        trivialFrame = false;
+      } else if (marker.name == "DisplayList" && marker.data.interval == "end" && startTime[marker.name]) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: marker.name,
+          type: marker.name,
+        });
+        startTime[marker.name] = null;
+      } else if (marker.name == "Rasterize" && marker.data.interval == "start") {
+        if (result.items.length >= 1) {
+          // If we hit Rasterize we stop the DisplayList phase
+          var prevItem = result.items[result.items.length - 1];
+          result.items.push({
+            startTime: prevItem.endTime,
+            endTime: marker.time,
+            text: "DisplayList",
+            type: "DisplayList",
+          });
+          startTime["DisplayList"] = null;
+        }
+        startTime[marker.name] = marker.time;
+      } else if (marker.name == "Rasterize" && marker.data.interval == "end" && startTime[marker.name]) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: marker.name,
+          type: marker.name,
+        });
+        startTime[marker.name] = null;
+      }
     }
   }
+
   paintMarkers = getPaintMarkers(compThreadMarkers);
   for (i = 0; i < paintMarkers.length; i++) {
     marker = paintMarkers[i];
@@ -2078,6 +2134,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         startTime: startComposite,
         endTime: marker.time,
         text: "Composite",
+        type: "Composite",
       });
       startComposite = null;
     }
