@@ -105,6 +105,11 @@ var HistogramContainer;
         tabTitleLi.appendChild(tabTitleDiv);
         this.tabList.appendChild(tabTitleLi);
       }
+      if (Object.keys(this.tabs).length < 2) {
+        this.tabList.style.display = "none";
+      } else {
+        this.tabList.style.display = "initial";
+      }
     },
   }
 }());

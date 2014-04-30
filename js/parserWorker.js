@@ -2008,6 +2008,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var result = {
     boundaries: boundaries,
     items: [],
+    compositeTimes: [],
   };
   var mainThreadState = "Waiting";
   var compThreadState = "Waiting";
@@ -2137,6 +2138,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         type: "Composite",
       });
       startComposite = null;
+      result.compositeTimes.push(marker.time);
     }
   }
 

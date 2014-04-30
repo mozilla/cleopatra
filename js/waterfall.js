@@ -46,6 +46,18 @@ var Waterfall = function() {
   window.addEventListener("resize", throttler, false);
 }
 
+Waterfall.createFrameUniformityView = function() {
+  container = createElement("div", {
+    className: "frameUniformityContainer",
+    style: {
+      width: "100%",
+      height: "100%",
+      background: "white",
+    }
+  });
+
+  return container;
+};
 
 Waterfall.prototype = {
   getContainer: function Waterfall_getContainer() {

@@ -40,6 +40,7 @@
     window.gRestoreSelection = null;
     window.gVideoCapture = null;
     window.gReportID = null;
+    window.gTabWidget = null;
 
     window.gImportFromAddonSubreporters = null;
 

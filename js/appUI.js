@@ -133,7 +133,7 @@
       gHistogramContainer = new HistogramContainer();
       gHistogramContainer.updateThreads(gThreadsDesc);
       gHistogramContainer.onMarkerClick(function(threadMarker, selectedMarker) {
-        gTreeManager.getContainer().style.display = "none";
+        gTabWidget.selectTab("Markers");
         gMarkerTreeManager.show();
         gMarkerTreeManager.display(threadMarker);
         if (selectedMarker) {
@@ -171,14 +171,13 @@
       treeContainerDiv.style.width = "100%";
       treeContainerDiv.style.height = "100%";
 
-      var tabWidget = new TabWidget();
-      tabWidget.addTab("Samples", treeContainerDiv);
-      tabWidget.addTab("Frames", document.createElement("div"));
+      gTabWidget = new TabWidget();
+      gTabWidget.addTab("Samples", treeContainerDiv);
 
       currRow = document.createElement("div");
       currRow.style.flex = 1;
       currRow.style.height = "100%";
-      currRow.appendChild(tabWidget.getContainer());
+      currRow.appendChild(gTabWidget.getContainer());
       finishedProfilePane.appendChild(currRow);
 
       gTreeManager = new ProfileTreeManager();
@@ -194,8 +193,8 @@
       treeContainerDiv.appendChild(gPluginView.getContainer());
 
       gMarkerTreeManager = new MarkerTreeManager();
-      treeContainerDiv.appendChild(gMarkerTreeManager.getContainer());
-      gMarkerTreeManager.getContainer().classList.add("hidden");
+      gMarkerTreeManager.getContainer().style.padding = "0px";
+      gTabWidget.addTab("Markers", gMarkerTreeManager.getContainer());
       this.MakeSizeAdjustable(gMarkerTreeManager.getTreeHeader(), gHistogramContainer.container.parentNode);
 
       gMainArea.appendChild(finishedProfilePaneBackgroundCover);
@@ -342,6 +341,11 @@
         var waterfallRequest = Parser.calculateWaterfallData(boundaries);
         waterfallRequest.addEventListener("finished", function (data) {
           gHistogramContainer.displayWaterfall(data);
+
+          if (data.compositeTimes && data.compositeTimes.length > 1) {
+            var frameUniformityView = Waterfall.createFrameUniformityView(data.compositeTimes);
+            gTabWidget.addTab("Frames", frameUniformityView);
+          }
         });
 
         self.diagnosticChanged();
@@ -390,8 +394,7 @@
 
     setHighlightedCallstack: function AppUI_setHighlightedCallstack(samples, heaviestSample) {
       // Make sure that the right tree is shown
-      gTreeManager.getContainer().style.display = "block";
-      gMarkerTreeManager.hide();
+      gTabWidget.selectTab("Samples");
 
       gHighlightedCallstack = samples;
       gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack, gInvertCallstack);
