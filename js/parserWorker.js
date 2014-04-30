@@ -2138,7 +2138,9 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         type: "Composite",
       });
       startComposite = null;
-      result.compositeTimes.push(marker.time);
+      if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
+        result.compositeTimes.push(marker.time);
+      }
     }
   }
 

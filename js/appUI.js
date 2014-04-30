@@ -342,7 +342,7 @@
         waterfallRequest.addEventListener("finished", function (data) {
           gHistogramContainer.displayWaterfall(data);
 
-          if (data.compositeTimes && data.compositeTimes.length > 1) {
+          if (data.compositeTimes && data.compositeTimes.length > 2) {
             var frameUniformityView = Waterfall.createFrameUniformityView(data.compositeTimes);
             gTabWidget.addTab("Frames", frameUniformityView);
           }

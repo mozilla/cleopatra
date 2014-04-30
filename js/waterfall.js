@@ -46,16 +46,42 @@ var Waterfall = function() {
   window.addEventListener("resize", throttler, false);
 }
 
-Waterfall.createFrameUniformityView = function() {
-  container = createElement("div", {
+Waterfall.createFrameUniformityView = function(compositeTimes) {
+  var container = createElement("div", {
     className: "frameUniformityContainer",
     style: {
-      width: "100%",
-      height: "100%",
       background: "white",
+      height: "100%",
+    }
+  });
+  var graph = createElement("div", {
+    id: "frameUniformityGraph",
+    className: "frameGraph",
+    style: {
+      width: "600px",
+      height: "400px",
+      padding: "5px",
     }
   });
 
+  var data = ["Frames"];
+  for (var i = 1; i < compositeTimes.length; i++) {
+    data.push((compositeTimes[i] - compositeTimes[i-1]).toFixed(2));
+  }
+
+  document.body.appendChild(graph);
+  var chart = c3.generate({
+    bindto: '#frameUniformityGraph',
+    data: {
+        columns: [
+          data,
+        ]
+    }
+  });
+  document.body.removeChild(graph);
+  graph.id = "";
+
+  container.appendChild(graph);
   return container;
 };
 
