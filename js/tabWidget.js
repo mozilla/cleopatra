@@ -76,6 +76,9 @@ var HistogramContainer;
       if (this.tabs[tabName] == null) {
         throw "Tab does not exist";
       }
+      if (this.currentTab == tabName) {
+        return;
+      }
       this.tabContainer.innerHTML = "";
       this.tabContainer.appendChild(this.tabs[tabName]); 
       this.currentTab = tabName;
