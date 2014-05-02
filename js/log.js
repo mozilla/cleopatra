@@ -14,6 +14,7 @@ var GeckoLogHandler = function() {
       lineHeight: "16px",
       paddingLeft: "2px",
       minHeight: "100%",
+      overflow: "auto",
     }
   });
   this.container.appendChild(this.logWidget);
@@ -39,12 +40,32 @@ GeckoLogHandler.prototype = {
           if (this.mouseOverMarker) {
             return;
           }
-          this.mouseOverMarker = window.gHistogramContainer.addMarker("Test", this.logEntry.thread, this.logEntry.time);
+          this.mouseOverMarker = window.gHistogramContainer.addMarker("Log", this.logEntry.thread, this.logEntry.time);
+          if (this.logEntry.name.lastIndexOf("data:image/png;base64,", 0) === 0) {
+            this.preview = createElement("img", {
+              src: this.logEntry.name,
+              style: {
+                border: "solid 1px black",
+                backgroundColor: "#FFF",
+                backgroundImage: "linear-gradient(45deg, #F0F 25%, transparent 25%,transparent 75%, #F0F 75%, #F0F 100%), linear-gradient(45deg, #F0F 25%, transparent 25%,transparent 75%, #F0F 75%, #F0F 100%)",
+                backgroundSize: "32px 32px",
+                backgroundPosition: "0 0, 16px 16px",
+                position: "absolute",
+                top: "0px",
+                left: "0px",
+              },
+            });
+            document.body.appendChild(this.preview);
+          }
         },
         onmouseout: function() {
           if (this.mouseOverMarker) {
             window.gHistogramContainer.removeMarker(this.mouseOverMarker);
             this.mouseOverMarker = null;
+          }
+          if (this.preview) {
+            document.body.removeChild(this.preview);
+            this.preview = null;
           }
         },
       });

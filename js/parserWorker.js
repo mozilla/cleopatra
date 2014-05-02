@@ -135,7 +135,7 @@ self.onmessage = function (msg) {
         calculateWaterfallData(requestID, taskData.profileID, taskData.boundaries);
         break;
       case "getLogData":
-        getLogData(requestID, taskData.profileID);
+        getLogData(requestID, taskData.profileID, taskData.boundaries);
         break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
@@ -1963,7 +1963,7 @@ function prepareSample(frames, symbols) {
   return stack;
 }
 
-function getLogData(requestID, profileID) {
+function getLogData(requestID, profileID, boundaries) {
   var profile = gProfiles[profileID];
 
   var result = {
@@ -1977,7 +1977,8 @@ function getLogData(requestID, profileID) {
 
     for (var markerId in markers) {
       var marker = markers[markerId];
-      if (marker.data && marker.data.category == "log") {
+      if (marker.data && marker.data.category == "log" &&
+          marker.time >= boundaries.min && marker.time <= boundaries.max) {
         var markerCopy = JSON.parse(JSON.stringify(marker));
         markerCopy.thread = threadId;
         result.entries.push(markerCopy);

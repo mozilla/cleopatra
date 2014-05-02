@@ -623,6 +623,10 @@ iframe {
     box-shadow: -2px 2px 0 #FFF;
 }
 
+.logLine {
+  white-space: pre;
+}
+
 .logLine:hover {
   background-color: #E8E8E8;
 }
