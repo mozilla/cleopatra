@@ -1963,6 +1963,67 @@ function prepareSample(frames, symbols) {
   return stack;
 }
 
+function getLayersDump(logMarkers, timeStart, timeEnd) {
+  for (var i = 0; i < logMarkers.length; i++) {
+    var logMarker = logMarkers[i];
+    if (logMarker.name.lastIndexOf("LayerManager (", 0) === 0 &&
+        logMarker.time > timeStart && logMarker.time < timeEnd) {
+      var layersDumpLines = [];
+
+      while (i < logMarkers.length) {
+        logMarker = logMarkers[i];
+        if (logMarker.name === "\n") {
+          return layersDumpLines;
+        }
+        var copy = JSON.parse(JSON.stringify(logMarker));
+        layersDumpLines.push(copy);
+        i++;
+      }
+      return null; // Could not find the end, error
+    }
+  }
+
+  return null;
+}
+
+function getThreadLogData(threadId, markers, boundaries) {
+  var entries = [];
+
+  var logMarkers = [];
+  for (var markerId in markers) {
+    var marker = markers[markerId];
+
+    if (marker.data && marker.data.category == "log" &&
+        marker.time >= boundaries.min && marker.time <= boundaries.max) {
+      var markerCopy = JSON.parse(JSON.stringify(marker));
+      markerCopy.thread = threadId;
+      logMarkers.push(markerCopy);
+    }
+
+  }
+
+  for (var i = 0; i < logMarkers.length; i++) {
+    var logMarker = logMarkers[i];
+    entries.push(logMarker);
+
+    var lookAhead = i + 1;
+    while (lookAhead < logMarkers.length && logMarker.name.indexOf("\n") == -1) {
+      // This marker doesn't contain a line, concatenate markers
+      // until we have at least one new line (doesn't have to be
+      // at the end).
+      var lookAheadMarker = logMarkers[lookAhead];
+      lookAhead++;
+
+      // Consume that marker. Note that concatenated markers will inherit
+      // the first lines meta data. However we never merge across threads.
+      i++;
+
+      logMarker.name += lookAheadMarker.name;
+    }
+  }
+  return entries;
+}
+
 function getLogData(requestID, profileID, boundaries) {
   var profile = gProfiles[profileID];
 
@@ -1974,38 +2035,10 @@ function getLogData(requestID, profileID, boundaries) {
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
     var markers = thread.markers;  
+    var threadLogMarkers = getThreadLogData(threadId, markers, boundaries);
 
-    var logMarkers = [];
-    for (var markerId in markers) {
-      var marker = markers[markerId];
-
-      if (marker.data && marker.data.category == "log" &&
-          marker.time >= boundaries.min && marker.time <= boundaries.max) {
-        var markerCopy = JSON.parse(JSON.stringify(marker));
-        markerCopy.thread = threadId;
-        logMarkers.push(markerCopy);
-      }
-
-    }
-
-    for (var i = 0; i < logMarkers.length; i++) {
-      var logMarker = logMarkers[i];
-      result.entries.push(logMarker);
-
-      var lookAhead = i + 1;
-      while (lookAhead < logMarkers.length && logMarker.name.indexOf("\n") == -1) {
-        // This marker doesn't contain a line, concatenate markers
-        // until we have at least one new line (doesn't have to be
-        // at the end).
-        var lookAheadMarker = logMarkers[lookAhead];
-        lookAhead++;
-
-        // Consume that marker. Note that concatenated markers will inherit
-        // the first lines meta data. However we never merge across threads.
-        i++;
-
-        logMarker.name += lookAheadMarker.name;
-      }
+    for (var i = 0; i < threadLogMarkers.length; i++) {
+      result.entries.push(threadLogMarkers[i]);
     }
   }
 
@@ -2026,6 +2059,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var mainThreadMarkers = null;
   var compThread = null;
   var compThreadMarkers = null;
+  var compThreadId;
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
     // In these regexes we look for any thread named X by checking if
@@ -2040,6 +2074,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         /^Compositor(?![\w\d])|^Compositor$/.test(thread.name)) {
       compThread = thread.samples;
       compThreadMarkers = thread.markers;
+      compThreadId = threadId;
     }
   }
 
@@ -2180,6 +2215,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   }
 
   paintMarkers = getPaintMarkers(compThreadMarkers);
+  var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers, boundaries);
   for (i = 0; i < paintMarkers.length; i++) {
     marker = paintMarkers[i];
     if (marker.name == "Composite" && marker.data.interval == "start" &&
@@ -2195,6 +2231,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       startComposite = null;
       if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
         result.compositeTimes.push(marker.time);
+      }
+      var layersDump = getLayersDump(compositorLogData, startComposite, marker.time);
+      if (layersDump) {
+        result.items[result.items.length - 1].layersDump = layersDump;
       }
     }
   }
