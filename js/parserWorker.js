@@ -134,6 +134,9 @@ self.onmessage = function (msg) {
       case "calculateWaterfallData":
         calculateWaterfallData(requestID, taskData.profileID, taskData.boundaries);
         break;
+      case "getLogData":
+        getLogData(requestID, taskData.profileID);
+        break;
       case "calculateDiagnosticItems":
         calculateDiagnosticItems(requestID, taskData.profileID, taskData.meta, taskData.threadId);
         break;
@@ -1958,6 +1961,35 @@ function prepareSample(frames, symbols) {
     stack.push(sym);
   }
   return stack;
+}
+
+function getLogData(requestID, profileID) {
+  var profile = gProfiles[profileID];
+
+  var result = {
+    entries: [
+    ],
+  };
+
+  for (var threadId in profile.threads) {
+    var thread = profile.threads[threadId];
+    var markers = thread.markers;  
+
+    for (var markerId in markers) {
+      var marker = markers[markerId];
+      if (marker.data && marker.data.category == "log") {
+        var markerCopy = JSON.parse(JSON.stringify(marker));
+        markerCopy.thread = threadId;
+        result.entries.push(markerCopy);
+      }
+    }
+  }
+
+  result.entries.sort(function(a, b) {
+    return a.time - b.time;
+  });
+
+  sendFinished(requestID, result);
 }
 
 // Within each marker type the returned markers should be sorted in ascending order

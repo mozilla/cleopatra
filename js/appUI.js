@@ -186,6 +186,9 @@
       gSampleBar = new SampleBar();
       treeContainerDiv.appendChild(gSampleBar.getContainer());
 
+      gGeckoLogHandler = new GeckoLogHandler();
+      gTabWidget.addTab("Logging", gGeckoLogHandler.getContainer());
+
       // sampleBar
 
       gPluginView = new PluginView();
@@ -346,6 +349,10 @@
             var frameUniformityView = Waterfall.createFrameUniformityView(data.compositeTimes);
             gTabWidget.addTab("Frames", frameUniformityView);
           }
+        });
+        var logDataRequest = Parser.getLogData(boundaries);
+        logDataRequest.addEventListener("finished", function (data) {
+          gGeckoLogHandler.setLogData(data);
         });
 
         self.diagnosticChanged();

@@ -41,6 +41,7 @@
     window.gVideoCapture = null;
     window.gReportID = null;
     window.gTabWidget = null;
+    window.gGeckoLogHandler = null;
 
     window.gImportFromAddonSubreporters = null;
 

@@ -295,6 +295,15 @@ var Parser = {
     return request;
   },
 
+  getLogData: function Parser_getLogData(boundaries) {
+    var request = new WorkerRequest(gParserWorker);
+    request.send("getLogData", {
+      profileID: 0,
+      boundaries: boundaries,
+    });
+    return request;
+  },
+
   updateLogSetting: function Parser_updateLogSetting() {
     var request = new WorkerRequest(gParserWorker);
     request.send("initWorker", {
