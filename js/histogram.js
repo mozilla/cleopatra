@@ -182,6 +182,23 @@ var HistogramContainer;
       }
     },
 
+    addMarker: function(name, threadId, time) {
+      for (var i = 0; i < this.threads.length; i++) {
+        if (this.threads[i].threadId == threadId) {
+          var marker = this.threads[i].threadHistogramView.addMarker(name, time);
+          marker.view = this.threads[i].threadHistogramView;
+          return marker;
+        }
+      }
+      return null;
+    },
+
+    removeMarker: function(marker) {
+      if (marker) {
+        marker.view.removeMarker(marker);
+      }
+    },
+
     histogramSelected: function (view, cb) {
       if (gSelectedThreadId == view.threadId) {
         return void cb();
@@ -296,6 +313,28 @@ var HistogramContainer;
         window.webkitAnimationFrame || window.msRequestAnimationFrame;
 
       fn(this.render.bind(this, callstack, inverted, markers));
+    },
+
+    addMarker: function (name, time) {
+      var x = (time - this.boundaries.min) /* ms */ * this.getCanvas().width /* px */ / (this.boundaries.max - this.boundaries.min) /* ms */;
+
+      // construct marker div with a click event
+      var markerDiv = createElement("div", { className: "marker" });
+      markerDiv.style.left = x + "px";
+      markerDiv.style.top = "0px";
+
+      var label = createElement("span", {
+        style: { color: '#BF0039'},
+      });
+      label.textContent = name;
+      markerDiv.appendChild(label);
+      this.container.appendChild(markerDiv);
+      
+      return markerDiv;
+    },
+
+    removeMarker: function (markerDiv) {
+      this.container.removeChild(markerDiv);
     },
 
     render: function (callstack, inverted) {

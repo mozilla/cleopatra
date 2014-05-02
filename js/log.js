@@ -34,6 +34,19 @@ GeckoLogHandler.prototype = {
       var logLine = createElement("div", {
         className: "logLine",
         textContent: logEntry.name,
+        logEntry: logEntry,
+        onmouseover: function() {
+          if (this.mouseOverMarker) {
+            return;
+          }
+          this.mouseOverMarker = window.gHistogramContainer.addMarker("Test", this.logEntry.thread, this.logEntry.time);
+        },
+        onmouseout: function() {
+          if (this.mouseOverMarker) {
+            window.gHistogramContainer.removeMarker(this.mouseOverMarker);
+            this.mouseOverMarker = null;
+          }
+        },
       });
       this.logWidget.appendChild(logLine);
     }

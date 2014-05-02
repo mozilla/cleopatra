@@ -622,4 +622,8 @@ iframe {
 .tabrow li.selected:after {
     box-shadow: -2px 2px 0 #FFF;
 }
+
+.logLine:hover {
+  background-color: #E8E8E8;
+}
 /* end tabs */
