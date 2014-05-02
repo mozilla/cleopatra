@@ -1975,13 +1975,36 @@ function getLogData(requestID, profileID, boundaries) {
     var thread = profile.threads[threadId];
     var markers = thread.markers;  
 
+    var logMarkers = [];
     for (var markerId in markers) {
       var marker = markers[markerId];
+
       if (marker.data && marker.data.category == "log" &&
           marker.time >= boundaries.min && marker.time <= boundaries.max) {
         var markerCopy = JSON.parse(JSON.stringify(marker));
         markerCopy.thread = threadId;
-        result.entries.push(markerCopy);
+        logMarkers.push(markerCopy);
+      }
+
+    }
+
+    for (var i = 0; i < logMarkers.length; i++) {
+      var logMarker = logMarkers[i];
+      result.entries.push(logMarker);
+
+      var lookAhead = i + 1;
+      while (lookAhead < logMarkers.length && logMarker.name.indexOf("\n") == -1) {
+        // This marker doesn't contain a line, concatenate markers
+        // until we have at least one new line (doesn't have to be
+        // at the end).
+        var lookAheadMarker = logMarkers[lookAhead];
+        lookAhead++;
+
+        // Consume that marker. Note that concatenated markers will inherit
+        // the first lines meta data. However we never merge across threads.
+        i++;
+
+        logMarker.name += lookAheadMarker.name;
       }
     }
   }
