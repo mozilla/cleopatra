@@ -2075,7 +2075,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       } else if (marker.name == "Reflow" && marker.data.interval == "start") {
         startTime[marker.name] = marker.time;
         stack[marker.name] = marker.data.stack;
-        dump("STACK: " + JSON.stringify(marker.data.stack) + "\n");
       } else if (marker.name == "Reflow" && marker.data.interval == "end" && startTime[marker.name]) {
         result.items.push({
           startTime: startTime[marker.name],
