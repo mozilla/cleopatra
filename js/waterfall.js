@@ -98,12 +98,21 @@ Waterfall.prototype = {
   },
 
   formatStack: function(stack) {
-    var str = " ";
+    var str = "";
     for (var i = stack.length - 1; i >= 0; i--) {
       var frame = stack[i];
       str += frame + "\n";
     }
     return str; 
+  },
+
+  formatLayersDump: function(layersDump) {
+    var str = "";
+    for (var i = 0; i < layersDump.length; i++) {
+      var line = layersDump[i];
+      str += line.name;
+    }
+    return str;
   },
 
   display: function Waterfall_display(data) {
@@ -189,6 +198,9 @@ Waterfall.prototype = {
         text = item.text;
         if (item.causeStack) {
           itemTitle += "\n" + self.formatStack(item.causeStack);
+        }
+        if (item.layersDump) {
+          itemTitle += "\n" + self.formatLayersDump(item.layersDump);
         }
 
         // if there was a merge happening and we are too far or too wide to join, end it

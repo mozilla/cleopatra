@@ -1988,6 +1988,7 @@ function getLayersDump(logMarkers, timeStart, timeEnd) {
 
 function getThreadLogData(threadId, markers, boundaries) {
   var entries = [];
+  boundaries = boundaries || { min: -Infinity, max: Infinity };
 
   var logMarkers = [];
   for (var markerId in markers) {
@@ -2215,7 +2216,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   }
 
   paintMarkers = getPaintMarkers(compThreadMarkers);
-  var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers, boundaries);
+  var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
   for (i = 0; i < paintMarkers.length; i++) {
     marker = paintMarkers[i];
     if (marker.name == "Composite" && marker.data.interval == "start" &&
