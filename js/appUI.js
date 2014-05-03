@@ -200,6 +200,8 @@
       gTabWidget.addTab("Markers", gMarkerTreeManager.getContainer());
       this.MakeSizeAdjustable(gMarkerTreeManager.getTreeHeader(), gHistogramContainer.container.parentNode);
 
+      tab_showInstruction("LayerTree", "To view layers tree you must: (1) Be running with OMTC enabled, (2) have the preference layers.dump;true set, (3) be sampling the main thread and the compositor thread.");
+
       gMainArea.appendChild(finishedProfilePaneBackgroundCover);
       gMainArea.appendChild(finishedProfilePane);
 

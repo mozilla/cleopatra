@@ -371,7 +371,7 @@ body {
 }
 .histogramContainerParent {
   display: block;
-  overflow-y: scroll;
+  overflow-y: auto;
   max-height: 300px;
 }
 .histogramSelected {

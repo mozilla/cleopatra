@@ -112,6 +112,11 @@ Waterfall.prototype = {
       var line = layersDump[i];
       str += line.name;
     }
+
+    if (!this.hasSeenLayersDump) {
+      this.hasSeenLayersDump = true;
+      tab_showInstruction("LayerTree", "To view a layers dump you must click on a 'Composite' bubble in the Frames timeline.");
+    }
     return str;
   },
 
@@ -211,7 +216,15 @@ Waterfall.prototype = {
         // if this element is big enough to be visible on its own we just draw it
         if (width > maxWidth) {
           // render the current element because it can stand on its own
-          container.appendChild(makeWaterfallBar(cssClass, text, itemTitle, startX, startY, width, color));
+          var loneElement = makeWaterfallBar(cssClass, text, itemTitle, startX, startY, width, color);
+          if (item.layersDump) {
+            (function (layersDump, text, startTime) {
+              loneElement.onclick = function() {
+                tab_showLayersDump(layersDump, text, startTime);
+              }
+            })(item.layersDump, text, item.startTime);
+          }
+          container.appendChild(loneElement);
         } else {
           // since our bar is too small we create or join a merge
           if (mergeLength == 0) {
