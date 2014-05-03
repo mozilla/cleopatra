@@ -110,7 +110,7 @@ Waterfall.prototype = {
     var str = "";
     for (var i = 0; i < layersDump.length; i++) {
       var line = layersDump[i];
-      str += line.name;
+      str += line.name + "\n";
     }
 
     if (!this.hasSeenLayersDump) {

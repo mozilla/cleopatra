@@ -83,22 +83,37 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       return region;
     }
 
-    var layerObjects = [];
+    var root;
+    var objectAtIndentation = {};
     for (var i = 0; i < layersDumpLines.length; i++) {
       // Something like 'ThebesLayerComposite (0x12104cc00) [shadow-visible=< (x=0, y=0, w=1920, h=158); >] [visible=< (x=0, y=0, w=1920, h=158); >] [opaqueContent] [valid=< (x=0, y=0, w=1920, h=2218); >]'
       var line = layersDumpLines[i].name;
+      dump("LINE: " + line  +"\n");
 
       var layerObject = {
       }
-      layerObjects.push(layerObject);
+      if (!root) {
+        root = layerObject;
+      }
 
-      var matches = line.match("(\\w+)\\s\\((\\w+)\\)(.*)");
+      var matches = line.match("(\\s*)(\\w+)\\s\\((\\w+)\\)(.*)");
       if (!matches)
         continue; // Something like a texturehost dump. Safe to ignore
-      layerObject.name = matches[1];
-      layerObject.address = matches[2];
 
-      var rest = matches[3];
+      var indentation = Math.floor(matches[1].length / 2);
+      objectAtIndentation[indentation] = layerObject;
+      if (indentation > 0) {
+        dump("Indentation: " + indentation + "\n");
+        var parent = objectAtIndentation[indentation - 1];
+        parent.children = parent.children || [];
+        parent.children.push(layerObject);
+
+      }
+
+      layerObject.name = matches[2];
+      layerObject.address = matches[3];
+
+      var rest = matches[4];
 
       var fields = [];
       var nesting = 0;
@@ -125,34 +140,32 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
         var fieldName = parts[0];
         var rest = field.substring(fieldName.length + 1);
         if (parts.length == 1) {
-          // bool value
           layerObject[fieldName] = "true";
           layerObject[fieldName].type = "bool";
           continue;
-        } else {
-          var region = parseRegion(rest); 
-          if (region) {
-            layerObject[fieldName] = region;
-            layerObject[fieldName].type = "region";
-            continue;
-          }
-          var rect = parseRect2D(rest);
-          if (rect) {
-            layerObject[fieldName] = rect;
-            layerObject[fieldName].type = "rect2d";
-            continue;
-          }
-          var matrix = parseMatrix2x3(rest);
-          if (matrix) {
-            layerObject[fieldName] = matrix;
-            layerObject[fieldName].type = "matrix2x3";
-            continue;
-          }
+        }
+        var region = parseRegion(rest); 
+        if (region) {
+          layerObject[fieldName] = region;
+          layerObject[fieldName].type = "region";
+          continue;
+        }
+        var rect = parseRect2D(rest);
+        if (rect) {
+          layerObject[fieldName] = rect;
+          layerObject[fieldName].type = "rect2d";
+          continue;
+        }
+        var matrix = parseMatrix2x3(rest);
+        if (matrix) {
+          layerObject[fieldName] = matrix;
+          layerObject[fieldName].type = "matrix2x3";
+          continue;
         }
       }
       dump("Fields: " + JSON.stringify(fields) + "\n");
     }
-    dump("OBJECTS: " + JSON.stringify(layerObjects) + "\n");
+    dump("OBJECTS: " + JSON.stringify(root) + "\n");
   }
   var container = createElement("div", {
     style: {

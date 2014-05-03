@@ -1972,7 +1972,7 @@ function getLayersDump(logMarkers, timeStart, timeEnd) {
 
       while (i < logMarkers.length) {
         logMarker = logMarkers[i];
-        if (logMarker.name === "\n") {
+        if (logMarker.name === "") {
           return layersDumpLines;
         }
         var copy = JSON.parse(JSON.stringify(logMarker));
@@ -2003,6 +2003,30 @@ function getThreadLogData(threadId, markers, boundaries) {
 
   }
 
+  var i = 0;
+  var leftover = null;
+  while (i < logMarkers.length) {
+    var logMarker = logMarkers[i];
+    if (leftover && leftover != "") {
+      leftover.name += logMarker;
+      logMarker.name = leftover;
+      leftover = null;
+    }
+      
+    if (logMarker.name.split("\n").length > 1) {
+      var lines = logMarker.name.split("\n");
+      for (var j = 0; j < lines.length - 1; j++) {
+        var line = lines[j];
+        var lineMarker = JSON.parse(JSON.stringify(logMarker));
+        lineMarker.name = line;
+        entries.push(lineMarker);  
+        dump("- LINE: " + lineMarker.name + "\n");
+      }
+      leftover = lines[lines.length - 1];
+    }
+    i++;
+  }
+  /*
   for (var i = 0; i < logMarkers.length; i++) {
     var logMarker = logMarkers[i];
     entries.push(logMarker);
@@ -2021,7 +2045,15 @@ function getThreadLogData(threadId, markers, boundaries) {
 
       logMarker.name += lookAheadMarker.name;
     }
+    while (logMarker.name.split("\n").length > 1) {
+      var parts = logMarker.name.split("\n");
+      for (var j = 0; j < parts.length; j++) {
+        var part = parts[j];
+        
+      }
+    }
   }
+  */
   return entries;
 }
 
