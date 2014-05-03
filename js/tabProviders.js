@@ -91,6 +91,8 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       dump("LINE: " + line  +"\n");
 
       var layerObject = {
+        line: line,
+        children: [],
       }
       if (!root) {
         root = layerObject;
@@ -105,9 +107,7 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       if (indentation > 0) {
         dump("Indentation: " + indentation + "\n");
         var parent = objectAtIndentation[indentation - 1];
-        parent.children = parent.children || [];
         parent.children.push(layerObject);
-
       }
 
       layerObject.name = matches[2];
@@ -168,6 +168,56 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
     dump("OBJECTS: " + JSON.stringify(root) + "\n");
     return root;
   }
+  function populateLayers(root, pane, previewParent, hasSeenRoot) {
+    var elem = createElement("div", {
+      className: "layerObjectDescription",
+      textContent: root.line,
+      style: {
+        whiteSpace: "pre",
+      },
+    });
+    pane.appendChild(elem);
+
+    if (root["shadow-visible"]) {
+      var visibleRegion = root["shadow-visible"];
+      var layerViewport = createElement("div", {
+        id: root.address + "_viewport",
+        style: {
+          position: "absolute",
+        },
+      });
+      if (root["shadow-transform"]) {
+        var matrix = root["shadow-transform"];
+        layerViewport.style.transform = "translate(" + matrix[2][0] + "px," + matrix[2][1] + "px)";
+      }
+      if (!hasSeenRoot) {
+        hasSeenRoot = true;
+        layerViewport.style.transform = "scale(0.1, 0.1)";
+      }
+      previewParent.appendChild(layerViewport);
+      previewParent = layerViewport;
+      for (var i = 0; i < visibleRegion.length; i++) {
+        var rect2d = visibleRegion[i];
+        var layerPreview = createElement("div", {
+          id: root.address + "_shadow-visible_part" + i,
+          className: "layerPreview",
+          style: {
+            position: "absolute",
+            left: rect2d[0] + "px",
+            top: rect2d[1] + "px",
+            width: rect2d[2] + "px",
+            height: rect2d[3] + "px",
+            border: "solid 10px black",
+          },
+        });
+        layerViewport.appendChild(layerPreview);
+      }
+    }
+
+    for (var i = 0; i < root.children.length; i++) {
+      populateLayers(root.children[i], pane, previewParent, hasSeenRoot);
+    }
+  }
   var container = createElement("div", {
     style: {
       background: "white",
@@ -175,6 +225,7 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       position: "relative",
     },
   });
+
   var titleDiv = createElement("div", {
     className: "treeColumnHeader",
     style: {
@@ -184,7 +235,42 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
   });
   container.appendChild(titleDiv);
 
+  var mainDiv = createElement("div", {
+    style: {
+      position: "absolute",
+      top: "16px",
+      left: "0px",
+      right: "0px",
+      bottom: "0px",
+    },
+  });
+  container.appendChild(mainDiv);
+
+  var layerListPane = createElement("div", {
+    style: {
+      cssFloat: "left",
+      height: "100%",
+      width: "300px",
+      overflowY: "scroll",
+    },
+  });
+  mainDiv.appendChild(layerListPane);
+
+  var previewDiv = createElement("div", {
+    style: {
+      position: "absolute",
+      left: "300px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
+      height: "100%",
+      width: "100%",
+    },
+  });
+  mainDiv.appendChild(previewDiv);
+
   var root = parseLayers();
+  populateLayers(root, layerListPane, previewDiv);
 
   gTabWidget.addTab("LayerTree", container); 
   gTabWidget.selectTab("LayerTree");
