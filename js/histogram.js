@@ -319,7 +319,12 @@ var HistogramContainer;
       var x = (time - this.boundaries.min) /* ms */ * this.getCanvas().width /* px */ / (this.boundaries.max - this.boundaries.min) /* ms */;
 
       // construct marker div with a click event
-      var markerDiv = createElement("div", { className: "marker" });
+      var markerDiv = createElement("div", {
+        className: "marker",
+        style: {
+          borderLeft: "red solid 1px",
+        },
+      });
       markerDiv.style.left = x + "px";
       markerDiv.style.top = "0px";
 
