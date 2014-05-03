@@ -2267,7 +2267,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         text: "Composite #" + compositeNumber++,
         type: "Composite",
       });
-      startComposite = null;
       if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
         result.compositeTimes.push(marker.time);
       }
@@ -2275,6 +2274,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       if (layersDump) {
         result.items[result.items.length - 1].layersDump = layersDump;
       }
+      startComposite = null;
     }
   }
 
