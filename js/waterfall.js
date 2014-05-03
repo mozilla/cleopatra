@@ -63,8 +63,19 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
       padding: "5px",
     }
   });
+  var caption = createElement("span", {
+    textContent: "Each point represents the time between composites. " +
+                 "During active refresh all points should be near 16ms. " +
+                 "\n" +
+                 "\n" +
+                 "Warning: Composite don't occur when idle and will cause " +
+                 "spikes in the graph.",
+     style: {
+       whiteSpace: "pre",
+     },
+  });
 
-  var data = ["Frames"];
+  var data = ["Time between composites"];
   for (var i = 1; i < compositeTimes.length; i++) {
     data.push((compositeTimes[i] - compositeTimes[i-1]).toFixed(2));
   }
@@ -82,6 +93,7 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
   graph.id = "";
 
   container.appendChild(graph);
+  container.appendChild(caption);
   return container;
 };
 
