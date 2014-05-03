@@ -403,7 +403,7 @@
 
     setHighlightedCallstack: function AppUI_setHighlightedCallstack(samples, heaviestSample) {
       // Make sure that the right tree is shown
-      gTabWidget.selectTab("Samples");
+      //gTabWidget.selectTab("Samples");
 
       gHighlightedCallstack = samples;
       gHistogramContainer.highlightedCallstackChanged(gHighlightedCallstack, gInvertCallstack);
