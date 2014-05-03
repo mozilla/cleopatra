@@ -60,6 +60,9 @@ var HistogramContainer;
       this.tabs[tabName] = tabContainer;
       if (this.currentTab == null) {
         this.selectTab(tabName);
+      } else if (this.currentTab == tabName) {
+        this.currentTab = null; // FORCE
+        this.selectTab(tabName);
       }
       this._updateTabList();
     },

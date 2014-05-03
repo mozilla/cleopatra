@@ -166,6 +166,7 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       dump("Fields: " + JSON.stringify(fields) + "\n");
     }
     dump("OBJECTS: " + JSON.stringify(root) + "\n");
+    return root;
   }
   var container = createElement("div", {
     style: {
@@ -182,7 +183,8 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
     textContent: compositeTitle + " (near " + compositeTime.toFixed(0) + " ms)",
   });
   container.appendChild(titleDiv);
-  parseLayers();
+
+  var root = parseLayers();
 
   gTabWidget.addTab("LayerTree", container); 
   gTabWidget.selectTab("LayerTree");
