@@ -630,4 +630,22 @@ iframe {
 .logLine:hover {
   background-color: #E8E8E8;
 }
+
+.layerObjectDescription:hover {
+  background-color: #E8E8E8;
+}
+
+@keyframes layerHoverAnimation {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.layerHover .layerPreview {
+  animation: layerHoverAnimation 100ms;
+  animation-transform-origin: 50% 50%;
+  background: gold !important;
+  box-shadow: 10px 10px 5px #888888;
+  border-color: blue !important;
+}
 /* end tabs */

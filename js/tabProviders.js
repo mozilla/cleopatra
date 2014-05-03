@@ -175,6 +175,16 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       style: {
         whiteSpace: "pre",
       },
+      onmouseover: function() {
+        if (this.layerViewport) {
+          layerViewport.classList.add("layerHover");
+        }
+      },
+      onmouseout: function() {
+        if (this.layerViewport) {
+          layerViewport.classList.remove("layerHover");
+        }
+      },
     });
     pane.appendChild(elem);
 
@@ -186,13 +196,14 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
           position: "absolute",
         },
       });
+      elem.layerViewport = layerViewport;
       if (root["shadow-transform"]) {
         var matrix = root["shadow-transform"];
         layerViewport.style.transform = "translate(" + matrix[2][0] + "px," + matrix[2][1] + "px)";
       }
       if (!hasSeenRoot) {
         hasSeenRoot = true;
-        layerViewport.style.transform = "scale(0.1, 0.1)";
+        layerViewport.style.transform = "scale(0.25, 0.25)";
       }
       previewParent.appendChild(layerViewport);
       previewParent = layerViewport;
@@ -208,6 +219,7 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
             width: rect2d[2] + "px",
             height: rect2d[3] + "px",
             border: "solid 10px black",
+            background: "white",
           },
         });
         layerViewport.appendChild(layerPreview);
@@ -265,6 +277,7 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       bottom: "0px",
       height: "100%",
       width: "100%",
+      overflow: "auto",
     },
   });
   mainDiv.appendChild(previewDiv);
