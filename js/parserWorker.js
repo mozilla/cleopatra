@@ -2151,6 +2151,11 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var isInRefreshDriver = false;
   var trivialFrame;
   var frameNumber = 0;
+  var scriptsNumber = 0;
+  var reflowNumber = 0;
+  var stylesNumber = 0;
+  var displayListNumber = 0;
+  var rasterizeNumber = 0;
 
   paintMarkers = getPaintMarkers(mainThreadMarkers);
   for (i = 0; i < paintMarkers.length; i++) {
@@ -2177,7 +2182,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         result.items.push({
           startTime: startTime[marker.name],
           endTime: marker.time,
-          text: "Scripts",
+          text: "Scripts #" + scriptsNumber,
           type: "Scripts",
         });
         startTime[marker.name] = null;
@@ -2188,7 +2193,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         result.items.push({
           startTime: startTime[marker.name],
           endTime: marker.time,
-          text: "Styles",
+          text: "Styles" + " #" + stylesNumber++,
           type: "Styles",
         });
         if (stack[marker.name]) {
@@ -2203,7 +2208,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         result.items.push({
           startTime: startTime[marker.name],
           endTime: marker.time,
-          text: marker.name,
+          text: marker.name + " #" + reflowNumber++,
           type: marker.name,
         });
         if (stack[marker.name]) {
@@ -2218,7 +2223,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         result.items.push({
           startTime: startTime[marker.name],
           endTime: marker.time,
-          text: marker.name,
+          text: marker.name + " #" + displayListNumber++,
           type: marker.name,
         });
         startTime[marker.name] = null;
@@ -2229,7 +2234,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           result.items.push({
             startTime: prevItem.endTime,
             endTime: marker.time,
-            text: "DisplayList",
+            text: "DisplayList #" + displayListNumber++,
             type: "DisplayList",
           });
           startTime["DisplayList"] = null;
@@ -2239,7 +2244,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         result.items.push({
           startTime: startTime[marker.name],
           endTime: marker.time,
-          text: marker.name,
+          text: marker.name + " #" + rasterizeNumber++,
           type: marker.name,
         });
         startTime[marker.name] = null;
@@ -2247,6 +2252,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     }
   }
 
+  var compositeNumber = 0;
   paintMarkers = getPaintMarkers(compThreadMarkers);
   var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
   for (i = 0; i < paintMarkers.length; i++) {
@@ -2258,7 +2264,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       result.items.push({
         startTime: startComposite,
         endTime: marker.time,
-        text: "Composite",
+        text: "Composite #" + compositeNumber++,
         type: "Composite",
       });
       startComposite = null;

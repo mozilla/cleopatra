@@ -320,6 +320,7 @@ body {
   overflow: hidden;
   border: solid 1px;
   border-radius: 3px;
+  height: 16px;
 }
 .waterfallOrThreadRow {
   display: flex;
