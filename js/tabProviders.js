@@ -17,6 +17,74 @@ function tab_showInstruction(tabName, instruction) {
   gTabWidget.addTab(tabName, container); 
 }
 
+function parseDisplayList(lines) {
+  var root = {
+    line: "DisplayListRoot 0",
+    name: "DisplayListRoot",
+    address: "0",
+    children: [],
+  };
+
+  var objectAtIndentation = {
+    "-1": root,
+  };
+  dump("DISPLAYLIST: " + lines + "\n");
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].name;
+    dump("LINE: " + line + "\n");
+
+    var layerObject = {
+      line: line,
+      children: [],
+    }
+    if (!root) {
+      root = layerObject;
+    }
+
+    var matches = line.match("(\\s*)(\\w+)\\s(\\w+)(.*?) layer=(\\w+)");
+    if (!matches)
+      continue;
+
+    var indentation = Math.floor(matches[1].length / 2);
+    objectAtIndentation[indentation] = layerObject;
+    var parent = objectAtIndentation[indentation - 1];
+    parent.children.push(layerObject);
+
+    layerObject.name = matches[2];
+    layerObject.address = matches[3];
+    var rest = matches[4];
+    layerObject.layer = matches[5];
+
+    // the content node name doesn't have a prefix, this makes the parsing easier
+    rest = "content" + rest;
+
+    var fields = {};
+    var nesting = 0;
+    var startIndex;
+    var lastSpace = -1;
+    var lastFieldStart = -1;
+    dump("REST: " + rest + "\n");
+    for (var j = 0; j < rest.length; j++) {
+      if (rest.charAt(j) == '(') {
+        nesting++;
+        if (nesting == 1) {
+          startIndex = j;
+        }
+      } else if (rest.charAt(j) == ')') {
+        nesting--;
+        if (nesting == 0) {
+          var name = rest.substring(lastSpace + 1, startIndex);
+          var value = rest.substring(startIndex + 1, j);
+          fields[name] = value;
+        }
+      } else if (nesting == 0 && rest.charAt(j) == ' ') {
+        lastSpace = j;
+      }
+    }
+    dump("FIELDS: " + JSON.stringify(fields) + "\n");
+  }
+}
+
 function parseLayers(layersDumpLines) {
   function trim(s){ 
     return ( s || '' ).replace( /^\s+|\s+$/g, '' ); 
@@ -36,7 +104,6 @@ function parseLayers(layersDumpLines) {
       [parseFloat(matches[5]), parseFloat(matches[6])],
     ];
 
-    dump("Matrix: " + JSON.stringify(matrix) + "\n");
     return matrix;
   }
   function parseRect2D(str) {
@@ -52,7 +119,6 @@ function parseLayers(layersDumpLines) {
       parseFloat(rectMatches[1]), parseFloat(rectMatches[2]),
       parseFloat(rectMatches[3]), parseFloat(rectMatches[4]),
     ];
-    dump("Rect: " + JSON.stringify(rect) + "\n");
     return rect;
   }
   function parseRegion(str) {
@@ -78,7 +144,6 @@ function parseLayers(layersDumpLines) {
       str = trim(str.substring(rectMatches[0].length, str.length));
       region.push(rect);
     }
-    dump("Region: " + JSON.stringify(region) + "\n");
     return region;
   }
 
@@ -87,7 +152,6 @@ function parseLayers(layersDumpLines) {
   for (var i = 0; i < layersDumpLines.length; i++) {
     // Something like 'ThebesLayerComposite (0x12104cc00) [shadow-visible=< (x=0, y=0, w=1920, h=158); >] [visible=< (x=0, y=0, w=1920, h=158); >] [opaqueContent] [valid=< (x=0, y=0, w=1920, h=2218); >]'
     var line = layersDumpLines[i].name;
-    dump("LINE: " + line  +"\n");
 
     var layerObject = {
       line: line,
@@ -104,7 +168,6 @@ function parseLayers(layersDumpLines) {
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
     if (indentation > 0) {
-      dump("Indentation: " + indentation + "\n");
       var parent = objectAtIndentation[indentation - 1];
       while (!parent) {
         indentation--;
@@ -139,7 +202,7 @@ function parseLayers(layersDumpLines) {
     for (var j = 0; j < fields.length; j++) {
       // Something like 'valid=< (x=0, y=0, w=1920, h=2218); >' or 'opaqueContent'
       var field = fields[j];
-      dump("FIELD: " + field + "\n");
+      //dump("FIELD: " + field + "\n");
       var parts = field.split("=", 2);
       var fieldName = parts[0];
       var rest = field.substring(fieldName.length + 1);
@@ -167,9 +230,9 @@ function parseLayers(layersDumpLines) {
         continue;
       }
     }
-    dump("Fields: " + JSON.stringify(fields) + "\n");
+    //dump("Fields: " + JSON.stringify(fields) + "\n");
   }
-  dump("OBJECTS: " + JSON.stringify(root) + "\n");
+  //dump("OBJECTS: " + JSON.stringify(root) + "\n");
   return root;
 }
 function populateLayers(root, pane, previewParent, hasSeenRoot) {
@@ -314,13 +377,9 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
       displayListParts[section].push(line);
     }
 
-    function parseDisplayListPart(displayListPart) {
-      
-    }
-
     return {
-      before: parseDisplayListPart(displayListParts["before"]),
-      after: parseDisplayListPart(displayListParts["after"]),
+      before: parseDisplayList(displayListParts["before"]),
+      after: parseDisplayList(displayListParts["after"]),
       tree: parseLayers(displayListParts["tree"]),
     };
   }
