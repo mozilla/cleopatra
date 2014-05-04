@@ -2240,6 +2240,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             text: "DisplayList #" + displayListNumber++,
             type: "DisplayList",
           });
+          var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
+          if (displayListDump) {
+            result.items[result.items.length - 1].displayListDump = displayListDump;
+          }
           startTime["DisplayList"] = null;
         }
         startTime[marker.name] = marker.time;

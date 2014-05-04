@@ -118,6 +118,20 @@ Waterfall.prototype = {
     return str; 
   },
 
+  formatDisplayListDump: function(displayListDump) {
+    var str = "";
+    for (var i = 0; i < displayListDump.length; i++) {
+      var line = displayListDump[i];
+      str += line.name + "\n";
+    }
+
+    if (!this.hasSeenDisplayListDump) {
+      this.hasSeenDispliayListDump = true;
+      tab_showInstruction("DispliayList", "To view a Display List dump you must click on a 'DisplayList' bubble in the Frames timeline.");
+    }
+    return str;
+  },
+
   formatLayersDump: function(layersDump) {
     var str = "";
     for (var i = 0; i < layersDump.length; i++) {
@@ -218,6 +232,9 @@ Waterfall.prototype = {
         }
         if (item.layersDump) {
           itemTitle += "\n" + self.formatLayersDump(item.layersDump);
+        }
+        if (item.displayListDump) {
+          itemTitle += "\n" + self.formatDisplayListDump(item.displayListDump);
         }
 
         // if there was a merge happening and we are too far or too wide to join, end it

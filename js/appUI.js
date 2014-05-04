@@ -200,6 +200,7 @@
       gTabWidget.addTab("Markers", gMarkerTreeManager.getContainer());
       this.MakeSizeAdjustable(gMarkerTreeManager.getTreeHeader(), gHistogramContainer.container.parentNode);
 
+      tab_showInstruction("DisplayList", "To view display list dump you must: (1) Be running with OMTC enabled, (2) have the preference layout.display-list.dump;true set, (3) be running a debug or a 'ac_add_options --enable-dump-painting' build, (4) be sampling the main thread and the compositor thread.");
       tab_showInstruction("LayerTree", "To view layers tree you must: (1) Be running with OMTC enabled, (2) have the preference layers.dump;true set, (3) be sampling the main thread and the compositor thread.");
 
       gMainArea.appendChild(finishedProfilePaneBackgroundCover);
