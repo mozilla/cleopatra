@@ -1986,6 +1986,29 @@ function getLayersDump(logMarkers, timeStart, timeEnd) {
   return null;
 }
 
+function getDisplayList(logMarkers, timeStart, timeEnd) {
+  for (var i = 0; i < logMarkers.length; i++) {
+    var logMarker = logMarkers[i];
+    if (logMarker.name.lastIndexOf("Painting --- before optimization (", 0) === 0 &&
+        logMarker.time > timeStart && logMarker.time < timeEnd) {
+      var displayListLines = [];
+
+      while (i < logMarkers.length) {
+        logMarker = logMarkers[i];
+        if (logMarker.name === "") {
+          return displayListLines;
+        }
+        var copy = JSON.parse(JSON.stringify(logMarker));
+        displayListLines.push(copy);
+        i++;
+      }
+      return null; // Could not find the end, error
+    }
+
+  }
+  return null;
+}
+
 function getThreadLogData(threadId, markers, boundaries) {
   var entries = [];
   boundaries = boundaries || { min: -Infinity, max: Infinity };
@@ -2008,8 +2031,7 @@ function getThreadLogData(threadId, markers, boundaries) {
   while (i < logMarkers.length) {
     var logMarker = logMarkers[i];
     if (leftover && leftover != "") {
-      leftover.name += logMarker;
-      logMarker.name = leftover;
+      logMarker.name = leftover + logMarker.name;
       leftover = null;
     }
       
@@ -2020,40 +2042,14 @@ function getThreadLogData(threadId, markers, boundaries) {
         var lineMarker = JSON.parse(JSON.stringify(logMarker));
         lineMarker.name = line;
         entries.push(lineMarker);  
-        dump("- LINE: " + lineMarker.name + "\n");
       }
       leftover = lines[lines.length - 1];
+    } else {
+      leftover = leftover || "";
+      leftover += logMarker.name;
     }
     i++;
   }
-  /*
-  for (var i = 0; i < logMarkers.length; i++) {
-    var logMarker = logMarkers[i];
-    entries.push(logMarker);
-
-    var lookAhead = i + 1;
-    while (lookAhead < logMarkers.length && logMarker.name.indexOf("\n") == -1) {
-      // This marker doesn't contain a line, concatenate markers
-      // until we have at least one new line (doesn't have to be
-      // at the end).
-      var lookAheadMarker = logMarkers[lookAhead];
-      lookAhead++;
-
-      // Consume that marker. Note that concatenated markers will inherit
-      // the first lines meta data. However we never merge across threads.
-      i++;
-
-      logMarker.name += lookAheadMarker.name;
-    }
-    while (logMarker.name.split("\n").length > 1) {
-      var parts = logMarker.name.split("\n");
-      for (var j = 0; j < parts.length; j++) {
-        var part = parts[j];
-        
-      }
-    }
-  }
-  */
   return entries;
 }
 
@@ -2090,6 +2086,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
 
   var mainThread = null;
   var mainThreadMarkers = null;
+  var mainThreadId;
   var compThread = null;
   var compThreadMarkers = null;
   var compThreadId;
@@ -2103,6 +2100,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) {
       mainThread = thread.samples;
       mainThreadMarkers = thread.markers;
+      mainThreadId = threadId;
     } else if (thread.name &&
         /^Compositor(?![\w\d])|^Compositor$/.test(thread.name)) {
       compThread = thread.samples;
@@ -2158,6 +2156,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var rasterizeNumber = 0;
 
   paintMarkers = getPaintMarkers(mainThreadMarkers);
+  var mainThreadLogData = getThreadLogData(mainThreadId, mainThreadMarkers);
   for (i = 0; i < paintMarkers.length; i++) {
     marker = paintMarkers[i];
     if (marker.name == "RD" && marker.data.interval == "start") {
@@ -2226,6 +2225,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           text: marker.name + " #" + displayListNumber++,
           type: marker.name,
         });
+        var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
+        if (displayListDump) {
+          result.items[result.items.length - 1].displayListDump = displayListDump;
+        }
         startTime[marker.name] = null;
       } else if (marker.name == "Rasterize" && marker.data.interval == "start") {
         if (result.items.length >= 1) {
