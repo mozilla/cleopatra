@@ -75,7 +75,18 @@ function parseDisplayList(lines) {
         if (nesting == 0) {
           var name = rest.substring(lastSpace + 1, startIndex);
           var value = rest.substring(startIndex + 1, j);
-          fields[name] = value;
+
+          var rectMatches = value.match("^(.*?),(.*?),(.*?),(.*?)$")
+          if (rectMatches) {
+            fields[name] = [
+              parseFloat(rectMatches[1]) / 60,
+              parseFloat(rectMatches[2]) / 60,
+              parseFloat(rectMatches[3]) / 60,
+              parseFloat(rectMatches[4]) / 60,
+            ];
+          } else {
+            fields[name] = value;
+          }
         }
       } else if (nesting == 0 && rest.charAt(j) == ' ') {
         lastSpace = j;
