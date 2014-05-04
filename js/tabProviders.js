@@ -21,17 +21,16 @@ function parseDisplayList(lines) {
   var root = {
     line: "DisplayListRoot 0",
     name: "DisplayListRoot",
-    address: "0",
+    address: "0x0",
     children: [],
   };
 
   var objectAtIndentation = {
     "-1": root,
   };
-  dump("DISPLAYLIST: " + lines + "\n");
+
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].name;
-    dump("LINE: " + line + "\n");
 
     var layerObject = {
       line: line,
@@ -41,9 +40,11 @@ function parseDisplayList(lines) {
       root = layerObject;
     }
 
-    var matches = line.match("(\\s*)(\\w+)\\s(\\w+)(.*?) layer=(\\w+)");
-    if (!matches)
+    var matches = line.match("(\\s*)(\\w+)\\s(\\w+)(.*?)?( layer=(\\w+))?$");
+    if (!matches) {
+      dump("Failed to match: " + line + "\n");
       continue;
+    }
 
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
@@ -51,9 +52,11 @@ function parseDisplayList(lines) {
     parent.children.push(layerObject);
 
     layerObject.name = matches[2];
-    layerObject.address = matches[3];
+    layerObject.address = "0x" + matches[3]; // Use 0x prefix to be consistent with layer dump
     var rest = matches[4];
-    layerObject.layer = matches[5];
+    if (matches[6]) { // WrapList don't provide a layer
+      layerObject.layer = "0x" + matches[6];
+    }
 
     // the content node name doesn't have a prefix, this makes the parsing easier
     rest = "content" + rest;
@@ -63,7 +66,6 @@ function parseDisplayList(lines) {
     var startIndex;
     var lastSpace = -1;
     var lastFieldStart = -1;
-    dump("REST: " + rest + "\n");
     for (var j = 0; j < rest.length; j++) {
       if (rest.charAt(j) == '(') {
         nesting++;
@@ -78,28 +80,30 @@ function parseDisplayList(lines) {
 
           var rectMatches = value.match("^(.*?),(.*?),(.*?),(.*?)$")
           if (rectMatches) {
-            fields[name] = [
+            layerObject[name] = [
               parseFloat(rectMatches[1]) / 60,
               parseFloat(rectMatches[2]) / 60,
               parseFloat(rectMatches[3]) / 60,
               parseFloat(rectMatches[4]) / 60,
             ];
           } else {
-            fields[name] = value;
+            layerObject[name] = value;
           }
         }
       } else if (nesting == 0 && rest.charAt(j) == ' ') {
         lastSpace = j;
       }
     }
-    dump("FIELDS: " + JSON.stringify(fields) + "\n");
+    //dump("FIELDS: " + JSON.stringify(fields) + "\n");
   }
+  return root;
+}
+
+function trim(s){ 
+  return ( s || '' ).replace( /^\s+|\s+$/g, '' ); 
 }
 
 function parseLayers(layersDumpLines) {
-  function trim(s){ 
-    return ( s || '' ).replace( /^\s+|\s+$/g, '' ); 
-  }
   function parseMatrix2x3(str) {
     str = trim(str);
 
@@ -246,7 +250,23 @@ function parseLayers(layersDumpLines) {
   //dump("OBJECTS: " + JSON.stringify(root) + "\n");
   return root;
 }
-function populateLayers(root, pane, previewParent, hasSeenRoot) {
+function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
+  function getDisplayItemForLayer(displayList) {
+    var items = [];
+    if (!displayList) {
+      return items;
+    }
+    if (displayList.layer == root.address) {
+      items.push(displayList);
+    }
+    for (var i = 0; i < displayList.children.length; i++) {
+      var subDisplayItems = getDisplayItemForLayer(displayList.children[i]);
+      for (var j = 0; j < subDisplayItems.length; j++) {
+        items.push(subDisplayItems[j]);
+      }
+    }
+    return items;
+  }
   var elem = createElement("div", {
     className: "layerObjectDescription",
     textContent: root.line,
@@ -255,12 +275,12 @@ function populateLayers(root, pane, previewParent, hasSeenRoot) {
     },
     onmouseover: function() {
       if (this.layerViewport) {
-        layerViewport.classList.add("layerHover");
+        this.layerViewport.classList.add("layerHover");
       }
     },
     onmouseout: function() {
       if (this.layerViewport) {
-        layerViewport.classList.remove("layerHover");
+        this.layerViewport.classList.remove("layerHover");
       }
     },
   });
@@ -302,10 +322,50 @@ function populateLayers(root, pane, previewParent, hasSeenRoot) {
       });
       layerViewport.appendChild(layerPreview);
     }
+    var layerDisplayItems = getDisplayItemForLayer(displayList);
+    for (var i = 0; i < layerDisplayItems.length; i++) {
+      var displayItem = layerDisplayItems[i];
+      var elem = createElement("div", {
+        className: "layerObjectDescription",
+        textContent: "            " + trim(displayItem.line),
+        style: {
+          whiteSpace: "pre",
+        },
+        layerViewport: layerViewport,
+        onmouseover: function() {
+          if (this.layerViewport) {
+            this.layerViewport.classList.add("layerHover");
+          }
+        },
+        onmouseout: function() {
+          if (this.layerViewport) {
+            this.layerViewport.classList.remove("layerHover");
+          }
+        },
+      });
+      pane.appendChild(elem);
+      var rect2d = displayItem.bounds;
+      if (false && rect2d) { // This doesn't place them corectly
+        var layerPreview = createElement("div", {
+          id: "displayitem_" + displayItem.content + "_" + displayItem.address,
+          className: "layerPreview",
+          style: {
+            position: "absolute",
+            left: rect2d[0] + "px",
+            top: rect2d[1] + "px",
+            width: rect2d[2] + "px",
+            height: rect2d[3] + "px",
+            border: "solid 10px black",
+            background: "white",
+          },
+        });
+        layerViewport.appendChild(layerPreview);
+      }
+    }
   }
 
   for (var i = 0; i < root.children.length; i++) {
-    populateLayers(root.children[i], pane, previewParent, hasSeenRoot);
+    populateLayers(root.children[i], displayList, pane, previewParent, hasSeenRoot);
   }
 }
 function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
@@ -354,15 +414,13 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
       right: "0px",
       top: "0px",
       bottom: "0px",
-      height: "100%",
-      width: "100%",
       overflow: "auto",
     },
   });
   mainDiv.appendChild(previewDiv);
 
   var root = parseLayers(layersDumpLines);
-  populateLayers(root, layerListPane, previewDiv);
+  populateLayers(root, null, layerListPane, previewDiv);
 
   gTabWidget.addTab("LayerTree", container); 
   gTabWidget.selectTab("LayerTree");
@@ -439,15 +497,13 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
       right: "0px",
       top: "0px",
       bottom: "0px",
-      height: "100%",
-      width: "100%",
       overflow: "auto",
     },
   });
   mainDiv.appendChild(previewDiv);
 
   var displayListDump = parseDisplayListDump();
-  populateLayers(displayListDump['tree'], layerListPane, previewDiv);
+  populateLayers(displayListDump['tree'], displayListDump['before'], layerListPane, previewDiv);
 
   gTabWidget.addTab("DisplayList", container); 
   gTabWidget.selectTab("DisplayList");
