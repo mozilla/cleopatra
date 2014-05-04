@@ -127,7 +127,7 @@ Waterfall.prototype = {
 
     if (!this.hasSeenDisplayListDump) {
       this.hasSeenDispliayListDump = true;
-      tab_showInstruction("DispliayList", "To view a Display List dump you must click on a 'DisplayList' bubble in the Frames timeline.");
+      tab_showInstruction("DisplayList", "To view a Display List dump you must click on a 'DisplayList' bubble in the Frames timeline.");
     }
     return str;
   },
@@ -252,6 +252,13 @@ Waterfall.prototype = {
                 tab_showLayersDump(layersDump, text, startTime);
               }
             })(item.layersDump, text, item.startTime);
+          }
+          if (item.displayListDump) {
+            (function (displayListDump, text, startTime) {
+              loneElement.onclick = function() {
+                tab_showDisplayListDump(displayListDump, text, startTime);
+              }
+            })(item.displayListDump, text, item.startTime);
           }
           container.appendChild(loneElement);
         } else {
