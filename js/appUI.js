@@ -352,6 +352,9 @@
 
         var waterfallRequest = Parser.calculateWaterfallData(boundaries);
         waterfallRequest.addEventListener("finished", function (data) {
+          if (!data) {
+            return;
+          }
           gHistogramContainer.displayWaterfall(data);
 
           if (data.compositeTimes && data.compositeTimes.length > 2) {
