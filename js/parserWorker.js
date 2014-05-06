@@ -304,6 +304,10 @@ function parseRawProfile(requestID, params, rawProfile) {
     }
   }
 
+  if (rawProfile.profile) {
+    rawProfile = rawProfile.profile;
+  }
+
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
   }
