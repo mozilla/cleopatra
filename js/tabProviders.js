@@ -295,6 +295,20 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
       },
     });
     elem.layerViewport = layerViewport;
+    if (root["shadow-clip"] || root["clip"]) {
+      var clip = root["shadow-clip"] || root["clip"]
+      var clipElem = createElement("div", {
+        id: root.address + "_clip",
+        style: {
+          left: clip[0]+"px",
+          top: clip[1]+"px",
+          width: clip[2]+"px",
+          height: clip[3]+"px",
+          position: "absolute",
+          overflow: "hidden",
+        },
+      });
+    }
     if (root["shadow-transform"] || root["transform"]) {
       var matrix = root["shadow-transform"] || root["transform"];
       layerViewport.style.transform = "translate(" + matrix[2][0] + "px," + matrix[2][1] + "px)";
@@ -303,7 +317,12 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
       hasSeenRoot = true;
       layerViewport.style.transform = "scale(0.25, 0.25)";
     }
-    previewParent.appendChild(layerViewport);
+    if (clipElem) {
+      previewParent.appendChild(clipElem);
+      clipElem.appendChild(layerViewport);
+    } else {
+      previewParent.appendChild(layerViewport);
+    }
     previewParent = layerViewport;
     for (var i = 0; i < visibleRegion.length; i++) {
       var rect2d = visibleRegion[i];
