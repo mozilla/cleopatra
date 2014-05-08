@@ -17,6 +17,8 @@ function createElement(name, props) {
   return el; 
 }
 
+var gLayersDumps = [];
+
 var Waterfall = function() {
   this.container = createElement("div", {
     className: "waterfallContainer histogram",
@@ -47,6 +49,67 @@ var Waterfall = function() {
 }
 
 Waterfall.createFrameUniformityView = function(compositeTimes) {
+  function findByAddress(root, address) {
+    if (root.address == address) {
+      return root;
+    }
+    for (var i = 0; i < root.children.length; i++) {
+      var find = findByAddress(root.children[i], address);
+      if (find) {
+        return find;
+      }
+    }
+    return null;
+  }
+  function compareLayers(prevLayerTree, root, graph, time) {
+    if (root.address && root['shadow-transform']) {
+      var prevInstance = findByAddress(prevLayerTree, root.address);
+      if (prevInstance && prevInstance['shadow-transform']) {
+
+        if (root['shadow-transform'][2][0] != prevInstance['shadow-transform'][2][0]) {
+          graph[root.address] = graph[root.address] || {};
+          graph[root.address]['transformX'] = graph[root.address]['transformX'] || [{ // Original value
+            time: prevLayerTree.compositeTime,
+            value: prevInstance['shadow-transform'][2][0],
+          }];
+          graph[root.address]['transformX'].push({
+            time: time,
+            value: root['shadow-transform'][2][0],
+          });
+        }
+
+        if (root['shadow-transform'][2][1] != prevInstance['shadow-transform'][2][1]) {
+          graph[root.address] = graph[root.address] || {};
+          graph[root.address]['transformY'] = graph[root.address]['transformY'] || [{ // Original value
+            time: prevLayerTree.compositeTime,
+            value: prevInstance['shadow-transform'][2][1],
+          }];
+          graph[root.address]['transformY'].push({
+            time: time,
+            value: root['shadow-transform'][2][1],
+          });
+        }
+      }
+    }
+    for (var i = 0; i < root.children.length; i++) {
+      compareLayers(prevLayerTree, root.children[i], graph, time);
+    }
+    return graph;
+  }
+
+  function computeLayerUniformity(layersDumps) {
+    var prevLayersDump = parseLayers(layersDumps[0]);
+    var graph = {};
+    for (var i = 1; i < layersDumps.length; i++) {
+      var currLayersDump = parseLayers(layersDumps[i]);
+      
+      compareLayers(prevLayersDump, currLayersDump, graph, currLayersDump.compositeTime);
+      prevLayersDump = currLayersDump;
+    }
+    dump(JSON.stringify(graph) + "\n");
+    return graph;
+  }
+  var layerUniformityGraphs = computeLayerUniformity(gLayersDumps);
   var container = createElement("div", {
     className: "frameUniformityContainer",
     style: {
@@ -94,6 +157,54 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
 
   container.appendChild(graph);
   container.appendChild(caption);
+
+  var layerUniformityHeader = createElement("h2", {
+    textContent: "Layer Animation Uniformity"
+  });
+  container.appendChild(layerUniformityHeader);
+  var layerUniformityDesc = createElement("span", {
+    textContent: "The following graph track the movement of layers." +
+                 "For curve should be smooth during most animation like deceleration",
+  });
+  container.appendChild(layerUniformityDesc);
+
+  for (var address in layerUniformityGraphs) {
+    var layerUniformityGraph = layerUniformityGraphs[address];
+    if (layerUniformityGraph.transformY && layerUniformityGraph.transformY.length > 2) {
+      dump("ITEM: " + address + "\n");
+      var time = ['Time'];
+      var data = ["Layer " + address + " transformY"];
+      for (var i = 0; i < layerUniformityGraph.transformY.length; i++) {
+        var obj = layerUniformityGraph.transformY[i];
+        time.push(obj.time.toFixed(2));
+        data.push(obj.value);
+      }
+      var graph = createElement("div", {
+        id: "frameUniformityGraph",
+        className: "frameGraph",
+        style: {
+          width: "600px",
+          height: "400px",
+          padding: "5px",
+        }
+      });
+      document.body.appendChild(graph);
+      var chart = c3.generate({
+        bindto: '#frameUniformityGraph',
+        data: {
+            x: 'Time',
+            columns: [
+              time,
+              data,
+            ]
+        }
+      });
+      document.body.removeChild(graph);
+      graph.id = "";
+      container.appendChild(graph);
+    }
+  }
+
   return container;
 };
 
@@ -160,6 +271,8 @@ Waterfall.prototype = {
     var cssClasses = ['waterfallFrame', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem'];
     var colorList = ['rgba(0,200,0,0.5)', 'rgb(250,100,40)', 'rgb(40,40,100)', 'rgb(40,40,100)', 'rgb(150,40,100)', 'rgb(100,250,40)', 'rgb(100,40,250)', 'rgb(200,0,0)'];
     var barHeight = [0.5, 0, 1, 1, 1, 2, 3, 0];
+
+    gLayersDumps = [];
 
     var filtered = {};
     for (i = 0; i < typeOrder.length; i++) {
@@ -231,6 +344,8 @@ Waterfall.prototype = {
           itemTitle += "\n" + self.formatStack(item.causeStack);
         }
         if (item.layersDump) {
+          item.layersDump.compositeTime = item.endTime;
+          gLayersDumps.push(item.layersDump);
           itemTitle += "\n" + self.formatLayersDump(item.layersDump);
         }
         if (item.displayListDump) {

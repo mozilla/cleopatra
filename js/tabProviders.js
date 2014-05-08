@@ -247,6 +247,7 @@ function parseLayers(layersDumpLines) {
     }
     //dump("Fields: " + JSON.stringify(fields) + "\n");
   }
+  root.compositeTime = layersDumpLines.compositeTime;
   //dump("OBJECTS: " + JSON.stringify(root) + "\n");
   return root;
 }
