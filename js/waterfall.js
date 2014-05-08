@@ -165,8 +165,8 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
   });
   container.appendChild(layerUniformityHeader);
   var layerUniformityDesc = createElement("span", {
-    textContent: "The following graph track the movement of layers." +
-                 "For curve should be smooth during most animation like deceleration",
+    textContent: "The following graph track the movement of layers. " +
+                 "Curves should be smooth during most animation like deceleration.",
   });
   container.appendChild(layerUniformityDesc);
 
