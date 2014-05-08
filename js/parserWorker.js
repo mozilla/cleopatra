@@ -804,7 +804,6 @@ function parseRawProfile(requestID, params, rawProfile) {
           }
         }
         threads["timeline"+i] = fakeThread;
-        dump("Done timeline: " + timeline.name + "\n");
       }
     }
 
@@ -1971,7 +1970,7 @@ function getLayersDump(logMarkers, timeStart, timeEnd) {
   for (var i = 0; i < logMarkers.length; i++) {
     var logMarker = logMarkers[i];
     if (logMarker.name.lastIndexOf("LayerManager (", 0) === 0 &&
-        logMarker.time > timeStart && logMarker.time < timeEnd) {
+        logMarker.time >= timeStart && logMarker.time <= timeEnd) {
       var layersDumpLines = [];
 
       while (i < logMarkers.length) {
