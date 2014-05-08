@@ -98,6 +98,9 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
   }
 
   function computeLayerUniformity(layersDumps) {
+    if (layersDumps == null || layersDumps.length < 2) {
+      return null;
+    }
     var prevLayersDump = parseLayers(layersDumps[0]);
     var graph = {};
     for (var i = 1; i < layersDumps.length; i++) {
@@ -106,7 +109,6 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
       compareLayers(prevLayersDump, currLayersDump, graph, currLayersDump.compositeTime);
       prevLayersDump = currLayersDump;
     }
-    dump(JSON.stringify(graph) + "\n");
     return graph;
   }
   var layerUniformityGraphs = computeLayerUniformity(gLayersDumps);
@@ -168,6 +170,7 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
   });
   container.appendChild(layerUniformityDesc);
 
+  layerUniformityGraphs = layerUniformityGraphs || {};
   for (var address in layerUniformityGraphs) {
     var layerUniformityGraph = layerUniformityGraphs[address];
     if (layerUniformityGraph.transformY && layerUniformityGraph.transformY.length > 2) {
