@@ -358,8 +358,10 @@
           gHistogramContainer.displayWaterfall(data);
 
           if (data.compositeTimes && data.compositeTimes.length > 2) {
-            var frameUniformityView = Waterfall.createFrameUniformityView(data.compositeTimes);
-            gTabWidget.addTab("Frames", frameUniformityView);
+            gTabWidget.addTab("Frames", function() {
+              var frameUniformityView = Waterfall.createFrameUniformityView(data.compositeTimes);
+              return frameUniformityView;
+            });
           }
         });
         var logDataRequest = Parser.getLogData(boundaries);

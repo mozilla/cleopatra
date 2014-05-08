@@ -82,6 +82,10 @@ var HistogramContainer;
       if (this.currentTab == tabName) {
         return;
       }
+      // Handle lazy tab
+      if (typeof(this.tabs[tabName]) == "function") {
+        this.tabs[tabName] = this.tabs[tabName](); 
+      }
       this.tabContainer.innerHTML = "";
       this.tabContainer.appendChild(this.tabs[tabName]); 
       this.currentTab = tabName;
