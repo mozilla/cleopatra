@@ -62,32 +62,33 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
     return null;
   }
   function compareLayers(prevLayerTree, root, graph, time) {
-    if (root.address && root['shadow-transform']) {
+    if (root.address && root['screen-transform']) {
       var prevInstance = findByAddress(prevLayerTree, root.address);
-      if (prevInstance && prevInstance['shadow-transform']) {
+      if (prevInstance && prevInstance['screen-transform']) {
 
-        if (root['shadow-transform'][2][0] != prevInstance['shadow-transform'][2][0]) {
+        if (root['screen-transform'][0] != prevInstance['screen-transform'][0]) {
           graph[root.address] = graph[root.address] || {};
           graph[root.address]['transformX'] = graph[root.address]['transformX'] || [{ // Original value
             time: prevLayerTree.compositeTime,
-            value: prevInstance['shadow-transform'][2][0],
+            value: prevInstance['screen-transform'][0],
           }];
           graph[root.address]['transformX'].push({
             time: time,
-            value: root['shadow-transform'][2][0],
+            value: root['screen-transform'][0],
           });
         }
 
-        if (root['shadow-transform'][2][1] != prevInstance['shadow-transform'][2][1]) {
+        if (root['screen-transform'][1] != prevInstance['screen-transform'][1]) {
           graph[root.address] = graph[root.address] || {};
           graph[root.address]['transformY'] = graph[root.address]['transformY'] || [{ // Original value
             time: prevLayerTree.compositeTime,
-            value: prevInstance['shadow-transform'][2][1],
+            value: prevInstance['screen-transform'][1],
           }];
           graph[root.address]['transformY'].push({
             time: time,
-            value: root['shadow-transform'][2][1],
+            value: root['screen-transform'][1],
           });
+          dump(root['screen-transform'][1] + "\n");
         }
       }
     }
@@ -174,7 +175,6 @@ Waterfall.createFrameUniformityView = function(compositeTimes) {
   for (var address in layerUniformityGraphs) {
     var layerUniformityGraph = layerUniformityGraphs[address];
     if (layerUniformityGraph.transformY && layerUniformityGraph.transformY.length > 2) {
-      dump("ITEM: " + address + "\n");
       var time = ['Time'];
       var data = ["Layer " + address + " transformY"];
       for (var i = 0; i < layerUniformityGraph.transformY.length; i++) {

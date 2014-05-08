@@ -245,6 +245,24 @@ function parseLayers(layersDumpLines) {
         continue;
       }
     }
+
+    // Compute screenTransformX/screenTransformY
+    // TODO Fully support transforms
+    if (layerObject['shadow-transform'] && layerObject['transform']) {
+      layerObject['screen-transform'] = [layerObject['shadow-transform'][2][0], layerObject['shadow-transform'][2][1]];
+      var currIndentation = indentation - 1;
+      while (currIndentation >= 0) {
+        var transform = objectAtIndentation[currIndentation]['shadow-transform'] || objectAtIndentation[currIndentation]['transform'];
+        if (transform) {
+          dump("PRE: " + layerObject['screen-transform'][1] + "\n");
+          layerObject['screen-transform'][0] += transform[2][0];
+          layerObject['screen-transform'][1] += transform[2][1];
+          dump("POST: " + layerObject['screen-transform'][1] + "\n");
+        }
+        currIndentation--;
+      }
+    }
+
     //dump("Fields: " + JSON.stringify(fields) + "\n");
   }
   root.compositeTime = layersDumpLines.compositeTime;
