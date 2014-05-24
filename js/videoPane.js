@@ -1,4 +1,32 @@
 function VideoPane(videoCapture) {
+  var qrScripts = [
+    "grid.js",
+    "version.js",
+    "detector.js",
+    "formatinf.js",
+    "errorlevel.js",
+    "bitmat.js",
+    "datablock.js",
+    "bmparser.js",
+    "datamask.js",
+    "rsdecoder.js",
+    "gf256poly.js",
+    "gf256.js",
+    "decoder.js",
+    "qrcode.js",
+    "findpat.js",
+    "alignpat.js",
+    "databr.js"
+  ];
+
+  for (var i = 0; i < qrScripts.length; i++) {
+    var scriptFile = qrScripts[i];
+    var js = document.createElement("script");
+    js.type = "text/javascript";
+    js.src = "js/qr/jsqrcode/"+ scriptFile;
+    document.body.appendChild(js);
+  }
+
   this._container = document.createElement("div");
   this._container.className = "videoPane";
   this._onTimeChange = null;
@@ -16,6 +44,9 @@ function VideoPane(videoCapture) {
   this._container.appendChild(this._video);
 
   this._canvas = document.createElement("canvas");
+  this._canvas.id = "qr-canvas";
+  this._canvas.style.display = "none";
+  document.body.appendChild(this._canvas);
 
   // When we get a time update we fire a callback because
   // the updated frame might not have been ready.
@@ -40,6 +71,28 @@ VideoPane.prototype = {
     });
   },
   getCurrentFrameNumber: function VideoPane_getCurrentFrameNumber() {
+    var number = null;
+
+    if (this._canvas.width != this._video.videoWidth ||
+        this._canvas.height != this._video.videoHeight) {
+      this._canvas.width = this._video.videoWidth;
+      this._canvas.height = this._video.videoHeight;  
+    }
+
+    var context = this._canvas.getContext("2d");
+    context.drawImage(this._video, 0, 0, this._canvas.width, this._canvas.height);
+    
+    // TODO patch library to accept an element
+    qrcode.callback = function(data) {
+      number = data;
+    }
+    try {
+      qrcode.decode();
+    } catch (e) {
+    }
+    console.log("Frame: " + number);
+    return number;
+    /*
     if (this._canvas.width != this._video.videoWidth ||
         this._canvas.height != this._video.videoHeight) {
       this._canvas.width = this._video.videoWidth;
@@ -82,6 +135,7 @@ VideoPane.prototype = {
       }
     }
     return frameNumber;
+    */
   }
 };
 

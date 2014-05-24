@@ -58,14 +58,14 @@
     },
 
     videoPaneTimeChange: function videoPaneTimeChange(video) {
-      if (!gMeta || !gMeta.frameStart)
-        return;
+      //if (!gMeta || !gMeta.frameStart)
+      //  return;
 
       var frame = gVideoPane.getCurrentFrameNumber();
       //var frameStart = gMeta.frameStart[frame];
       //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
 
-      gHistogramView.showVideoFramePosition(frame); 
+      //gHistogramView.showVideoFramePosition(frame); 
     },
 
     loadProfile: function AppUI_loadProfile(rawProfile) {
@@ -161,12 +161,12 @@
 
       // For testing:
       //gMeta.videoCapture = {
-      //  src: "http://videos-cdn.mozilla.net/brand/Mozilla_Firefox_Manifesto_v0.2_640.webm",
+      //  src: "http://people.mozilla.org/~bgirard/test.ogv",
       //};
 
       if (gMeta && gMeta.videoCapture) {
         gVideoPane = new VideoPane(gMeta.videoCapture);
-        //gVideoPane.onTimeChange(videoPaneTimeChange);
+        gVideoPane.onTimeChange(AppUI.videoPaneTimeChange);
         currRow = document.createElement("div");
         finishedProfilePane.appendChild(currRow);
         currRow.appendChild(gVideoPane.getContainer());
