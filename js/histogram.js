@@ -160,8 +160,8 @@ var HistogramContainer;
       this.eachThread(function (thread) { thread.threadHistogramView.dataIsOutdated() });
     },
 
-    showVideoFramePosition: function (frame) {
-      this.threads[0].threadHistogramView.showVideoFramePosition(frame);
+    showVideoFramePosition: function (frame, start, end) {
+      this.threads[0].threadHistogramView.showVideoFramePosition(frame, start, end);
     },
 
     highlightedCallstackChanged: function (callstack, inverted) {
@@ -302,6 +302,12 @@ var HistogramContainer;
       window.addEventListener("resize", throttler, false);
 
       this.busyCover.classList.remove("busy");
+    },
+
+    showVideoFramePosition: function (frame, start, end) {
+      var caption = "Frame: " + frame;
+      this.rangeSelector.highlightRange(this.timeToPixel(start), this.timeToPixel(end), caption);
+      //this.selectRange(start, end);
     },
 
     invertionChanged: function (inverted) {
@@ -543,7 +549,14 @@ var HistogramContainer;
     },
 
     pixelToTime: function (pixel) {
+      if (!this.boundaries) {
+        return null;
+      }
       return this.boundaries.min + pixel / this.container.clientWidth * (this.boundaries.max - this.boundaries.min);
+    },
+
+    timeToPixel: function (time) {
+      return (time - this.boundaries.min) / (this.boundaries.max - this.boundaries.min) * this.container.clientWidth;
     },
 
     timeToIndex: function (time) {
@@ -749,6 +762,16 @@ var HistogramContainer;
       this.selectRange(range.start, range.end);
     },
 
+    highlightRange: function (x1, x2, caption) {
+      this.higlighter.classList.remove("collapsed");
+      this.higlighter.classList.remove("selecting");
+      this.higlighter.classList.add("finished");
+      var y = 0;
+      var height = this.graph.parentNode.clientHeight;
+      console.log(x1 + " - " + x2);
+      this.drawSelectionMarker(x1, y, x2 - x1, height, caption);
+    },
+
     selectRange: function (start, end) {
       var chain = gSampleFilters.concat({ type: "RangeSampleFilter", start: start, end: end });
       gBreadcrumbTrail.add({
@@ -804,9 +827,12 @@ var HistogramContainer;
       this.mouseMarker.style.display = "none";
     },
 
-    drawSelectionMarker: function (x, y, width, height) {
+    drawSelectionMarker: function (x, y, width, height, caption) {
       if (width === 0) {
         return;
+      }
+      if (width != width) {
+        width = 0;
       }
       var hl = this.higlighter;
       hl.style.left = x + "px";
@@ -817,7 +843,11 @@ var HistogramContainer;
 
       var info = this.histogram.getCanvas();
       var bnd = this.histogram.boundaries;
-      hl.textContent = Math.round((bnd.max - bnd.min) / info.width * width) + "ms";
+      if (caption) {
+        hl.textContent = caption;
+      } else {
+        hl.textContent = Math.round((bnd.max - bnd.min) / info.width * width) + "ms";
+      }
     },
 
     clearSelectionMarker: function () {

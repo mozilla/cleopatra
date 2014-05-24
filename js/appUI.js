@@ -64,8 +64,8 @@
       var frame = gVideoPane.getCurrentFrameNumber();
       //var frameStart = gMeta.frameStart[frame];
       //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
-
-      //gHistogramView.showVideoFramePosition(frame); 
+      //console.log(gMeta.frameStart[frame]);
+      window.gHistogramContainer.showVideoFramePosition(frame, gMeta.frameStart[frame], gMeta.frameStart[frame+1]); 
     },
 
     loadProfile: function AppUI_loadProfile(rawProfile) {

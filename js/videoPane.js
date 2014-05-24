@@ -84,7 +84,7 @@ VideoPane.prototype = {
     
     // TODO patch library to accept an element
     qrcode.callback = function(data) {
-      number = data;
+      number = parseInt(data);
     }
     try {
       qrcode.decode();

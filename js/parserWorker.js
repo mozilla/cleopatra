@@ -884,8 +884,9 @@ function parseRawProfile(requestID, params, rawProfile) {
         }
         if (sample.frameNumber) {
           sample.extraInfo["frameNumber"] = sample.frameNumber;
-          //dump("Got frame number: " + sample.frameNumber + "\n");
-          frameStart[sample.frameNumber] = samples.length;
+        }
+        if (sample.extraInfo["frameNumber"]) {
+          frameStart[sample.extraInfo["frameNumber"]] = sample.extraInfo["time"];
         }
         samples.push(makeSample(indicedFrames, sample.extraInfo));
         // parsing samples is the first half

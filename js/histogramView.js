@@ -36,15 +36,11 @@
       this._rangeSelector._finishSelection(start, end);
     },
     showVideoFramePosition: function HistogramView_showVideoFramePosition(frame) {
+      console.log("Show frame: " + frame);
       if (!this._frameStart || !this._frameStart[frame])
         return;
       var frameStart = this._frameStart[frame];
-      // Now we look for the frame end. Because we can swap frame we don't present we have to look ahead
-      // in the stream if frame+1 doesn't exist.
       var frameEnd = this._frameStart[frame+1];
-      for (var i = 0; i < 10 && !frameEnd; i++) {
-        frameEnd = this._frameStart[frame+1+i];
-      }
       this._rangeSelector.showVideoRange(frameStart, frameEnd);
     },
     showVideoPosition: function HistogramView_showVideoPosition(position) {
