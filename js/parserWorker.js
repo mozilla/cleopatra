@@ -2113,7 +2113,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     }
   }
 
-  if (!mainThread || !compThread ||
+  if (!mainThread ||
       boundaries.min == -Infinity || boundaries.min == Infinity ||
       boundaries.max == -Infinity || boundaries.max == Infinity) {
     sendFinished(requestID, null);
@@ -2263,29 +2263,31 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     }
   }
 
-  var compositeNumber = 0;
-  paintMarkers = getPaintMarkers(compThreadMarkers);
-  var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
-  for (i = 0; i < paintMarkers.length; i++) {
-    marker = paintMarkers[i];
-    if (marker.name == "Composite" && marker.data.interval == "start" &&
-        !startComposite) {
-      startComposite = marker.time;
-    } else if (marker.name == "Composite" && marker.data.interval == "end") {
-      result.items.push({
-        startTime: startComposite,
-        endTime: marker.time,
-        text: "Composite #" + compositeNumber++,
-        type: "Composite",
-      });
-      if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
-        result.compositeTimes.push(marker.time);
+  if (compThread) {
+    var compositeNumber = 0;
+    paintMarkers = getPaintMarkers(compThreadMarkers);
+    var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
+    for (i = 0; i < paintMarkers.length; i++) {
+      marker = paintMarkers[i];
+      if (marker.name == "Composite" && marker.data.interval == "start" &&
+          !startComposite) {
+        startComposite = marker.time;
+      } else if (marker.name == "Composite" && marker.data.interval == "end") {
+        result.items.push({
+          startTime: startComposite,
+          endTime: marker.time,
+          text: "Composite #" + compositeNumber++,
+          type: "Composite",
+        });
+        if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
+          result.compositeTimes.push(marker.time);
+        }
+        var layersDump = getLayersDump(compositorLogData, startComposite, marker.time);
+        if (layersDump) {
+          result.items[result.items.length - 1].layersDump = layersDump;
+        }
+        startComposite = null;
       }
-      var layersDump = getLayersDump(compositorLogData, startComposite, marker.time);
-      if (layersDump) {
-        result.items[result.items.length - 1].layersDump = layersDump;
-      }
-      startComposite = null;
     }
   }
 
