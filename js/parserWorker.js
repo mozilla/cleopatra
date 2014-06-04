@@ -293,14 +293,14 @@ function parseRawProfile(requestID, params, rawProfile) {
   var armIncludePCIndex = {};
 
   if (rawProfile == null) {
-    throw "rawProfile is null";
+    throw new Error("rawProfile is null");
   }
 
   if (typeof rawProfile == "string" && rawProfile[0] == "{") {
     // rawProfile is a JSON string.
     rawProfile = JSON.parse(rawProfile);
     if (rawProfile === null) {
-      throw "rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.";
+      throw new Error("rawProfile couldn't not successfully be parsed using JSON.parse. Make sure that the profile is a valid JSON encoding.");
     }
   }
 
@@ -916,6 +916,12 @@ function parseRawProfile(requestID, params, rawProfile) {
   }
 
   progressReporter.finish();
+
+  if (threads[0] == null) {
+    throw new Error("No threads in the profile. Make sure that you specified valid thread names when profiling." + threads);
+    return;
+  }
+
   // Don't increment the profile ID now because (1) it's buggy
   // and (2) for now there's no point in storing each profile
   // here if we're storing them in the local storage.
