@@ -172,6 +172,20 @@
 
     uploadProfile: function Cleopatra_uploadProfile(selected) {
       Parser.getSerializedProfile(!selected, function (dataToUpload) {
+        var dataSize;
+        if (dataToUpload.length > 1024*1024) {
+          dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
+        } else {
+          dataSize = (dataToUpload.length/1024).toFixed(1) + " KB(s)";
+        }
+
+        function getErrorMessage(status) {
+          var msg = "Error " + status + " occurred uploading your file.";
+          if (dataSize > 10 * 1024 * 1024) {
+            msg += " The profile that you are trying to upload is more then ithe 10 MBs storage maximum. For more information see <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Performance/Profiling_with_the_Built-in_Profiler#Profile_Fails_to_Upload'>how to host your profile.</a>";
+          }
+        }
+
         var oXHR = new XMLHttpRequest();
         oXHR.onload = function (oEvent) {
           if (oXHR.status == 200) {  
@@ -180,11 +194,11 @@
             document.getElementById("upload_status").innerHTML = "Success! Use this <a id='linkElem'>link</a>";
             document.getElementById("linkElem").href = document.URL;
           } else {  
-            document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
+            document.getElementById("upload_status").innerHTML = getErrorMessage(oXHR.status);
           }  
         };
         oXHR.onerror = function (oEvent) {
-          document.getElementById("upload_status").innerHTML = "Error " + oXHR.status + " occurred uploading your file.";
+          document.getElementById("upload_status").innerHTML = getErrorMessage(oXHR.status);
         }
         oXHR.upload.onprogress = function(oEvent) {
           if (oEvent.lengthComputable) {
@@ -196,13 +210,6 @@
             }
           }
         };
-
-        var dataSize;
-        if (dataToUpload.length > 1024*1024) {
-          dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
-        } else {
-          dataSize = (dataToUpload.length/1024).toFixed(1) + " KB(s)";
-        }
 
         var formData = new FormData();
         formData.append("file", dataToUpload);
