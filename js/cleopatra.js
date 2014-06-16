@@ -184,6 +184,7 @@
           if (dataSize > 10 * 1024 * 1024) {
             msg += " The profile that you are trying to upload is more then ithe 10 MBs storage maximum. For more information see <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Performance/Profiling_with_the_Built-in_Profiler#Profile_Fails_to_Upload'>how to host your profile.</a>";
           }
+          return msg;
         }
 
         var oXHR = new XMLHttpRequest();
