@@ -1,4 +1,4 @@
-function VideoPane(videoCapture) {
+function VideoPane(videoCapture, frameStart) {
   var qrScripts = [
     "grid.js",
     "version.js",
@@ -46,6 +46,8 @@ function VideoPane(videoCapture) {
   this._canvas = document.createElement("canvas");
   this._canvas.id = "qr-canvas";
   this._canvas.style.display = "none";
+  this._frameStart = frameStart;
+  this._syncPoint = {};
   document.body.appendChild(this._canvas);
 
   // When we get a time update we fire a callback because
@@ -71,6 +73,7 @@ VideoPane.prototype = {
     });
   },
   getCurrentFrameNumber: function VideoPane_getCurrentFrameNumber() {
+    var self = this;
     var number = null;
 
     if (this._canvas.width != this._video.videoWidth ||
@@ -85,6 +88,7 @@ VideoPane.prototype = {
     // TODO patch library to accept an element
     qrcode.callback = function(data) {
       number = parseInt(data);
+      self.foundFrame(number, self._frameStart[number], self._video.currentTime * 1000);
     }
     try {
       qrcode.decode();
@@ -92,6 +96,54 @@ VideoPane.prototype = {
     }
     console.log("Frame: " + number);
     return number;
-  }
+  },
+  foundFrame: function VideoPane_foundFrame(frame, profileTime, videoTime) {
+    profileTime = Math.round(profileTime);
+    videoTime = Math.round(videoTime);
+    this._syncPoint[profileTime] = {
+      videoTime: videoTime,
+      profileTime: profileTime,
+      frame: frame,
+    };
+    console.log("Found frame: " + JSON.stringify(this._syncPoint));
+  },
+  getApproxTime: function VideoFrame_foundFramev(videoTime) {
+    var self = this;
+    videoTime = videoTime | (this._video.currentTime * 1000);
+
+    var values = Object.keys(this._syncPoint);
+    values.sort(function(a,b) {
+      return self._syncPoint[a].videoTime - self._syncPoint[b].videoTime;
+    });
+    var currFrame = null;
+    var frameReading = [];
+    for (var i = 0; i < values.length; i++) {
+      var entry = this._syncPoint[values[i]];
+      if (currFrame != entry.frame) {
+        currFrame = entry.frame;
+        frameReading.push(entry);
+      }
+    }
+    function prune() {
+      for (var i = frameReading.length - 1; i >= 0; i--) {
+        for (var j = i - 1; j >= 0; j--) {
+          if (frameReading[i].frame < frameReading[j].frame) {
+            frameReading = frameReading.slice(i);
+            return;
+          }
+        }
+      }
+    }
+    // Prune data we wrapped around
+    prune();
+
+    if (frameReading.length < 1) {
+      return null;
+    }
+
+    var offset = frameReading[frameReading.length - 1].videoTime - frameReading[frameReading.length - 1].profileTime;
+
+    return videoTime - offset;
+  },
 };
 

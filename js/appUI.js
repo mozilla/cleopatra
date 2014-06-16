@@ -62,9 +62,12 @@
       //  return;
 
       var frame = gVideoPane.getCurrentFrameNumber();
+      var time = gVideoPane.getApproxTime();
       //var frameStart = gMeta.frameStart[frame];
       //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
-      window.gHistogramContainer.showVideoFramePosition(frame, gMeta.frameStart[frame], gMeta.frameStart[(frame+1)%256]); 
+      //window.gHistogramContainer.showVideoFramePosition(frame, gMeta.frameStart[frame], gMeta.frameStart[(frame+1)%256]); 
+
+      window.gHistogramContainer.showVideoFramePosition(frame, time, time + 15); 
     },
 
     loadProfile: function AppUI_loadProfile(rawProfile) {
@@ -164,7 +167,7 @@
       //};
 
       if (gMeta && gMeta.videoCapture) {
-        gVideoPane = new VideoPane(gMeta.videoCapture);
+        gVideoPane = new VideoPane(gMeta.videoCapture, gMeta.frameStart);
         gVideoPane.onTimeChange(AppUI.videoPaneTimeChange);
         currRow = document.createElement("div");
         finishedProfilePane.appendChild(currRow);
