@@ -34,14 +34,36 @@ function VideoPane(videoCapture, frameStart) {
   this._video = document.createElement("video");
   this._video.className = "video";
   //this._video.width = 480;
-  this._video.controls = "controls";
   this._video.crossOrigin = 'anonymous';
   this._video.crossorigin = 'anonymous';
-  this._video.src = videoCapture.src;
   this._video.addEventListener("play", function() {
-    this.playbackRate = 0.05;
+    //this.playbackRate = 0.05;
   });
   this._container.appendChild(this._video);
+
+  // When this is true we're reading back the video stream
+  this._reading = true;
+  var self = this;
+  self._video.addEventListener("seeked", function seekedfunc() {
+    if (self._reading) {
+      self.getCurrentFrameNumber();
+      var prevTime = self._video.currentTime;
+      self._video.currentTime += 0.016 * 5;
+      if (self._video.currentTime == prevTime) {
+        self._reading = false;
+        self._video.controls = "controls";
+        self._lockTimeToBound();
+      }
+    } else {
+      console.log("seeked");
+    }
+  });
+  this._video.addEventListener("loadeddata", function canplayfunc() {
+    self._video.currentTime += 0.1;
+    self._video.removeEventListener("loadeddata", canplayfunc);
+  });
+  this._videoUrl = videoCapture.src;
+  this._video.src = this._videoUrl;
 
   this._canvas = document.createElement("canvas");
   this._canvas.id = "qr-canvas";
@@ -59,17 +81,30 @@ VideoPane.prototype = {
   getContainer: function VideoPane_getContainer() {
     return this._container;
   },
+  _lockTimeToBound: function() {
+    if (this._reading)
+      return;
+    var newTime = null;
+    if (this._video.currentTime * 1000 < this.minBound) {
+      newTime = this.minBound / 1000;
+    } else if (this._video.currentTime * 1000 > this.maxBound) {
+      newTime = this.maxBound / 1000;
+      if (this._video.paused == false) {
+        // loop back
+        newTime = this.minBound / 1000;
+      }
+    }
+    if (newTime && newTime >= 0 && newTime < this._video.duration) {
+      this._video.currentTime = newTime;
+    }
+  },
   onTimeChange: function VideoPane_onTimeChange(callback) {
     var self = this;
     this._video.addEventListener("timeupdate", function() {
+      if (self._reading)
+        return;
+      self._lockTimeToBound();
       callback(self._video);
-      if (self._timeUpdateCallback) {
-        clearTimeout(self._timeUpdateCallback);
-      }
-      self._timeUpdateCallback = setTimeout(function timeUpdateCallback() {
-        callback(self._video);
-        self._timeUpdateCallback = null;
-      }, 100);
     });
   },
   getCurrentFrameNumber: function VideoPane_getCurrentFrameNumber() {
@@ -94,8 +129,30 @@ VideoPane.prototype = {
       qrcode.decode();
     } catch (e) {
     }
-    console.log("Frame: " + number);
     return number;
+  },
+  setBoundaries: function VideoPane_setBounadries(boundaries) {
+    var min = boundaries.min;
+    var max = boundaries.max;
+
+    var startStr = "";
+    var endStr = "";
+
+    if (min != min) {
+      this.minBound = null;
+    } else {
+      this.minBound = this.getApproxVideoTime(min); 
+      startStr = this.minBound / 1000;
+    }
+    if (max != max) {
+      this.maxBound = null;
+    } else {
+      this.maxBound = this.getApproxVideoTime(max); 
+      endStr = this.maxBound / 1000;
+    }
+    
+    console.log("Bound: " + this.minBound + " , " + this.maxBound);
+    this._lockTimeToBound();
   },
   foundFrame: function VideoPane_foundFrame(frame, profileTime, videoTime) {
     profileTime = Math.round(profileTime);
@@ -107,9 +164,8 @@ VideoPane.prototype = {
     };
     console.log("Found frame: " + JSON.stringify(this._syncPoint));
   },
-  getApproxTime: function VideoFrame_foundFramev(videoTime) {
+  _getTimeOffset: function() {
     var self = this;
-    videoTime = videoTime | (this._video.currentTime * 1000);
 
     var values = Object.keys(this._syncPoint);
     values.sort(function(a,b) {
@@ -142,8 +198,14 @@ VideoPane.prototype = {
     }
 
     var offset = frameReading[frameReading.length - 1].videoTime - frameReading[frameReading.length - 1].profileTime;
-
-    return videoTime - offset;
+    return offset;
+  },
+  getApproxVideoTime: function(profileTime) {
+    return profileTime + this._getTimeOffset();
+  },
+  getApproxTime: function VideoFrame_getApproxTime(videoTime) {
+    videoTime = videoTime | (this._video.currentTime * 1000);
+    return videoTime - this._getTimeOffset();
   },
 };
 

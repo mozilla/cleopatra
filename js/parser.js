@@ -124,7 +124,7 @@ WorkerRequest.prototype = {
       taskData: taskData
     });
     var postTime = Date.now() - startTime;
-    if (true || postTime > 10)
+    if (postTime > 10)
       console.log("posting message to worker: " + postTime + "ms");
     this._sendChunkReporter.finish();
     this._executeReporter.begin("Processing worker request...");

@@ -61,13 +61,13 @@
       //if (!gMeta || !gMeta.frameStart)
       //  return;
 
-      var frame = gVideoPane.getCurrentFrameNumber();
+      //var frame = gVideoPane.getCurrentFrameNumber();
       var time = gVideoPane.getApproxTime();
       //var frameStart = gMeta.frameStart[frame];
       //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
       //window.gHistogramContainer.showVideoFramePosition(frame, gMeta.frameStart[frame], gMeta.frameStart[(frame+1)%256]); 
 
-      window.gHistogramContainer.showVideoFramePosition(frame, time, time + 15); 
+      window.gHistogramContainer.showVideoFramePosition("Video position", time, time + 15); 
     },
 
     loadProfile: function AppUI_loadProfile(rawProfile) {
@@ -350,6 +350,10 @@
                 boundaries);
             //console.log("histogram displaying: " + (Date.now() - start) + "ms.");
           });
+        }
+
+        if (gVideoPane) {
+          gVideoPane.setBoundaries(boundaries);
         }
 
         var waterfallRequest = Parser.calculateWaterfallData(boundaries);
