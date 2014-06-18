@@ -41,23 +41,6 @@ function VideoPane(videoCapture, frameStart) {
   });
   this._container.appendChild(this._video);
 
-  // When this is true we're reading back the video stream
-  this._reading = true;
-  var self = this;
-  self._video.addEventListener("seeked", function seekedfunc() {
-    if (self._reading) {
-      self.getCurrentFrameNumber();
-      var prevTime = self._video.currentTime;
-      self._video.currentTime += 0.016 * 5;
-      if (self._video.currentTime == prevTime) {
-        self._reading = false;
-        self._video.controls = "controls";
-        self._lockTimeToBound();
-      }
-    } else {
-      console.log("seeked");
-    }
-  });
   this._video.addEventListener("loadeddata", function canplayfunc() {
     self._video.currentTime += 0.1;
     self._video.removeEventListener("loadeddata", canplayfunc);
@@ -71,6 +54,31 @@ function VideoPane(videoCapture, frameStart) {
   this._frameStart = frameStart;
   this._syncPoint = {};
   document.body.appendChild(this._canvas);
+
+  this._busyCover = document.createElement("div");
+  this._busyCover.className = "busyCover";
+  this._busyCover.id = "videoCover";
+  this._container.appendChild(this._busyCover);
+
+  // When this is true we're reading back the video stream
+  this._reading = true;
+  this._busyCover.classList.add("busy");
+  var self = this;
+  self._video.addEventListener("seeked", function seekedfunc() {
+    if (self._reading) {
+      self.getCurrentFrameNumber();
+      var prevTime = self._video.currentTime;
+      self._video.currentTime += 0.016 * 5;
+      if (self._video.currentTime == prevTime) {
+        self._busyCover.classList.remove("busy");
+        self._reading = false;
+        self._video.controls = "controls";
+        self._lockTimeToBound();
+      }
+    } else {
+      console.log("seeked");
+    }
+  });
 
   // When we get a time update we fire a callback because
   // the updated frame might not have been ready.

@@ -486,6 +486,13 @@ body {
   left: 50%;
   margin: -12px;
 }
+.busyCover#videoCover::after {
+  position: absolute;
+  top: calc(50% + 16px);
+  left: calc(50% - 50px);
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white;
+  content: "Decoding QR Codes";
+}
 label {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -493,6 +500,7 @@ label {
 .videoPane {
   background-color: white;
   width: 100%;
+  position: relative;
 }
 .video {
   max-width: 640px;
