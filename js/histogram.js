@@ -86,6 +86,7 @@ var HistogramContainer;
 
       cell.appendChild(this.waterfall.getContainer());
 
+      var compositorThreadMinimize = null;
       Object.keys(threads).forEach(function (id) {
         var thread = threads[id];
         var row = createElement("div", {
@@ -112,6 +113,10 @@ var HistogramContainer;
           tableRow.parentNode.removeChild(tableRow);
           table.appendChild(tableRow);
           var endY = tableRow.getBoundingClientRect().top;
+        }
+
+        if (thread.name.indexOf("Compositor") == 0) {
+          compositorThreadMinimize = minimizeButton.onclick;
         }
 
         thread.threadHistogramView = new HistogramView(this, thread.name, id);
@@ -142,6 +147,12 @@ var HistogramContainer;
 
         this.threads[id] = thread;
       }.bind(this));
+
+      if (compositorThreadMinimize) {
+        for (var i = 0; i < Object.keys(threads).length; i++) {
+          compositorThreadMinimize();
+        }
+      }
 
       this.threads[0].threadHistogramView.container.classList.add("histogramSelected");
     },
