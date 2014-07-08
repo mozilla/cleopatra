@@ -240,7 +240,7 @@ Waterfall.prototype = {
     }
 
     if (!this.hasSeenDisplayListDump) {
-      this.hasSeenDispliayListDump = true;
+      this.hasSeenDisplayListDump = true;
       tab_showInstruction("DisplayList", "To view a Display List dump you must click on a 'DisplayList' bubble in the Frames timeline.");
     }
     return str;
