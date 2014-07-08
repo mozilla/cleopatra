@@ -2164,6 +2164,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var stylesNumber = 0;
   var displayListNumber = 0;
   var rasterizeNumber = 0;
+  var lastDisplayListBlock = null;
 
   paintMarkers = getPaintMarkers(mainThreadMarkers);
   var mainThreadLogData = getThreadLogData(mainThreadId, mainThreadMarkers);
@@ -2182,6 +2183,12 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           text: "Refresh " + frameNumber++,
           type: "RD",
         });
+      }
+      if (lastDisplayListBlock && !lastDisplayListBlock.displayListDump) {
+        var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
+        if (displayListDump) {
+          lastDisplayListBlock.displayListDump = displayListDump;
+        }
       }
       startTime[marker.name] = null;
     } else if (isInRefreshDriver) {
@@ -2235,9 +2242,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           text: marker.name + " #" + displayListNumber++,
           type: marker.name,
         });
+        lastDisplayListBlock =  result.items[result.items.length - 1];
         var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
-        if (displayListDump) {
-          result.items[result.items.length - 1].displayListDump = displayListDump;
+        if (displayListDump && lastDisplayListBlock) {
+          lastDisplayListBlock.displayListDump = displayListDump;
         }
         startTime[marker.name] = null;
       } else if (marker.name == "Rasterize" && marker.data.interval == "start") {
@@ -2250,9 +2258,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             text: "DisplayList #" + displayListNumber++,
             type: "DisplayList",
           });
-          var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
-          if (displayListDump) {
-            result.items[result.items.length - 1].displayListDump = displayListDump;
+          lastDisplayListBlock =  result.items[result.items.length - 1];
+          var displayListDump = getDisplayList(mainThreadLogData, prevItem.endTime, marker.time);
+          if (displayListDump && lastDisplayListBlock) {
+            lastDisplayListBlock.displayListDump = displayListDump;
           }
           startTime["DisplayList"] = null;
         }
