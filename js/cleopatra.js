@@ -173,6 +173,7 @@
     uploadProfile: function Cleopatra_uploadProfile(selected) {
       Parser.getSerializedProfile(!selected, function (dataToUpload) {
         var dataSize;
+        var sizeInBytes = dataToUpload.length;
         if (dataToUpload.length > 1024*1024) {
           dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
         } else {
@@ -181,8 +182,8 @@
 
         function getErrorMessage(status) {
           var msg = "Error " + status + " occurred uploading your file.";
-          if (dataSize > 10 * 1024 * 1024) {
-            msg += " The profile that you are trying to upload is more then ithe 10 MBs storage maximum. For more information see <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Performance/Profiling_with_the_Built-in_Profiler#Profile_Fails_to_Upload'>how to host your profile.</a>";
+          if (sizeInBytes > 9 * 1024 * 1024) {
+            msg += " The profile that you are trying to upload is more then the 9 MBs storage maximum. For more information see <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Performance/Profiling_with_the_Built-in_Profiler#Profile_Fails_to_Upload'>how to host your profile.</a>";
           }
           return msg;
         }
