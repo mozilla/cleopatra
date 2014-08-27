@@ -351,7 +351,7 @@ var HistogramContainer;
       label.textContent = name;
       markerDiv.appendChild(label);
       this.container.appendChild(markerDiv);
-      
+
       return markerDiv;
     },
 
