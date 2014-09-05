@@ -65,9 +65,9 @@
       var time = gVideoPane.getApproxTime();
       //var frameStart = gMeta.frameStart[frame];
       //var frameEnd = gMeta.frameStart[frame+1]; // If we don't have a frameEnd assume the end of the profile
-      //window.gHistogramContainer.showVideoFramePosition(frame, gMeta.frameStart[frame], gMeta.frameStart[(frame+1)%256]); 
+      //window.gHistogramContainer.showVideoFramePosition(frame, gMeta.frameStart[frame], gMeta.frameStart[(frame+1)%256]);
 
-      window.gHistogramContainer.showVideoFramePosition("Video position", time, time + 15); 
+      window.gHistogramContainer.showVideoFramePosition("Video position", time, time + 15);
     },
 
     loadProfile: function AppUI_loadProfile(rawProfile) {
@@ -368,6 +368,9 @@
               var frameUniformityView = Waterfall.createFrameUniformityView(data.compositeTimes);
               return frameUniformityView;
             });
+            gTabWidget.addTab("Uniformity", function() {
+              return Waterfall.createFramePositionView(data.framePositions);
+            });
           }
         });
         var logDataRequest = Parser.getLogData(boundaries);
@@ -453,12 +456,12 @@
       var filterNameInput = document.getElementById("filterName");
       if (filterNameInput != null) {
         this.changeFocus(filterNameInput);
-      } 
+      }
     },
 
     changeWorseResponsiveness: function AppUI_changeWorseResponsiveness(res) {
       Parser.changeWorseResponsiveness(res);
-      this.filterUpdate();  
+      this.filterUpdate();
     },
 
     filterOnChange: function filterOnChange() {
@@ -560,5 +563,5 @@
       });
     }
   };
-  window.AppUI = AppUI;  
+  window.AppUI = AppUI;
 }(this));

@@ -1182,10 +1182,10 @@ function filterByName(samples, symbols, functions, filterName, useFunctions) {
     if (!sample)
       continue;
     var callstack = sample.frames;
-    for (var j = 0; j < callstack.length; ++j) { 
+    for (var j = 0; j < callstack.length; ++j) {
       var symbolOrFunctionName = getSymbolOrFunctionName(callstack[j], useFunctions);
       var libraryName = getLibraryName(callstack[j], useFunctions);
-      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1 || 
+      if (symbolOrFunctionName.toLowerCase().indexOf(filterName) != -1 ||
           libraryName.toLowerCase().indexOf(filterName) != -1) {
         continue calltrace_it;
       }
@@ -2136,11 +2136,53 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     }
     return markersOut;
   }
-  
+
+  function appendToLayer(framePositions, layer, position) {
+    if (framePositions[layer] == undefined) {
+      framePositions[layer] = [];
+    }
+
+    framePositions[layer].push(position);
+  }
+
+  function filterLayerPositionByLayer(markersIn) {
+    // returns layer -> { layerAddress: [[x0, y0], [x1, y1]] }
+    var framePositions = {};
+    for (var i = 0; i < markersIn.length; i++) {
+      var marker = markersIn[i];
+      var layerLabel = marker.data.layer;
+      var position = [marker.data.x, marker.data.y];
+
+      // Tracking layers that are always 0 makes the graph super slow to parse
+      // so filter them out for now
+      if (position[0] != 0 || position[1] != 0) {
+        appendToLayer(framePositions, layerLabel, position);
+      }
+    }
+
+    return framePositions;;
+  }
+
+  function getUniformityMarkers(markersIn, boundaries) {
+    var markersOut = [];
+    for (var i = 0; i < markersIn.length; i++) {
+      if (markersIn[i].data &&
+          markersIn[i].name == "LayerTranslation") {
+        var time = markersIn[i].time;
+        if (time >= boundaries.min && time <= boundaries.max) {
+          markersOut.push(markersIn[i]);
+        }
+      }
+    }
+
+    return markersOut;
+  }
+
   var result = {
     boundaries: boundaries,
     items: [],
     compositeTimes: [],
+    framePositions: {},
   };
   var mainThreadState = "Waiting";
   var compThreadState = "Waiting";
@@ -2281,6 +2323,8 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   if (compThread) {
     var compositeNumber = 0;
     paintMarkers = getPaintMarkers(compThreadMarkers);
+    var frameMarkers = getUniformityMarkers(compThreadMarkers, boundaries);
+    result.framePositions = filterLayerPositionByLayer(frameMarkers);
     var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
     for (i = 0; i < paintMarkers.length; i++) {
       marker = paintMarkers[i];
