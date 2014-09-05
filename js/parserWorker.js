@@ -2164,11 +2164,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   }
 
   function getUniformityMarkers(markersIn, boundaries) {
-    console.log("Looking at markers\n");
     var markersOut = [];
     for (var i = 0; i < markersIn.length; i++) {
       if (markersIn[i].data &&
-          markersIn[i].name == "LayerTransform") {
+          markersIn[i].name == "LayerTranslation") {
         var time = markersIn[i].time;
         if (time >= boundaries.min && time <= boundaries.max) {
           markersOut.push(markersIn[i]);

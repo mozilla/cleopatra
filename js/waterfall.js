@@ -261,10 +261,10 @@ Waterfall.createFramePositionView = function(framePositions) {
 
   function createFrameUniformityUsage(container) {
     var text = "No frame position uniformity data. You can enable this view by " +
-               " setting the preference layers.uniformity-info to true and by " +
+               "setting the preference layers.uniformity-info to true and by " +
                "profiling the compositor thread. To profile the compositor thread, " +
                "Use the command './profile.sh start -p b2g -t Compositor'. To get touch data, " +
-               "also profile the 'GeckoMain' thread. e.g. ./profile.sh -t Compositor,GeckoMain'";
+               "also profile the 'GeckoMain' thread. e.g. ./profile.sh -p b2g -t Compositor,GeckoMain'";
     container.innerHTML = text;
   }
 
