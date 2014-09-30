@@ -346,9 +346,9 @@ Waterfall.prototype = {
     var maxCloseness = 0.1;
     var maxWidth = 0.1;
 
-    var typeOrder = ['RD', 'Scripts', 'Styles', 'Reflow', 'DisplayList', 'Rasterize', 'Composite', 'Other'];
+    var typeOrder = ['RD', 'Scripts', 'Styles', 'Reflow', 'DisplayList', 'Rasterize', 'Composite', 'Vsync', 'Other'];
     var cssClasses = ['waterfallFrame', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem', 'waterfallItem'];
-    var colorList = ['rgba(0,200,0,0.5)', 'rgb(250,100,40)', 'rgb(40,40,100)', 'rgb(40,40,100)', 'rgb(150,40,100)', 'rgb(100,250,40)', 'rgb(100,40,250)', 'rgb(200,0,0)'];
+    var colorList = ['rgba(0,200,0,0.5)', 'rgb(250,100,40)', 'rgb(40,40,100)', 'rgb(40,40,100)', 'rgb(150,40,100)', 'rgb(100,250,40)', 'rgb(100,40,250)', 'rgb(255, 128, 0', 'rgb(200,0,0)'];
     var barHeight = [0.5, 0, 1, 1, 1, 2, 3, 0];
 
     gLayersDumps = [];

@@ -2163,11 +2163,11 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     return framePositions;;
   }
 
-  function getUniformityMarkers(markersIn, boundaries) {
+  function getCategoryMarkers(markersIn, boundaries, category) {
     var markersOut = [];
     for (var i = 0; i < markersIn.length; i++) {
       if (markersIn[i].data &&
-          markersIn[i].name == "LayerTranslation") {
+          markersIn[i].name == category) {
         var time = markersIn[i].time;
         if (time >= boundaries.min && time <= boundaries.max) {
           markersOut.push(markersIn[i]);
@@ -2178,11 +2178,24 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     return markersOut;
   }
 
+  function addVsyncMarkers() {
+    for (i = 0; i < result.vsyncTimes.length; i++) {
+      var vsyncTime = result.vsyncTimes[i];
+      result.items.push({
+        startTime: vsyncTime.data.vsync,
+        endTime: vsyncTime.data.vsync + 1,  // make a 1ms marker for readability only
+        text: "Vsync",
+        type: "Vsync",
+      });
+    }
+  }
+
   var result = {
     boundaries: boundaries,
     items: [],
     compositeTimes: [],
     framePositions: {},
+    vsyncTimes: [],
   };
   var mainThreadState = "Waiting";
   var compThreadState = "Waiting";
@@ -2323,8 +2336,11 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   if (compThread) {
     var compositeNumber = 0;
     paintMarkers = getPaintMarkers(compThreadMarkers);
-    var frameMarkers = getUniformityMarkers(compThreadMarkers, boundaries);
+    var frameMarkers = getCategoryMarkers(compThreadMarkers, boundaries, "LayerTranslation");
     result.framePositions = filterLayerPositionByLayer(frameMarkers);
+    result.vsyncTimes = getCategoryMarkers(compThreadMarkers, boundaries, "VsyncTimestamp");
+    addVsyncMarkers();
+
     var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
     for (i = 0; i < paintMarkers.length; i++) {
       marker = paintMarkers[i];
