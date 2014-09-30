@@ -2183,7 +2183,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       var vsyncTime = result.vsyncTimes[i];
       result.items.push({
         startTime: vsyncTime.data.vsync,
-        endTime: vsyncTime.data.vsync + 1,  // make a 1ms marker for readability only
+        endTime: vsyncTime.data.vsync + 0.5,  // make a 0.5 ms marker for readability only
         text: "Vsync",
         type: "Vsync",
       });
