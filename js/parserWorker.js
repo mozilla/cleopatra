@@ -2211,7 +2211,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     var rasterizeNumber = 0;
     var syncLayerTransactionNumber = 0;
     var lastDisplayListBlock = null;
- 
+
     paintMarkers = getPaintMarkers(mainThreadMarkers);
     var mainThreadLogData = getThreadLogData(mainThreadId, mainThreadMarkers);
     for (i = 0; i < paintMarkers.length; i++) {
@@ -2220,6 +2220,19 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         isInRefreshDriver = true;
         trivialFrame = true;
         startTime[marker.name] = marker.time;
+      }  else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "start" ) {
+        startTime[marker.name] = marker.time;
+        console.log("Sync layer transaction\n");
+        dump("Start layer transaction\n");
+      } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "end" ) {
+        result.items.push({
+          startTime: startTime[marker.name],
+          endTime: marker.time,
+          text: "SyncLayerTransaction" + syncLayerTransactionNumber++,
+          type: "SyncLayerTransaction",
+        });
+        console.log("Added a sync layer transaction");
+        dump("Added a sync layer transaction");
       } else if(isInRefreshDriver && marker.name == "RD" && marker.data.interval == "end") {
         isInRefreshDriver = false;
         if (!trivialFrame && startTime[marker.name]) {
@@ -2321,22 +2334,17 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           });
           startTime[marker.name] = null;
         }
-      } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "start" ) {
-        startTime[marker.name] = marker.time;
-      } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "end" ) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: "SyncLayerTransaction" + syncLayerTransactionNumber++,
-          type: "SyncLayerTransaction",
-        });
       }
     }
   }
 
   function addCompositorThreadMarkers() {
     if (compThread) {
+      var startComposite = null;
       var compositeNumber = 0;
+      var syncLayerTransactionNumber = 0;
+      var startSyncLayer;
+
       paintMarkers = getPaintMarkers(compThreadMarkers);
       var frameMarkers = getCategoryMarkers(compThreadMarkers, boundaries, "LayerTranslation");
       result.framePositions = filterLayerPositionByLayer(frameMarkers);
@@ -2346,8 +2354,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
       var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
       for (i = 0; i < paintMarkers.length; i++) {
         marker = paintMarkers[i];
-        if (marker.name == "Composite" && marker.data.interval == "start" &&
-            !startComposite) {
+        if (marker.name == "Composite" && marker.data.interval == "start") {
           startComposite = marker.time;
         } else if (marker.name == "Composite" && marker.data.interval == "end") {
           result.items.push({
@@ -2364,6 +2371,16 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             result.items[result.items.length - 1].layersDump = layersDump;
           }
           startComposite = null;
+        } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "start" ) {
+          startSyncLayer = marker.time;
+        } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "end" ) {
+          result.items.push({
+            startTime: startSyncLayer,
+            endTime: marker.time,
+            text: "SyncLayerTransaction" + syncLayerTransactionNumber++,
+            type: "SyncLayerTransaction",
+          });
+          startSyncLayer = 0;
         }
       }
     }
@@ -2373,10 +2390,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var compThreadState = "Waiting";
   var compThreadPos = 0;
   var time = boundaries.minima;
-
-  var layoutStartTime = null;
-  var startComposite = null;
-
   var paintMarkers, i, marker;
 
   addMainThreadMarkers();
