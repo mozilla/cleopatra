@@ -1368,7 +1368,7 @@ function findTimelineStart(profileID) {
     var thread = profile.filteredThreadSamples[threadID];
     if (thread == null)
       continue;
-    if (thread[0].extraInfo.time && 
+    if (thread[0].extraInfo.time &&
         (min == null || thread[0].extraInfo.time < min)) {
       min = thread[0].extraInfo.time;
     }
@@ -1388,7 +1388,7 @@ function findTimelineEnd(profileID) {
     if (thread == null)
       continue;
     var len = thread.length;
-    if (thread[len-2].extraInfo.time && 
+    if (thread[len-2].extraInfo.time &&
         (max == null || thread[len-2].extraInfo.time > max)) {
       max = thread[len-2].extraInfo.time;
     }
@@ -1540,7 +1540,7 @@ var diagnosticList = [
         return false;
       }
 
-      return stepContains('@ tag_visibility_monitor', frames, symbols) 
+      return stepContains('@ tag_visibility_monitor', frames, symbols)
           ;
     },
   },
@@ -1553,7 +1553,7 @@ var diagnosticList = [
         return false;
       }
 
-      return stepContains('nsDisplayText', frames, symbols) 
+      return stepContains('nsDisplayText', frames, symbols)
           ;
     },
   },
@@ -1565,13 +1565,13 @@ var diagnosticList = [
       if (!stepContains('TISCreateInputSourceList', frames, symbols))
         return false;
 
-      return stepContains('__getdirentries64', frames, symbols) 
-          || stepContains('__read', frames, symbols) 
-          || stepContains('__open', frames, symbols) 
-          || stepContains('__unlink', frames, symbols) 
-          || stepEquals('read', frames, symbols) 
-          || stepEquals('write', frames, symbols) 
-          || stepEquals('fsync', frames, symbols) 
+      return stepContains('__getdirentries64', frames, symbols)
+          || stepContains('__read', frames, symbols)
+          || stepContains('__open', frames, symbols)
+          || stepContains('__unlink', frames, symbols)
+          || stepEquals('read', frames, symbols)
+          || stepEquals('write', frames, symbols)
+          || stepEquals('fsync', frames, symbols)
           || stepContains('stat$INODE64', frames, symbols)
           ;
     },
@@ -2044,14 +2044,14 @@ function getThreadLogData(threadId, markers, boundaries) {
       logMarker.name = leftover + logMarker.name;
       leftover = null;
     }
-      
+
     if (logMarker.name.split("\n").length > 1) {
       var lines = logMarker.name.split("\n");
       for (var j = 0; j < lines.length - 1; j++) {
         var line = lines[j];
         var lineMarker = JSON.parse(JSON.stringify(logMarker));
         lineMarker.name = line;
-        entries.push(lineMarker);  
+        entries.push(lineMarker);
       }
       leftover = lines[lines.length - 1];
     } else {
@@ -2073,7 +2073,7 @@ function getLogData(requestID, profileID, boundaries) {
 
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
-    var markers = thread.markers;  
+    var markers = thread.markers;
     var threadLogMarkers = getThreadLogData(threadId, markers, boundaries);
 
     for (var i = 0; i < threadLogMarkers.length; i++) {
@@ -2163,11 +2163,11 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     return framePositions;;
   }
 
-  function getUniformityMarkers(markersIn, boundaries) {
+  function getCategoryMarkers(markersIn, boundaries, category) {
     var markersOut = [];
     for (var i = 0; i < markersIn.length; i++) {
       if (markersIn[i].data &&
-          markersIn[i].name == "LayerTranslation") {
+          markersIn[i].name == category) {
         var time = markersIn[i].time;
         if (time >= boundaries.min && time <= boundaries.max) {
           markersOut.push(markersIn[i]);
@@ -2183,172 +2183,203 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     items: [],
     compositeTimes: [],
     framePositions: {},
+    vsyncTimes: [],
   };
+
+  function addVsyncMarkers() {
+    for (i = 0; i < result.vsyncTimes.length; i++) {
+      var vsyncTime = result.vsyncTimes[i];
+      result.items.push({
+        startTime: vsyncTime.data.vsync,
+        endTime: vsyncTime.data.vsync + 0.5,  // make a 0.5 ms marker for readability only
+        text: "Vsync",
+        type: "Vsync",
+      });
+    }
+  }
+
+  function addMainThreadMarkers() {
+    var startTime = {};
+    var stack = {};
+    var isInRefreshDriver = false;
+    var trivialFrame;
+    var frameNumber = 0;
+    var scriptsNumber = 0;
+    var reflowNumber = 0;
+    var stylesNumber = 0;
+    var displayListNumber = 0;
+    var rasterizeNumber = 0;
+    var lastDisplayListBlock = null;
+
+    paintMarkers = getPaintMarkers(mainThreadMarkers);
+    var mainThreadLogData = getThreadLogData(mainThreadId, mainThreadMarkers);
+    for (i = 0; i < paintMarkers.length; i++) {
+      marker = paintMarkers[i];
+      if (marker.name == "RD" && marker.data.interval == "start") {
+        isInRefreshDriver = true;
+        trivialFrame = true;
+        startTime[marker.name] = marker.time;
+      } else if(isInRefreshDriver && marker.name == "RD" && marker.data.interval == "end") {
+        isInRefreshDriver = false;
+        if (!trivialFrame && startTime[marker.name]) {
+          result.items.push({
+            startTime: startTime[marker.name],
+            endTime: marker.time,
+            text: "Refresh " + frameNumber++,
+            type: "RD",
+          });
+        }
+        if (lastDisplayListBlock && !lastDisplayListBlock.displayListDump) {
+          var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
+          if (displayListDump) {
+            lastDisplayListBlock.displayListDump = displayListDump;
+          }
+        }
+        startTime[marker.name] = null;
+      } else if (isInRefreshDriver) {
+        if (marker.name == "Scripts" && marker.data.interval == "start") {
+          startTime[marker.name] = marker.time;
+        } else if (marker.name == "Scripts" && marker.data.interval == "end" && startTime[marker.name]) {
+          result.items.push({
+            startTime: startTime[marker.name],
+            endTime: marker.time,
+            text: "Scripts #" + scriptsNumber,
+            type: "Scripts",
+          });
+          startTime[marker.name] = null;
+        } else if (marker.name == "Styles" && marker.data.interval == "start") {
+          startTime[marker.name] = marker.time;
+          stack[marker.name] = marker.data.stack;
+        } else if (marker.name == "Styles" && marker.data.interval == "end" && startTime[marker.name]) {
+          result.items.push({
+            startTime: startTime[marker.name],
+            endTime: marker.time,
+            text: "Styles" + " #" + stylesNumber++,
+            type: "Styles",
+          });
+          if (stack[marker.name]) {
+            result.items[result.items.length - 1].causeStack = prepareSample(stack[marker.name], profile.symbols);
+            stack[marker.name] = null;
+          }
+          startTime[marker.name] = null;
+        } else if (marker.name == "Reflow" && marker.data.interval == "start") {
+          startTime[marker.name] = marker.time;
+          stack[marker.name] = marker.data.stack;
+        } else if (marker.name == "Reflow" && marker.data.interval == "end" && startTime[marker.name]) {
+          result.items.push({
+            startTime: startTime[marker.name],
+            endTime: marker.time,
+            text: marker.name + " #" + reflowNumber++,
+            type: marker.name,
+          });
+          if (stack[marker.name]) {
+            result.items[result.items.length - 1].causeStack = prepareSample(stack[marker.name], profile.symbols);
+            stack[marker.name] = null;
+          }
+          startTime[marker.name] = null;
+        } else if (marker.name == "DisplayList" && marker.data.interval == "start") {
+          startTime[marker.name] = marker.time;
+          trivialFrame = false;
+        } else if (marker.name == "DisplayList" && marker.data.interval == "end" && startTime[marker.name]) {
+          result.items.push({
+            startTime: startTime[marker.name],
+            endTime: marker.time,
+            text: marker.name + " #" + displayListNumber++,
+            type: marker.name,
+          });
+          lastDisplayListBlock =  result.items[result.items.length - 1];
+          var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
+          if (displayListDump && lastDisplayListBlock) {
+            lastDisplayListBlock.displayListDump = displayListDump;
+          }
+          startTime[marker.name] = null;
+        } else if (marker.name == "Rasterize" && marker.data.interval == "start") {
+          if (result.items.length >= 1) {
+            // If we hit Rasterize we stop the DisplayList phase
+            var prevItem = result.items[result.items.length - 1];
+            result.items.push({
+              startTime: prevItem.endTime,
+              endTime: marker.time,
+              text: "DisplayList #" + displayListNumber++,
+              type: "DisplayList",
+            });
+            lastDisplayListBlock =  result.items[result.items.length - 1];
+            var displayListDump = getDisplayList(mainThreadLogData, prevItem.endTime, marker.time);
+            if (displayListDump && lastDisplayListBlock) {
+              lastDisplayListBlock.displayListDump = displayListDump;
+            }
+            startTime["DisplayList"] = null;
+          }
+          startTime[marker.name] = marker.time;
+        } else if (marker.name == "Rasterize" && marker.data.interval == "end" && startTime[marker.name]) {
+          result.items.push({
+            startTime: startTime[marker.name],
+            endTime: marker.time,
+            text: marker.name + " #" + rasterizeNumber++,
+            type: marker.name,
+          });
+          startTime[marker.name] = null;
+        }
+      }
+    }
+  }
+
+  function addCompositorThreadMarkers() {
+    if (compThread) {
+      var startComposite = null;
+      var compositeNumber = 0;
+      var layerTransactionNumber = 0;
+      var startSyncLayer;
+
+      paintMarkers = getPaintMarkers(compThreadMarkers);
+      var frameMarkers = getCategoryMarkers(compThreadMarkers, boundaries, "LayerTranslation");
+      result.framePositions = filterLayerPositionByLayer(frameMarkers);
+      result.vsyncTimes = getCategoryMarkers(compThreadMarkers, boundaries, "VsyncTimestamp");
+      addVsyncMarkers();
+
+      var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
+      for (i = 0; i < paintMarkers.length; i++) {
+        marker = paintMarkers[i];
+        if (marker.name == "Composite" && marker.data.interval == "start") {
+          startComposite = marker.time;
+        } else if (marker.name == "Composite" && marker.data.interval == "end") {
+          result.items.push({
+            startTime: startComposite,
+            endTime: marker.time,
+            text: "Composite #" + compositeNumber++,
+            type: "Composite",
+          });
+          if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
+            result.compositeTimes.push(marker.time);
+          }
+          var layersDump = getLayersDump(compositorLogData, startComposite, marker.time);
+          if (layersDump) {
+            result.items[result.items.length - 1].layersDump = layersDump;
+          }
+          startComposite = null;
+        } else if (marker.name == "LayerTransaction" && marker.data.interval == "start" ) {
+          startSyncLayer = marker.time;
+        } else if (marker.name == "LayerTransaction" && marker.data.interval == "end" ) {
+          result.items.push({
+            startTime: startSyncLayer,
+            endTime: marker.time,
+            text: "LayerTransaction" + layerTransactionNumber++,
+            type: "LayerTransaction",
+          });
+          startSyncLayer = 0;
+        }
+      }
+    }
+  }
+
   var mainThreadState = "Waiting";
   var compThreadState = "Waiting";
   var compThreadPos = 0;
   var time = boundaries.minima;
-  var startScripts = null;
-  var layoutStartTime = null;
-  var startRasterize = null;
-  var startComposite = null;
-  var startTimerStack = null;
-
   var paintMarkers, i, marker;
 
-  var startTime = {};
-  var stack = {};
-  var isInRefreshDriver = false;
-  var trivialFrame;
-  var frameNumber = 0;
-  var scriptsNumber = 0;
-  var reflowNumber = 0;
-  var stylesNumber = 0;
-  var displayListNumber = 0;
-  var rasterizeNumber = 0;
-  var lastDisplayListBlock = null;
-
-  paintMarkers = getPaintMarkers(mainThreadMarkers);
-  var mainThreadLogData = getThreadLogData(mainThreadId, mainThreadMarkers);
-  for (i = 0; i < paintMarkers.length; i++) {
-    marker = paintMarkers[i];
-    if (marker.name == "RD" && marker.data.interval == "start") {
-      isInRefreshDriver = true;
-      trivialFrame = true;
-      startTime[marker.name] = marker.time;
-    } else if(isInRefreshDriver && marker.name == "RD" && marker.data.interval == "end") {
-      isInRefreshDriver = false;
-      if (!trivialFrame && startTime[marker.name]) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: "Refresh " + frameNumber++,
-          type: "RD",
-        });
-      }
-      if (lastDisplayListBlock && !lastDisplayListBlock.displayListDump) {
-        var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
-        if (displayListDump) {
-          lastDisplayListBlock.displayListDump = displayListDump;
-        }
-      }
-      startTime[marker.name] = null;
-    } else if (isInRefreshDriver) {
-      if (marker.name == "Scripts" && marker.data.interval == "start") {
-        startTime[marker.name] = marker.time;
-      } else if (marker.name == "Scripts" && marker.data.interval == "end" && startTime[marker.name]) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: "Scripts #" + scriptsNumber,
-          type: "Scripts",
-        });
-        startTime[marker.name] = null;
-      } else if (marker.name == "Styles" && marker.data.interval == "start") {
-        startTime[marker.name] = marker.time;
-        stack[marker.name] = marker.data.stack;
-      } else if (marker.name == "Styles" && marker.data.interval == "end" && startTime[marker.name]) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: "Styles" + " #" + stylesNumber++,
-          type: "Styles",
-        });
-        if (stack[marker.name]) {
-          result.items[result.items.length - 1].causeStack = prepareSample(stack[marker.name], profile.symbols);
-          stack[marker.name] = null;
-        }
-        startTime[marker.name] = null;
-      } else if (marker.name == "Reflow" && marker.data.interval == "start") {
-        startTime[marker.name] = marker.time;
-        stack[marker.name] = marker.data.stack;
-      } else if (marker.name == "Reflow" && marker.data.interval == "end" && startTime[marker.name]) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: marker.name + " #" + reflowNumber++,
-          type: marker.name,
-        });
-        if (stack[marker.name]) {
-          result.items[result.items.length - 1].causeStack = prepareSample(stack[marker.name], profile.symbols);
-          stack[marker.name] = null;
-        }
-        startTime[marker.name] = null;
-      } else if (marker.name == "DisplayList" && marker.data.interval == "start") {
-        startTime[marker.name] = marker.time;
-        trivialFrame = false;
-      } else if (marker.name == "DisplayList" && marker.data.interval == "end" && startTime[marker.name]) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: marker.name + " #" + displayListNumber++,
-          type: marker.name,
-        });
-        lastDisplayListBlock =  result.items[result.items.length - 1];
-        var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
-        if (displayListDump && lastDisplayListBlock) {
-          lastDisplayListBlock.displayListDump = displayListDump;
-        }
-        startTime[marker.name] = null;
-      } else if (marker.name == "Rasterize" && marker.data.interval == "start") {
-        if (result.items.length >= 1) {
-          // If we hit Rasterize we stop the DisplayList phase
-          var prevItem = result.items[result.items.length - 1];
-          result.items.push({
-            startTime: prevItem.endTime,
-            endTime: marker.time,
-            text: "DisplayList #" + displayListNumber++,
-            type: "DisplayList",
-          });
-          lastDisplayListBlock =  result.items[result.items.length - 1];
-          var displayListDump = getDisplayList(mainThreadLogData, prevItem.endTime, marker.time);
-          if (displayListDump && lastDisplayListBlock) {
-            lastDisplayListBlock.displayListDump = displayListDump;
-          }
-          startTime["DisplayList"] = null;
-        }
-        startTime[marker.name] = marker.time;
-      } else if (marker.name == "Rasterize" && marker.data.interval == "end" && startTime[marker.name]) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: marker.name + " #" + rasterizeNumber++,
-          type: marker.name,
-        });
-        startTime[marker.name] = null;
-      }
-    }
-  }
-
-  if (compThread) {
-    var compositeNumber = 0;
-    paintMarkers = getPaintMarkers(compThreadMarkers);
-    var frameMarkers = getUniformityMarkers(compThreadMarkers, boundaries);
-    result.framePositions = filterLayerPositionByLayer(frameMarkers);
-    var compositorLogData = getThreadLogData(compThreadId, compThreadMarkers);
-    for (i = 0; i < paintMarkers.length; i++) {
-      marker = paintMarkers[i];
-      if (marker.name == "Composite" && marker.data.interval == "start" &&
-          !startComposite) {
-        startComposite = marker.time;
-      } else if (marker.name == "Composite" && marker.data.interval == "end") {
-        result.items.push({
-          startTime: startComposite,
-          endTime: marker.time,
-          text: "Composite #" + compositeNumber++,
-          type: "Composite",
-        });
-        if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
-          result.compositeTimes.push(marker.time);
-        }
-        var layersDump = getLayersDump(compositorLogData, startComposite, marker.time);
-        if (layersDump) {
-          result.items[result.items.length - 1].layersDump = layersDump;
-        }
-        startComposite = null;
-      }
-    }
-  }
+  addMainThreadMarkers();
+  addCompositorThreadMarkers();
 
   sendFinished(requestID, result);
 }
