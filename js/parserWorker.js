@@ -2209,7 +2209,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     var stylesNumber = 0;
     var displayListNumber = 0;
     var rasterizeNumber = 0;
-    var syncLayerTransactionNumber = 0;
     var lastDisplayListBlock = null;
 
     paintMarkers = getPaintMarkers(mainThreadMarkers);
@@ -2220,19 +2219,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         isInRefreshDriver = true;
         trivialFrame = true;
         startTime[marker.name] = marker.time;
-      }  else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "start" ) {
-        startTime[marker.name] = marker.time;
-        console.log("Sync layer transaction\n");
-        dump("Start layer transaction\n");
-      } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "end" ) {
-        result.items.push({
-          startTime: startTime[marker.name],
-          endTime: marker.time,
-          text: "SyncLayerTransaction" + syncLayerTransactionNumber++,
-          type: "SyncLayerTransaction",
-        });
-        console.log("Added a sync layer transaction");
-        dump("Added a sync layer transaction");
       } else if(isInRefreshDriver && marker.name == "RD" && marker.data.interval == "end") {
         isInRefreshDriver = false;
         if (!trivialFrame && startTime[marker.name]) {
@@ -2342,7 +2328,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     if (compThread) {
       var startComposite = null;
       var compositeNumber = 0;
-      var syncLayerTransactionNumber = 0;
+      var layerTransactionNumber = 0;
       var startSyncLayer;
 
       paintMarkers = getPaintMarkers(compThreadMarkers);
@@ -2371,14 +2357,14 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             result.items[result.items.length - 1].layersDump = layersDump;
           }
           startComposite = null;
-        } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "start" ) {
+        } else if (marker.name == "LayerTransaction" && marker.data.interval == "start" ) {
           startSyncLayer = marker.time;
-        } else if (marker.name == "SyncLayerTransaction" && marker.data.interval == "end" ) {
+        } else if (marker.name == "LayerTransaction" && marker.data.interval == "end" ) {
           result.items.push({
             startTime: startSyncLayer,
             endTime: marker.time,
-            text: "SyncLayerTransaction" + syncLayerTransactionNumber++,
-            type: "SyncLayerTransaction",
+            text: "LayerTransaction" + layerTransactionNumber++,
+            type: "LayerTransaction",
           });
           startSyncLayer = 0;
         }
