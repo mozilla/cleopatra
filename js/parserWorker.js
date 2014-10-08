@@ -2342,6 +2342,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
         marker = paintMarkers[i];
         if (marker.name == "Composite" && marker.data.interval == "start") {
           startComposite = marker.time;
+
+          if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
+            result.compositeTimes.push(marker.time);
+          }
         } else if (marker.name == "Composite" && marker.data.interval == "end") {
           result.items.push({
             startTime: startComposite,
@@ -2349,9 +2353,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             text: "Composite #" + compositeNumber++,
             type: "Composite",
           });
-          if (marker.time >= boundaries.min && marker.time <= boundaries.max) {
-            result.compositeTimes.push(marker.time);
-          }
           var layersDump = getLayersDump(compositorLogData, startComposite, marker.time);
           if (layersDump) {
             result.items[result.items.length - 1].layersDump = layersDump;
