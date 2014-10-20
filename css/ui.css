@@ -326,9 +326,6 @@ body {
   display: flex;
   width: 100%;
 }
-.waterfallContainer {
-  overflow: hidden;
-}
 .histogram {
   position: relative;
   height: 60px;
@@ -339,6 +336,10 @@ body {
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
   text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white;
+  overflow: hidden;
+}
+.waterfallContainer {
+  height: 95px;
   overflow: hidden;
 }
 .marker {

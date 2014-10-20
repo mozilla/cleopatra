@@ -2137,6 +2137,10 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     return markersOut;
   }
 
+  function getGPUMarkers(markersIn, boundaries) {
+    return getCategoryMarkers(markersIn, boundaries, "gpu_timer_query");
+  }
+
   function appendToLayer(framePositions, layer, position) {
     if (framePositions[layer] == undefined) {
       framePositions[layer] = [];
@@ -2228,6 +2232,55 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
             text: "Refresh " + frameNumber++,
             type: "RD",
           });
+          // Prepare the GPU Markers
+          var bounds = { min: startTime[marker.name], max: marker.time };
+          var gpuMarkers = getGPUMarkers(mainThreadMarkers, bounds)
+          var currGpuTime = startTime[marker.name];
+          var endTime = marker.time;
+          var totalGpuTimeThisFrame = 0;
+          for (var j = 0; j < gpuMarkers.length; j++) {
+            var gpuMarker = gpuMarkers[j];
+            var len = gpuMarker.data.gpuend / 1000000; // ns to ms
+            totalGpuTimeThisFrame += len;
+          }
+          for (var j = 0; j < gpuMarkers.length; j++) {
+            var gpuMarker = gpuMarkers[j];
+            var len = gpuMarker.data.gpuend / 1000000; // ns to ms
+            result.items.push({
+              startTime: currGpuTime,
+              endTime: currGpuTime + len,
+              text: "GPU Content (Ttl. " + totalGpuTimeThisFrame.toFixed(2) + " ms)\nCPU: " + (gpuMarker.data.cpuend - gpuMarker.data.cpustart).toFixed(2) + " ms\nGPU: ",
+              type: "ContentGPU",
+            });
+            currGpuTime += len;
+            if (currGpuTime > endTime) {
+              break; // gpu bound
+            }
+          }
+          /*
+          var gpuMarkers = getGPUMarkers(compThreadMarkers, bounds)
+          var currGpuTime = startTime[marker.name];
+          var totalGpuTimeThisFrame = 0;
+          var endTime = marker.time;
+          for (var j = 0; j < gpuMarkers.length; j++) {
+            var gpuMarker = gpuMarkers[j];
+            var len = gpuMarker.data.gpuend / 1000000; // ns to ms
+            totalGpuTimeThisFrame += len;
+          }
+          for (var j = 0; j < gpuMarkers.length; j++) {
+            var gpuMarker = gpuMarkers[j];
+            var len = gpuMarker.data.gpuend / 1000000; // ns to ms
+            result.items.push({
+              startTime: currGpuTime,
+              endTime: currGpuTime + len,
+              text: "GPU (Ttl. " + totalGpuTimeThisFrame.toFixed(2) + " ms)\nCPU: " + (gpuMarker.data.cpuend - gpuMarker.data.cpustart) + " ms\nGPU: ",
+              type: "CompositorGPU",
+            });
+            currGpuTime += len;
+            if (currGpuTime > endTime) {
+              break; // gpu bound
+            }
+          }*/
         }
         if (lastDisplayListBlock && !lastDisplayListBlock.displayListDump) {
           var displayListDump = getDisplayList(mainThreadLogData, startTime[marker.name], marker.time);
@@ -2324,6 +2377,9 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
     }
   }
 
+  function addGPUMarkers() {
+  }
+
   function addCompositorThreadMarkers() {
     if (compThread) {
       var startComposite = null;
@@ -2357,6 +2413,31 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
           if (layersDump) {
             result.items[result.items.length - 1].layersDump = layersDump;
           }
+          // Prepare the GPU Markers
+          var bounds = { min: startComposite, max: marker.time };
+          var gpuMarkers = getGPUMarkers(compThreadMarkers, bounds)
+          var currGpuTime = startComposite;
+          var endTime = marker.time;
+          var totalGpuTimeThisFrame = 0;
+          for (var j = 0; j < gpuMarkers.length; j++) {
+            var gpuMarker = gpuMarkers[j];
+            var len = gpuMarker.data.gpuend / 1000000; // ns to ms
+            totalGpuTimeThisFrame += len;
+          }
+          for (var j = 0; j < gpuMarkers.length; j++) {
+            var gpuMarker = gpuMarkers[j];
+            var len = gpuMarker.data.gpuend / 1000000; // ns to ms
+            result.items.push({
+              startTime: currGpuTime,
+              endTime: currGpuTime + len,
+              text: "GPU Compositor (Ttl. " + totalGpuTimeThisFrame.toFixed(2) + " ms)\nCPU: " + (gpuMarker.data.cpuend - gpuMarker.data.cpustart).toFixed(2) + " ms\nGPU: ",
+              type: "CompositorGPU",
+            });
+            currGpuTime += len;
+            if (currGpuTime > Math.max(startComposite + 15, endTime)) {
+              break; // gpu bound
+            }
+          }
           startComposite = null;
         } else if (marker.name == "LayerTransaction" && marker.data.interval == "start" ) {
           startSyncLayer = marker.time;
@@ -2381,6 +2462,7 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
 
   addMainThreadMarkers();
   addCompositorThreadMarkers();
+  addGPUMarkers();
 
   sendFinished(requestID, result);
 }
