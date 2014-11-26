@@ -657,5 +657,6 @@ iframe {
   background: gold !important;
   box-shadow: 10px 10px 5px #888888;
   border-color: blue !important;
+  z-index: 10;
 }
 /* end tabs */

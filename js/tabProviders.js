@@ -355,7 +355,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           width: rect2d[2] + "px",
           height: rect2d[3] + "px",
           border: "solid 10px black",
-          background: "white",
+          background: 'url("images/noise.png"), linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2))',
         },
       });
       layerViewport.appendChild(layerPreview);
