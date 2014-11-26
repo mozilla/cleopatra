@@ -166,7 +166,7 @@ function parseLayers(layersDumpLines) {
   var objectAtIndentation = {};
   for (var i = 0; i < layersDumpLines.length; i++) {
     // Something like 'ThebesLayerComposite (0x12104cc00) [shadow-visible=< (x=0, y=0, w=1920, h=158); >] [visible=< (x=0, y=0, w=1920, h=158); >] [opaqueContent] [valid=< (x=0, y=0, w=1920, h=2218); >]'
-    var line = layersDumpLines[i].name;
+    var line = layersDumpLines[i].name || layersDumpLines[i];
 
     var layerObject = {
       line: line,
@@ -420,7 +420,7 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
     style: {
       width: "100%",
     },
-    textContent: compositeTitle + " (near " + compositeTime.toFixed(0) + " ms)",
+    textContent: compositeTitle + (compositeTitle ? " (near " + compositeTime.toFixed(0) + " ms)" : ""),
   });
   container.appendChild(titleDiv);
 

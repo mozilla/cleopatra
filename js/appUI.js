@@ -41,6 +41,14 @@
       window.addEventListener('focus-on-callstack', this.focusOnCallstack.bind(this));
     },
 
+    getDataType: function AppUI_getDataType(str) {
+      if (str.indexOf("LayerManager (") == 0) {
+        return "LayerTree"
+      }
+
+      return null;
+    },
+
     handleEvent: function AppUI_handleEvent(evt) {
       switch (evt.target.id) {
         case 'datafile':
@@ -48,7 +56,16 @@
           break;
 
         case 'parse':
-          this.loadProfile(document.getElementById('data').value);
+          if (this.getDataType(document.getElementById('data').value) == "LayerTree") {
+            this.enterFinishedProfileUI();
+
+            var layersDumpLines = document.getElementById('data').value.split("\n");
+            var compositeTitle = null;
+            var compositeTime = null;
+            tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime)
+          } else {
+            this.loadProfile(document.getElementById('data').value);
+          }
           break;
 
         case 'url':
@@ -311,20 +328,22 @@
       }
 
       var start = Date.now();
-      updateRequest.addEventListener("finished", function (filteredSamples) {
-        console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
-        gCurrentlyShownSampleData = filteredSamples;
-        gInfoBar.display();
+      if (updateRequest) {
+        updateRequest.addEventListener("finished", function (filteredSamples) {
+          console.log("profile filtering (in worker): " + (Date.now() - start) + "ms.");
+          gCurrentlyShownSampleData = filteredSamples;
+          gInfoBar.display();
 
-        if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
-          start = Date.now();
-          gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName, gSampleFilters[gSampleFilters.length-1].param,
-                              gCurrentlyShownSampleData, gHighlightedCallstack);
-          console.log("plugin displaying: " + (Date.now() - start) + "ms.");
-        } else {
-          gPluginView.hide();
-        }
-      });
+          if (gSampleFilters.length > 0 && gSampleFilters[gSampleFilters.length-1].type === "PluginView") {
+            start = Date.now();
+            gPluginView.display(gSampleFilters[gSampleFilters.length-1].pluginName, gSampleFilters[gSampleFilters.length-1].param,
+                                gCurrentlyShownSampleData, gHighlightedCallstack);
+            console.log("plugin displaying: " + (Date.now() - start) + "ms.");
+          } else {
+            gPluginView.hide();
+          }
+        });
+      }
 
       var self = this;
       function onBoundariesFinished(data) {

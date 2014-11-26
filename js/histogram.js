@@ -73,7 +73,7 @@ var HistogramContainer;
 
       var container = createElement("div", {
         className: "threadHistogramDescription",
-        innerHTML: "Frames"
+        innerHTML: "Frames<br><br><br>GPU:"
       });
       this.waterfallRow.appendChild(container);
 
@@ -154,7 +154,9 @@ var HistogramContainer;
         }
       }
 
-      this.threads[0].threadHistogramView.container.classList.add("histogramSelected");
+      if (this.threads[0]) {
+        this.threads[0].threadHistogramView.container.classList.add("histogramSelected");
+      }
     },
 
     onMarkerClick: function(cb) {
