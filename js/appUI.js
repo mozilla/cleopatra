@@ -42,7 +42,7 @@
     },
 
     getDataType: function AppUI_getDataType(str) {
-      if (str.indexOf("LayerManager (") == 0) {
+      if (str.indexOf("LayerManager (") == 0 || str.indexOf("ClientLayerManager (") == 0) {
         return "LayerTree"
       }
 
