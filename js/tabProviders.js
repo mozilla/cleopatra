@@ -214,6 +214,9 @@ function parseLayers(layersDumpLines) {
     if (!matches)
       continue; // Something like a texturehost dump. Safe to ignore
 
+    if (matches[2].indexOf("TiledContentHost") != -1)
+      continue; // We're already pretty good at visualizing these
+
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
     if (indentation > 0) {

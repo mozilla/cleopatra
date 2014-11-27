@@ -645,7 +645,7 @@ iframe {
   background-color: #E8E8E8;
 }
 
-.layerHover .layerPreview::after {
+.layerHover > .layerPreview::after {
   position: absolute;
   top: 0; right: 0; bottom: 0; left: 0;
   background-color: inherit;
@@ -656,12 +656,12 @@ iframe {
 
 @keyframes layerHoverAnimation {
   0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
 
-.layerHover .layerPreview {
-  animation: layerHoverAnimation 100ms;
+.layerHover > .layerPreview {
+  animation: layerHoverAnimation 200ms;
   animation-transform-origin: 50% 50%;
   background: gold !important;
   box-shadow: 10px 10px 5px #888888;
