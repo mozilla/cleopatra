@@ -121,6 +121,23 @@ function parseLayers(layersDumpLines) {
 
     return matrix;
   }
+  function parseColor(str) {
+    str = trim(str);
+
+    // Something like 'rgba(0, 0, 0, 0)'
+    var colorMatches = str.match("rgba\\((.*), (.*), (.*), (.*)\\)");
+    if (!colorMatches) {
+      return null;
+    }
+
+    var color = {
+      r: colorMatches[1],
+      g: colorMatches[2],
+      b: colorMatches[3],
+      a: colorMatches[4],
+    };
+    return color;
+  }
   function parseRect2D(str) {
     str = trim(str);
 
@@ -167,6 +184,23 @@ function parseLayers(layersDumpLines) {
   for (var i = 0; i < layersDumpLines.length; i++) {
     // Something like 'ThebesLayerComposite (0x12104cc00) [shadow-visible=< (x=0, y=0, w=1920, h=158); >] [visible=< (x=0, y=0, w=1920, h=158); >] [opaqueContent] [valid=< (x=0, y=0, w=1920, h=2218); >]'
     var line = layersDumpLines[i].name || layersDumpLines[i];
+
+    var tileMatches = line.match("(\\s*)Tile \\(x=(.*), y=(.*)\\): (.*)");
+    if (tileMatches) {
+      var indentation = Math.floor(matches[1].length / 2);
+      var x = tileMatches[2];
+      var y = tileMatches[3];
+      var dataUri = tileMatches[4];
+      var parent = objectAtIndentation[indentation - 1];
+      var tiles = parent.tiles || {};
+
+      tiles[x] = tiles[x] || {};
+      tiles[x][y] = dataUri;
+
+      parent.tiles = tiles;
+
+      continue;
+    }
 
     var layerObject = {
       line: line,
@@ -244,6 +278,12 @@ function parseLayers(layersDumpLines) {
         layerObject[fieldName].type = "matrix2x3";
         continue;
       }
+      var color = parseColor(rest);
+      if (color) {
+        layerObject[fieldName] = color;
+        layerObject[fieldName].type = "color";
+        continue;
+      }
     }
 
     // Compute screenTransformX/screenTransformY
@@ -254,10 +294,8 @@ function parseLayers(layersDumpLines) {
       while (currIndentation >= 0) {
         var transform = objectAtIndentation[currIndentation]['shadow-transform'] || objectAtIndentation[currIndentation]['transform'];
         if (transform) {
-          dump("PRE: " + layerObject['screen-transform'][1] + "\n");
           layerObject['screen-transform'][0] += transform[2][0];
           layerObject['screen-transform'][1] += transform[2][1];
-          dump("POST: " + layerObject['screen-transform'][1] + "\n");
         }
         currIndentation--;
       }
@@ -314,6 +352,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
       },
     });
     elem.layerViewport = layerViewport;
+    var layerViewportTranslateX = 0;
+    var layerViewportTranslateY = 0;
     if (root["shadow-clip"] || root["clip"]) {
       var clip = root["shadow-clip"] || root["clip"]
       var clipElem = createElement("div", {
@@ -327,14 +367,19 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           overflow: "hidden",
         },
       });
+      layerViewportTranslateX += -clip[0];
+      layerViewportTranslateY += -clip[1];
+      layerViewport.style.transform = "translate(-" + clip[0] + "px, -" + clip[1] + "px" + ")";
     }
     if (root["shadow-transform"] || root["transform"]) {
       var matrix = root["shadow-transform"] || root["transform"];
-      layerViewport.style.transform = "translate(" + matrix[2][0] + "px," + matrix[2][1] + "px)";
+      layerViewportTranslateX += matrix[2][0];
+      layerViewportTranslateY += matrix[2][1];
     }
+    layerViewport.style.transform = "translate(" + layerViewportTranslateX + "px," + layerViewportTranslateY + "px)";
     if (!hasSeenRoot) {
       hasSeenRoot = true;
-      layerViewport.style.transform = "scale(0.25, 0.25)";
+      //layerViewport.style.transform = "scale(0.25, 0.25)";
     }
     if (clipElem) {
       previewParent.appendChild(clipElem);
@@ -354,12 +399,44 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           top: rect2d[1] + "px",
           width: rect2d[2] + "px",
           height: rect2d[3] + "px",
-          border: "solid 10px black",
+          overflow: "hidden",
+          border: "solid 1px black",
           background: 'url("images/noise.png"), linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2))',
         },
       });
       layerViewport.appendChild(layerPreview);
+
+      function isInside(rect1, rect2) {
+        if (rect1[0] + rect1[2] < rect2[0] && rect2[0] + rect2[2] < rect1[0] &&
+            rect1[1] + rect1[3] < rect2[1] && rect2[1] + rect2[3] < rect1[1]) {
+          return true;
+        }
+        return true;
+      }
+
+      // Add tile img objects for this part
+      if (root.tiles) {
+        for (var x in root.tiles) {
+          for (var y in root.tiles[x]) {
+            if (isInside(rect2d, [x, y, 512, 512])) {
+              var tileImgElem = createElement("img", {
+                src: root.tiles[x][y],
+                style: {
+                  position: "absolute",
+                  left: (x - rect2d[0]) + "px",
+                  top: (y - rect2d[1]) + "px",
+                },
+              });
+              layerPreview.appendChild(tileImgElem);
+            }
+          }
+        }
+      } else if (root.color) {
+        console.log(root.color);
+        layerPreview.style.background = "rgba(" + root.color.r + ", " + root.color.g + ", " + root.color.b + ", " + root.color.a + ")";
+      }
     }
+
     var layerDisplayItems = getDisplayItemForLayer(displayList);
     for (var i = 0; i < layerDisplayItems.length; i++) {
       var displayItem = layerDisplayItems[i];
