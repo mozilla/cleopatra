@@ -454,8 +454,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           src: root.surfaceURI,
           style: {
             position: "absolute",
-            left: (x - rect2d[0]) + "px",
-            top: (y - rect2d[1]) + "px",
+            left: (-rect2d[0]) + "px",
+            top: (-rect2d[1]) + "px",
           },
         });
         layerPreview.appendChild(surfaceImgElem);
