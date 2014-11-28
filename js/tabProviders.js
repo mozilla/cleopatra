@@ -202,6 +202,17 @@ function parseLayers(layersDumpLines) {
       continue;
     }
 
+    var surfaceMatches = line.match("(\\s*)Surface: (.*)");
+    if (surfaceMatches) {
+      var indentation = Math.floor(matches[1].length / 2);
+      var parent = objectAtIndentation[indentation - 2];
+      var surfaceURI = surfaceMatches[2];
+      parent.surfaceURI = surfaceURI;
+      console.log("Add surface: " + parent.line);
+
+      continue;
+    }
+
     var layerObject = {
       line: line,
       children: [],
@@ -214,7 +225,11 @@ function parseLayers(layersDumpLines) {
     if (!matches)
       continue; // Something like a texturehost dump. Safe to ignore
 
-    if (matches[2].indexOf("TiledContentHost") != -1)
+    if (matches[2].indexOf("TiledContentHost") != -1 ||
+        matches[2].indexOf("GrallocTextureHostOGL") != -1 ||
+        matches[2].indexOf("ContentHost") != -1 ||
+        matches[2].indexOf("MemoryTextureHost") != -1 ||
+        matches[2].indexOf("ImageHost") != -1)
       continue; // We're already pretty good at visualizing these
 
     var indentation = Math.floor(matches[1].length / 2);
@@ -434,8 +449,17 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
             }
           }
         }
+      } else if (root.surfaceURI) {
+        var surfaceImgElem = createElement("img", {
+          src: root.surfaceURI,
+          style: {
+            position: "absolute",
+            left: (x - rect2d[0]) + "px",
+            top: (y - rect2d[1]) + "px",
+          },
+        });
+        layerPreview.appendChild(surfaceImgElem);
       } else if (root.color) {
-        console.log(root.color);
         layerPreview.style.background = "rgba(" + root.color.r + ", " + root.color.g + ", " + root.color.b + ", " + root.color.a + ")";
       }
     }
