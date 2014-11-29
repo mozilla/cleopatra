@@ -486,12 +486,18 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
         }
       } else if (root.surfaceURI) {
         hasImg = true;
+        var offsetX = 0;
+        var offsetY = 0;
+        if (root.bounds) {
+          offsetX = root.bounds[0];
+          offsetY = root.bounds[1];
+        }
         var surfaceImgElem = createElement("img", {
           src: root.surfaceURI,
           style: {
             position: "absolute",
-            left: (root.bounds[0] - rect2d[0]) + "px",
-            top: (root.bounds[1] - rect2d[1]) + "px",
+            left: (offsetX - rect2d[0]) + "px",
+            top: (offsetY - rect2d[1]) + "px",
           },
         });
         layerPreview.appendChild(surfaceImgElem);
