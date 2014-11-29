@@ -103,6 +103,39 @@ function trim(s){
   return ( s || '' ).replace( /^\s+|\s+$/g, '' ); 
 }
 
+function getDataURI(str) {
+  if (str.indexOf("data:image/png;base64,") == 0) {
+    return str;
+  }
+
+  var canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+
+  var binary_string =  window.atob(str.substring(26));
+  var len = binary_string.length;
+  var bytes = new Uint8Array( len );
+  for (var i = 0; i < len; i++) {
+    var ascii = binary_string.charCodeAt(i);
+    bytes[i] = ascii;
+  }
+
+  var ctxt = canvas.getContext("2d");
+  var out = ctxt.createImageData(256, 256);
+  buffer = LZ4_uncompressChunk(bytes, out.data);
+
+  for (var x = 0; x < 256; x++) {
+    for (var y = 0; y < 256; y++) {
+      var blue = out.data[4 * x + 4 * y * 256 + 0];
+      out.data[4 * x + 4 * y * 256 + 0] = out.data[4 * x + 4 * y * 256 + 2];
+      out.data[4 * x + 4 * y * 256 + 2] = blue;
+    }
+  }
+
+  ctxt.putImageData(out, 0, 0);
+  return canvas.toDataURL();
+}
+
 function parseLayers(layersDumpLines) {
   function parseMatrix2x3(str) {
     str = trim(str);
@@ -432,13 +465,15 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
         return true;
       }
 
+      var hasImg = false;
       // Add tile img objects for this part
       if (root.tiles) {
+        hasImg = true;
         for (var x in root.tiles) {
           for (var y in root.tiles[x]) {
             if (isInside(rect2d, [x, y, 512, 512])) {
               var tileImgElem = createElement("img", {
-                src: root.tiles[x][y],
+                src: getDataURI(root.tiles[x][y]),
                 style: {
                   position: "absolute",
                   left: (x - rect2d[0]) + "px",
@@ -450,6 +485,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           }
         }
       } else if (root.surfaceURI) {
+        hasImg = true;
         var surfaceImgElem = createElement("img", {
           src: root.surfaceURI,
           style: {
@@ -460,14 +496,25 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
         });
         layerPreview.appendChild(surfaceImgElem);
       } else if (root.color) {
+        hasImg = true;
         layerPreview.style.background = "rgba(" + root.color.r + ", " + root.color.g + ", " + root.color.b + ", " + root.color.a + ")";
+      }
+      
+      if (hasImg || true) {
+        layerPreview.mouseoverElem = elem;
+        layerPreview.onmouseenter = function() {
+          this.mouseoverElem.onmouseover();
+        }
+        layerPreview.onmouseout = function() {
+          this.mouseoverElem.onmouseout();
+        }
       }
     }
 
     var layerDisplayItems = getDisplayItemForLayer(displayList);
     for (var i = 0; i < layerDisplayItems.length; i++) {
       var displayItem = layerDisplayItems[i];
-      var elem = createElement("div", {
+      var displayElem = createElement("div", {
         className: "layerObjectDescription",
         textContent: "            " + trim(displayItem.line),
         style: {
@@ -485,7 +532,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           }
         },
       });
-      pane.appendChild(elem);
+      pane.appendChild(displayElem);
       var rect2d = displayItem.bounds;
       if (false && rect2d) { // This doesn't place them corectly
         var layerPreview = createElement("div", {
