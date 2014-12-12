@@ -108,27 +108,36 @@ function getDataURI(str) {
     return str;
   }
 
-  var canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
+  var matches = str.match("data:image/lz4bgra;base64,([0-9]+),([0-9]+),([0-9]+),(.*)");
+  if (!matches)
+    return null;
 
-  var binary_string =  window.atob(str.substring(26));
+  var canvas = document.createElement("canvas");
+  var w = parseInt(matches[1]);
+  var stride = parseInt(matches[2]);
+  var h = parseInt(matches[3]);
+  canvas.width = w;
+  canvas.height = h;
+
+  // TODO handle stride
+
+  var binary_string = window.atob(matches[4]);
   var len = binary_string.length;
-  var bytes = new Uint8Array( len );
+  var bytes = new Uint8Array(len);
   for (var i = 0; i < len; i++) {
     var ascii = binary_string.charCodeAt(i);
     bytes[i] = ascii;
   }
 
   var ctxt = canvas.getContext("2d");
-  var out = ctxt.createImageData(256, 256);
+  var out = ctxt.createImageData(w, h);
   buffer = LZ4_uncompressChunk(bytes, out.data);
 
-  for (var x = 0; x < 256; x++) {
-    for (var y = 0; y < 256; y++) {
-      var blue = out.data[4 * x + 4 * y * 256 + 0];
-      out.data[4 * x + 4 * y * 256 + 0] = out.data[4 * x + 4 * y * 256 + 2];
-      out.data[4 * x + 4 * y * 256 + 2] = blue;
+  for (var x = 0; x < w; x++) {
+    for (var y = 0; y < h; y++) {
+      var blue = out.data[4 * x + 4 * y * w + 0];
+      out.data[4 * x + 4 * y * w + 0] = out.data[4 * x + 4 * y * w + 2];
+      out.data[4 * x + 4 * y * w + 2] = blue;
     }
   }
 

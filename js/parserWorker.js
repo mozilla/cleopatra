@@ -1490,7 +1490,7 @@ function calculateHistogramData(requestID, profileID, showMissedSample, options,
   function symbolicateMarkers(markers) {
     var symMarkers = [];
     for (var i = 0; i < markers.length; i++) {
-      var marker = JSON.parse(JSON.stringify(markers[i]));
+      var marker = clone(markers[i]);
       if (marker.data && marker.data.stack) {
         marker.data.stack = prepareSample(marker.data.stack, profile.symbols);
       }
@@ -1985,7 +1985,8 @@ function getLayersDump(logMarkers, timeStart, timeEnd) {
         if (logMarker.name === "") {
           return layersDumpLines;
         }
-        var copy = JSON.parse(JSON.stringify(logMarker));
+
+        var copy = clone(logMarker);
         layersDumpLines.push(copy);
         i++;
       }
@@ -2008,7 +2009,7 @@ function getDisplayList(logMarkers, timeStart, timeEnd) {
         if (logMarker.name === "") {
           return displayListLines;
         }
-        var copy = JSON.parse(JSON.stringify(logMarker));
+        var copy = clone(logMarker);
         displayListLines.push(copy);
         i++;
       }
@@ -2017,6 +2018,15 @@ function getDisplayList(logMarkers, timeStart, timeEnd) {
 
   }
   return null;
+}
+
+function clone(obj) {
+    if (null == obj || "object" != typeof obj) return obj;
+    var copy = obj.constructor();
+    for (var attr in obj) {
+        if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
+    }
+    return copy;
 }
 
 function getThreadLogData(threadId, markers, boundaries) {
@@ -2029,7 +2039,7 @@ function getThreadLogData(threadId, markers, boundaries) {
 
     if (marker.data && marker.data.category == "log" &&
         marker.time >= boundaries.min && marker.time <= boundaries.max) {
-      var markerCopy = JSON.parse(JSON.stringify(marker));
+      var markerCopy = clone(marker);
       markerCopy.thread = threadId;
       logMarkers.push(markerCopy);
     }
@@ -2049,7 +2059,7 @@ function getThreadLogData(threadId, markers, boundaries) {
       var lines = logMarker.name.split("\n");
       for (var j = 0; j < lines.length - 1; j++) {
         var line = lines[j];
-        var lineMarker = JSON.parse(JSON.stringify(logMarker));
+        var lineMarker = clone(logMarker);
         lineMarker.name = line;
         entries.push(lineMarker);
       }
