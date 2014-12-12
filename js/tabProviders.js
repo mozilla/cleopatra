@@ -40,7 +40,7 @@ function parseDisplayList(lines) {
       root = layerObject;
     }
 
-    var matches = line.match("(\\s*)(\\w+)\\s(\\w+)(.*?)?( layer=(\\w+))?$");
+    var matches = line.match("(\\s*)(\\w+)\\sp=(\\w+)(.*?)?( layer=(\\w+))?$");
     if (!matches) {
       dump("Failed to match: " + line + "\n");
       continue;
@@ -52,10 +52,10 @@ function parseDisplayList(lines) {
     parent.children.push(layerObject);
 
     layerObject.name = matches[2];
-    layerObject.address = "0x" + matches[3]; // Use 0x prefix to be consistent with layer dump
+    layerObject.address = matches[3]; // Use 0x prefix to be consistent with layer dump
     var rest = matches[4];
     if (matches[6]) { // WrapList don't provide a layer
-      layerObject.layer = "0x" + matches[6];
+      layerObject.layer = matches[6];
     }
 
     // the content node name doesn't have a prefix, this makes the parsing easier
@@ -642,7 +642,7 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
       } else if (line.name == "Painting --- after optimization:") {
         section = "after";
         continue;
-      } else if (line.name == "Painting --- retained layer tree:") {
+      } else if (line.name == "Painting --- layer tree:") {
         section = "tree";
         continue;
       }
