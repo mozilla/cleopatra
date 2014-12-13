@@ -43,7 +43,10 @@
 
     getDataType: function AppUI_getDataType(str) {
       if (str.indexOf("LayerManager (") == 0 || str.indexOf("ClientLayerManager (") == 0) {
-        return "LayerTree"
+        return "LayerTree";
+      }
+      if (str.indexOf("Painting --- before optimization") == 0) {
+        return "DisplayList";
       }
 
       return null;
@@ -63,6 +66,11 @@
             var compositeTitle = null;
             var compositeTime = null;
             tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime)
+          } else if (this.getDataType(document.getElementById('data').value) == "DisplayList") {
+            this.enterFinishedProfileUI();
+
+            var lines = document.getElementById('data').value.split("\n");
+            tab_showDisplayListDump(lines);
           } else {
             this.loadProfile(document.getElementById('data').value);
           }

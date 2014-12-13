@@ -30,7 +30,7 @@ function parseDisplayList(lines) {
   };
 
   for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].name;
+    var line = lines[i];
 
     var layerObject = {
       line: line,
@@ -631,18 +631,19 @@ function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
 }
 
 function tab_showDisplayListDump(displayListDumpLines, title, time) {
+  time = time || 0;
   function parseDisplayListDump() {
     var section = null;
     displayListParts = {};
     for (var i = 0; i < displayListDumpLines.length; i++) {
-      var line = displayListDumpLines[i];
-      if (line.name.indexOf("Painting --- before optimization (") == 0) {
+      var line = displayListDumpLines[i].name || displayListDumpLines[i];
+      if (line.indexOf("Painting --- before optimization (") == 0) {
         section = "before";
         continue;
-      } else if (line.name == "Painting --- after optimization:") {
+      } else if (line == "Painting --- after optimization:") {
         section = "after";
         continue;
-      } else if (line.name == "Painting --- layer tree:") {
+      } else if (line == "Painting --- layer tree:") {
         section = "tree";
         continue;
       }
