@@ -660,6 +660,10 @@ iframe {
   100% { transform: scale(1); }
 }
 
+.displayHover {
+  background: green;
+}
+
 .layerHover > .layerPreview {
   animation: layerHoverAnimation 200ms;
   animation-transform-origin: 50% 50%;

@@ -537,20 +537,20 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
         },
         layerViewport: layerViewport,
         onmouseover: function() {
-          if (this.layerViewport) {
-            this.layerViewport.classList.add("layerHover");
+          if (this.layerPreview) {
+            this.layerPreview.classList.add("displayHover");
           }
         },
         onmouseout: function() {
-          if (this.layerViewport) {
-            this.layerViewport.classList.remove("layerHover");
+          if (this.layerPreview) {
+            this.layerPreview.classList.remove("displayHover");
           }
         },
       });
       pane.appendChild(displayElem);
       var rect2d = displayItem.bounds;
-      if (false && rect2d) { // This doesn't place them corectly
-        var layerPreview = createElement("div", {
+      if (rect2d) { // This doesn't place them corectly
+        layerPreview = createElement("div", {
           id: "displayitem_" + displayItem.content + "_" + displayItem.address,
           className: "layerPreview",
           style: {
@@ -559,11 +559,11 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
             top: rect2d[1] + "px",
             width: rect2d[2] + "px",
             height: rect2d[3] + "px",
-            border: "solid 10px black",
-            background: "white",
+            border: "solid 1px gray",
           },
         });
         layerViewport.appendChild(layerPreview);
+        displayElem.layerPreview = layerPreview;
       }
     }
   }
