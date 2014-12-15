@@ -2150,6 +2150,7 @@ function calculateWaterfallData(requestID, profileID, boundaries, selectedThread
       (thread.name &&
         selectedThreadId == null &&
        (/^Gecko(?![\w\d])|^Gecko$/.test(thread.name) ||
+        /^Content(.*)|^Content$/.test(thread.name) ||
         /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) ||
        selectedThreadId && selectedThreadId == threadId) {
       mainThread = thread.samples;
