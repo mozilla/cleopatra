@@ -132,7 +132,7 @@ self.onmessage = function (msg) {
         calculateHistogramData(requestID, taskData.profileID, taskData.showMissedSample, taskData.options, taskData.threadId);
         break;
       case "calculateWaterfallData":
-        calculateWaterfallData(requestID, taskData.profileID, taskData.boundaries);
+        calculateWaterfallData(requestID, taskData.profileID, taskData.boundaries, taskData.selectedThreadId);
         break;
       case "getLogData":
         getLogData(requestID, taskData.profileID, taskData.boundaries);
@@ -2100,9 +2100,19 @@ function getLogData(requestID, profileID, boundaries) {
 
 // Within each marker type the returned markers should be sorted in ascending order
 // by time and be non-overlapping
-function calculateWaterfallData(requestID, profileID, boundaries) {
+function calculateWaterfallData(requestID, profileID, boundaries, selectedThreadId) {
   var profile = gProfiles[profileID];
   var symbols = profile.functions;
+
+  var result = {
+    boundaries: boundaries,
+    items: [],
+    compositeTimes: [],
+    framePositions: {},
+    vsyncTimes: [],
+    threadsToView: [],
+    selectedThreadId: selectedThreadId,
+  };
 
   var mainThread = null;
   var mainThreadMarkers = null;
@@ -2110,14 +2120,38 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
   var compThread = null;
   var compThreadMarkers = null;
   var compThreadId;
+  
+  // List possible threads
+  for (var threadId in profile.threads) {
+    var thread = profile.threads[threadId];
+    if (thread.name &&
+       (/^Gecko(?![\w\d])|^Gecko$/.test(thread.name) ||
+        /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) {
+      result.threadsToView.push({
+        name: thread.name,
+        threadId: threadId,
+      });
+    } else if (thread.name &&
+               /^Content$/.test(thread.name)) {
+      result.threadsToView.push({
+        name: thread.name,
+        threadId: threadId,
+      });
+    }
+  }
+
+  // Find the threads used the generate the view
   for (var threadId in profile.threads) {
     var thread = profile.threads[threadId];
     // In these regexes we look for any thread named X by checking if
     // X is either followed by something other than a character or digit
     // or is the whole name
-    if (thread.name &&
+    if (
+      (thread.name &&
+        selectedThreadId == null &&
        (/^Gecko(?![\w\d])|^Gecko$/.test(thread.name) ||
-        /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) {
+        /^GeckoMain(?![\w\d])|^GeckoMain$/.test(thread.name))) ||
+       selectedThreadId && selectedThreadId == threadId) {
       mainThread = thread.samples;
       mainThreadMarkers = thread.markers;
       mainThreadId = threadId;
@@ -2191,14 +2225,6 @@ function calculateWaterfallData(requestID, profileID, boundaries) {
 
     return markersOut;
   }
-
-  var result = {
-    boundaries: boundaries,
-    items: [],
-    compositeTimes: [],
-    framePositions: {},
-    vsyncTimes: [],
-  };
 
   function addVsyncMarkers() {
     for (i = 0; i < result.vsyncTimes.length; i++) {

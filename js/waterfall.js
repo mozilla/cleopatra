@@ -295,6 +295,17 @@ Waterfall.prototype = {
   scheduleRender: function () {
   },
 
+  getWaterfallThreadId: function() {
+    if (this.threadSelect.value == "") {
+      return null;
+    }
+    return this.threadSelect.value;
+  },
+
+  setThreadSelect: function(threadSelect) {
+    this.threadSelect = threadSelect;
+  },
+
   dataIsOutdated: function() {
     this.busyCover.classList.add("busy");
   },
@@ -356,6 +367,24 @@ Waterfall.prototype = {
     var filtered = {};
     for (i = 0; i < typeOrder.length; i++) {
       filtered[typeOrder[i]] = [];
+    }
+
+    this.threadSelect.innerHTML = "";
+    if (data.threadsToView.length > 1) {
+      this.threadSelect.style.display = "";
+      for (i = 0; i < data.threadsToView.length; i++) {
+        var option = createElement("option", {
+          text: data.threadsToView[i].name,
+          value: data.threadsToView[i].threadId,
+        });
+        this.threadSelect.appendChild(option);
+      }
+      this.threadSelect.value = data.selectedThreadId;
+      this.threadSelect.onchange = function() {
+        window.AppUI.filtersChanged();
+      }
+    } else {
+      this.threadSelect.style.display = "none";
     }
 
     // separate the data.items input into categories by type of marker and filter out any outside the view

@@ -276,11 +276,12 @@ var Parser = {
     return request;
   },
 
-  calculateWaterfallData: function Parser_caculateWaterfallData(boundaries) {
+  calculateWaterfallData: function Parser_caculateWaterfallData(boundaries, selectedThreadId) {
     var request = new WorkerRequest(gParserWorker);
     request.send("calculateWaterfallData", {
       profileID: 0,
       boundaries: boundaries,
+      selectedThreadId: selectedThreadId,
     });
     return request;
   },

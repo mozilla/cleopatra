@@ -60,6 +60,10 @@ var HistogramContainer;
       this.threads[0].threadHistogramView.selectRange(start, end);
     },
 
+    getWaterfallThreadId: function() {
+      return this.waterfall.getWaterfallThreadId();
+    },
+
     updateThreads: function (threads) {
 
       this.container.innerHTML = "";
@@ -73,8 +77,29 @@ var HistogramContainer;
 
       var container = createElement("div", {
         className: "threadHistogramDescription",
-        innerHTML: "Frames<br><br><br>GPU:"
       });
+      var text1 = createElement("text", {
+        textContent: "Frames",
+      });
+      var br1 = createElement("br", {
+      });
+      var threadSelect = createElement("select", {
+        style: {display: "none"}
+      });
+
+      var br2 = createElement("br", {
+      });
+      var br3 = createElement("br", {
+      });
+      var text2 = createElement("text", {
+        textContent: "GPU:",
+      });
+      container.appendChild(text1);
+      container.appendChild(br1);
+      container.appendChild(threadSelect);
+      container.appendChild(br2);
+      container.appendChild(br3);
+      container.appendChild(text2);
       this.waterfallRow.appendChild(container);
 
       var cell = createElement("div", {
@@ -82,6 +107,7 @@ var HistogramContainer;
         className: "threadHistogramContent"
       });
       this.waterfall = new Waterfall();
+      this.waterfall.setThreadSelect(threadSelect);
       this.waterfallRow.appendChild(cell);
 
       cell.appendChild(this.waterfall.getContainer());

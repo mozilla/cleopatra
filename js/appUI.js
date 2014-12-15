@@ -383,7 +383,7 @@
           gVideoPane.setBoundaries(boundaries);
         }
 
-        var waterfallRequest = Parser.calculateWaterfallData(boundaries);
+        var waterfallRequest = Parser.calculateWaterfallData(boundaries, gHistogramContainer.getWaterfallThreadId());
         waterfallRequest.addEventListener("finished", function (data) {
           if (!data) {
             return;
