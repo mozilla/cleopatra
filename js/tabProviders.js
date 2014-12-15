@@ -502,7 +502,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           offsetY = root.bounds[1];
         }
         var surfaceImgElem = createElement("img", {
-          src: root.surfaceURI,
+          src: getDataURI(root.surfaceURI),
           style: {
             position: "absolute",
             left: (offsetX - rect2d[0]) + "px",
