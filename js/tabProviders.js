@@ -548,7 +548,9 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
         },
       });
       pane.appendChild(displayElem);
-      var rect2d = displayItem.bounds;
+      // bounds doesn't adjust for within the layer. It's not a bad fallback but
+      // will have the wrong offset
+      var rect2d = displayItem.layerBounds || displayItem.bounds;
       if (rect2d) { // This doesn't place them corectly
         layerPreview = createElement("div", {
           id: "displayitem_" + displayItem.content + "_" + displayItem.address,
