@@ -44,6 +44,7 @@ var HistogramContainer;
       className: "tabContainer",
       style: {
         flex: "1 1 0%",
+        overflow: "hidden",
       },
     });
     this.widget.appendChild(this.tabList);
