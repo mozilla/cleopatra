@@ -210,6 +210,7 @@
       currRow = document.createElement("div");
       currRow.style.flex = 1;
       currRow.style.height = "100%";
+      currRow.style.overflow = "scroll";
       currRow.appendChild(gTabWidget.getContainer());
       finishedProfilePane.appendChild(currRow);
 
