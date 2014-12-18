@@ -412,8 +412,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
       },
     });
     elem.layerViewport = layerViewport;
-    var layerViewportTranslateX = 0;
-    var layerViewportTranslateY = 0;
+    var layerViewportMatrix = [1, 0, 0, 1, 0, 0];
     if (root["shadow-clip"] || root["clip"]) {
       var clip = root["shadow-clip"] || root["clip"]
       var clipElem = createElement("div", {
@@ -427,16 +426,21 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
           overflow: "hidden",
         },
       });
-      layerViewportTranslateX += -clip[0];
-      layerViewportTranslateY += -clip[1];
+      layerViewportMatrix[4] += -clip[0];
+      layerViewportMatrix[5] += -clip[1];
       layerViewport.style.transform = "translate(-" + clip[0] + "px, -" + clip[1] + "px" + ")";
     }
     if (root["shadow-transform"] || root["transform"]) {
       var matrix = root["shadow-transform"] || root["transform"];
-      layerViewportTranslateX += matrix[2][0];
-      layerViewportTranslateY += matrix[2][1];
+      layerViewportMatrix[0] = matrix[0][0];
+      layerViewportMatrix[1] = matrix[0][1];
+      layerViewportMatrix[2] = matrix[1][0];
+      layerViewportMatrix[3] = matrix[1][1];
+      layerViewportMatrix[4] += matrix[2][0];
+      layerViewportMatrix[5] += matrix[2][1];
     }
-    layerViewport.style.transform = "translate(" + layerViewportTranslateX + "px," + layerViewportTranslateY + "px)";
+    console.log("matrix(" + layerViewportMatrix[0] + "px," + layerViewportMatrix[1] + "px," + layerViewportMatrix[2] + "px," + layerViewportMatrix[3] + "px," + layerViewportMatrix[4] + "px," + layerViewportMatrix[5] + "px)");
+    layerViewport.style.transform = "matrix(" + layerViewportMatrix[0] + "," + layerViewportMatrix[1] + "," + layerViewportMatrix[2] + "," + layerViewportMatrix[3] + "," + layerViewportMatrix[4] + "," + layerViewportMatrix[5] + ")";
     if (!hasSeenRoot) {
       hasSeenRoot = true;
       //layerViewport.style.transform = "scale(0.25, 0.25)";
