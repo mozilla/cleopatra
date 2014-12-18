@@ -81,10 +81,10 @@ function parseDisplayList(lines) {
           var rectMatches = value.match("^(.*?),(.*?),(.*?),(.*?)$")
           if (rectMatches) {
             layerObject[name] = [
-              parseFloat(rectMatches[1]) / 60,
-              parseFloat(rectMatches[2]) / 60,
-              parseFloat(rectMatches[3]) / 60,
-              parseFloat(rectMatches[4]) / 60,
+              parseFloat(rectMatches[1]),
+              parseFloat(rectMatches[2]),
+              parseFloat(rectMatches[3]),
+              parseFloat(rectMatches[4]),
             ];
           } else {
             layerObject[name] = value;
@@ -150,7 +150,7 @@ function parseLayers(layersDumpLines) {
     str = trim(str);
 
     // Something like '[ 1 0; 0 1; 0 158; ]'
-    var matches = str.match("\\[ (.*?) (.*?); (.*?) (.*?); (.*?) (.*?); \\]");
+    var matches = str.match("^\\[ (.*?) (.*?); (.*?) (.*?); (.*?) (.*?); \\]$");
     if (!matches) {
       return null;
     }
@@ -167,7 +167,7 @@ function parseLayers(layersDumpLines) {
     str = trim(str);
 
     // Something like 'rgba(0, 0, 0, 0)'
-    var colorMatches = str.match("rgba\\((.*), (.*), (.*), (.*)\\)");
+    var colorMatches = str.match("^rgba\\((.*), (.*), (.*), (.*)\\)$");
     if (!colorMatches) {
       return null;
     }
@@ -180,11 +180,21 @@ function parseLayers(layersDumpLines) {
     };
     return color;
   }
+  function parseFloat_cleo(str) {
+    str = trim(str);
+
+    // Something like 2.000
+    if (parseFloat(str) == str) {
+      return parseFloat(str);
+    }
+
+    return null;
+  }
   function parseRect2D(str) {
     str = trim(str);
 
     // Something like '(x=0, y=0, w=2842, h=158)'
-    var rectMatches = str.match("\\(x=(.*?), y=(.*?), w=(.*?), h=(.*?)\\)");
+    var rectMatches = str.match("^\\(x=(.*?), y=(.*?), w=(.*?), h=(.*?)\\)$");
     if (!rectMatches) {
       return null;
     }
@@ -206,7 +216,7 @@ function parseLayers(layersDumpLines) {
     var region = [];
     str = trim(str.substring(1, str.length - 1));
     while (str != "") {
-      var rectMatches = str.match("\\(x=(.*?), y=(.*?), w=(.*?), h=(.*?)\\);");
+      var rectMatches = str.match("^\\(x=(.*?), y=(.*?), w=(.*?), h=(.*?)\\);$");
       if (!rectMatches) {
         return null;
       }
@@ -250,7 +260,6 @@ function parseLayers(layersDumpLines) {
       var parent = objectAtIndentation[indentation - 2];
       var surfaceURI = surfaceMatches[2];
       parent.surfaceURI = surfaceURI;
-      console.log("Add surface: " + parent.line);
 
       continue;
     }
@@ -291,60 +300,75 @@ function parseLayers(layersDumpLines) {
 
     var rest = matches[4];
 
-    var fields = [];
-    var nesting = 0;
-    var startIndex;
-    for (var j = 0; j < rest.length; j++) {
-      if (rest.charAt(j) == '[') {
-        nesting++;
-        if (nesting == 1) {
-          startIndex = j;
-        }
-      } else if (rest.charAt(j) == ']') {
-        nesting--;
-        if (nesting == 0) {
-          fields.push(rest.substring(startIndex + 1, j));
+    function parseProperties(rest, layerObject) {
+      var fields = [];
+      var nesting = 0;
+      var startIndex;
+      for (var j = 0; j < rest.length; j++) {
+        if (rest.charAt(j) == '[') {
+          nesting++;
+          if (nesting == 1) {
+            startIndex = j;
+          }
+        } else if (rest.charAt(j) == ']') {
+          nesting--;
+          if (nesting == 0) {
+            fields.push(rest.substring(startIndex + 1, j));
+          }
         }
       }
-    }
 
-    for (var j = 0; j < fields.length; j++) {
-      // Something like 'valid=< (x=0, y=0, w=1920, h=2218); >' or 'opaqueContent'
-      var field = fields[j];
-      //dump("FIELD: " + field + "\n");
-      var parts = field.split("=", 2);
-      var fieldName = parts[0];
-      var rest = field.substring(fieldName.length + 1);
-      if (parts.length == 1) {
-        layerObject[fieldName] = "true";
-        layerObject[fieldName].type = "bool";
-        continue;
-      }
-      var region = parseRegion(rest); 
-      if (region) {
-        layerObject[fieldName] = region;
-        layerObject[fieldName].type = "region";
-        continue;
-      }
-      var rect = parseRect2D(rest);
-      if (rect) {
-        layerObject[fieldName] = rect;
-        layerObject[fieldName].type = "rect2d";
-        continue;
-      }
-      var matrix = parseMatrix2x3(rest);
-      if (matrix) {
-        layerObject[fieldName] = matrix;
-        layerObject[fieldName].type = "matrix2x3";
-        continue;
-      }
-      var color = parseColor(rest);
-      if (color) {
-        layerObject[fieldName] = color;
-        layerObject[fieldName].type = "color";
-        continue;
+      for (var j = 0; j < fields.length; j++) {
+        // Something like 'valid=< (x=0, y=0, w=1920, h=2218); >' or 'opaqueContent'
+        var field = fields[j];
+        //dump("FIELD: " + field + "\n");
+        var parts = field.split("=", 2);
+        var fieldName = parts[0];
+        var rest = field.substring(fieldName.length + 1);
+        if (parts.length == 1) {
+          layerObject[fieldName] = "true";
+          layerObject[fieldName].type = "bool";
+          continue;
+        }
+        var float = parseFloat_cleo(rest); 
+        if (float) {
+          layerObject[fieldName] = float;
+          layerObject[fieldName].type = "float";
+          continue;
+        }
+        var region = parseRegion(rest); 
+        if (region) {
+          layerObject[fieldName] = region;
+          layerObject[fieldName].type = "region";
+          continue;
+        }
+        var rect = parseRect2D(rest);
+        if (rect) {
+          layerObject[fieldName] = rect;
+          layerObject[fieldName].type = "rect2d";
+          continue;
+        }
+        var matrix = parseMatrix2x3(rest);
+        if (matrix) {
+          layerObject[fieldName] = matrix;
+          layerObject[fieldName].type = "matrix2x3";
+          continue;
+        }
+        var color = parseColor(rest);
+        if (color) {
+          layerObject[fieldName] = color;
+          layerObject[fieldName].type = "color";
+          continue;
+        }
+        if (rest[0] == '{' && rest[rest.length - 1] == '}') {
+          var object = {};
+          parseProperties(rest.substring(1, rest.length - 2).trim(), object);
+          layerObject[fieldName] = object;
+          layerObject[fieldName].type = "object";
+        }
       }
     }
+    parseProperties(rest, layerObject)
 
     // Compute screenTransformX/screenTransformY
     // TODO Fully support transforms
@@ -367,7 +391,9 @@ function parseLayers(layersDumpLines) {
   //dump("OBJECTS: " + JSON.stringify(root) + "\n");
   return root;
 }
-function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
+function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, contentScale) {
+  contentScale = contentScale || 1;
+
   function getDisplayItemForLayer(displayList) {
     var items = [];
     if (!displayList) {
@@ -439,11 +465,10 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
       layerViewportMatrix[4] += matrix[2][0];
       layerViewportMatrix[5] += matrix[2][1];
     }
-    console.log("matrix(" + layerViewportMatrix[0] + "px," + layerViewportMatrix[1] + "px," + layerViewportMatrix[2] + "px," + layerViewportMatrix[3] + "px," + layerViewportMatrix[4] + "px," + layerViewportMatrix[5] + "px)");
     layerViewport.style.transform = "matrix(" + layerViewportMatrix[0] + "," + layerViewportMatrix[1] + "," + layerViewportMatrix[2] + "," + layerViewportMatrix[3] + "," + layerViewportMatrix[4] + "," + layerViewportMatrix[5] + ")";
     if (!hasSeenRoot) {
       hasSeenRoot = true;
-      //layerViewport.style.transform = "scale(0.25, 0.25)";
+      layerViewport.style.transform = "scale(" + 1/contentScale + "," + 1/contentScale + ")";
     }
     if (clipElem) {
       previewParent.appendChild(clipElem);
@@ -556,15 +581,16 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
       // will have the wrong offset
       var rect2d = displayItem.layerBounds || displayItem.bounds;
       if (rect2d) { // This doesn't place them corectly
+        var appUnitsToPixels = 60 / contentScale;
         layerPreview = createElement("div", {
           id: "displayitem_" + displayItem.content + "_" + displayItem.address,
           className: "layerPreview",
           style: {
             position: "absolute",
-            left: rect2d[0] + "px",
-            top: rect2d[1] + "px",
-            width: rect2d[2] + "px",
-            height: rect2d[3] + "px",
+            left: rect2d[0]/appUnitsToPixels + "px",
+            top: rect2d[1]/appUnitsToPixels + "px",
+            width: rect2d[2]/appUnitsToPixels + "px",
+            height: rect2d[3]/appUnitsToPixels + "px",
             border: "solid 1px gray",
           },
         });
@@ -575,7 +601,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot) {
   }
 
   for (var i = 0; i < root.children.length; i++) {
-    populateLayers(root.children[i], displayList, pane, previewParent, hasSeenRoot);
+    populateLayers(root.children[i], displayList, pane, previewParent, hasSeenRoot, contentScale);
   }
 }
 function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {
@@ -714,7 +740,7 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
   mainDiv.appendChild(previewDiv);
 
   var displayListDump = parseDisplayListDump();
-  populateLayers(displayListDump['tree'], displayListDump['before'], layerListPane, previewDiv);
+  populateLayers(displayListDump['tree'], displayListDump['after'], layerListPane, previewDiv);
 
   gTabWidget.addTab("DisplayList", container); 
   gTabWidget.selectTab("DisplayList");
