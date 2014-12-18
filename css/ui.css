@@ -459,7 +459,7 @@ body {
   display: block;
 }
 .fileListItemDelete:hover {
-  border: solid 1px;
+  outline: solid 1px;
 }
 .busyCover {
   position: absolute;
