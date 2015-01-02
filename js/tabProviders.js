@@ -226,7 +226,7 @@ function parseLayers(layersDumpLines) {
     var region = [];
     str = trim(str.substring(1, str.length - 1));
     while (str != "") {
-      var rectMatches = str.match("^\\(x=(.*?), y=(.*?), w=(.*?), h=(.*?)\\);$");
+      var rectMatches = str.match("^\\(x=(.*?), y=(.*?), w=(.*?), h=(.*?)\\);(.*)$");
       if (!rectMatches) {
         return null;
       }
@@ -235,7 +235,7 @@ function parseLayers(layersDumpLines) {
         parseFloat(rectMatches[1]), parseFloat(rectMatches[2]),
         parseFloat(rectMatches[3]), parseFloat(rectMatches[4]),
       ];
-      str = trim(str.substring(rectMatches[0].length, str.length));
+      str = trim(rectMatches[5]);
       region.push(rect);
     }
     return region;
@@ -491,7 +491,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
     for (var i = 0; i < visibleRegion.length; i++) {
       var rect2d = visibleRegion[i];
       var layerPreview = createElement("div", {
-        id: root.address + "_visible_part" + i,
+        id: root.address + "_visible_part" + i + "-" + visibleRegion.length,
         className: "layerPreview",
         style: {
           position: "absolute",

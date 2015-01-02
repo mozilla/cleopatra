@@ -454,10 +454,10 @@ Waterfall.prototype = {
         if (item.layersDump) {
           item.layersDump.compositeTime = item.endTime;
           gLayersDumps.push(item.layersDump);
-          itemTitle += "\n" + self.formatLayersDump(item.layersDump);
+          //itemTitle += "\n" + self.formatLayersDump(item.layersDump);
         }
         if (item.displayListDump) {
-          itemTitle += "\n" + self.formatDisplayListDump(item.displayListDump);
+          //itemTitle += "\n" + self.formatDisplayListDump(item.displayListDump);
         }
 
         // if there was a merge happening and we are too far or too wide to join, end it
