@@ -1,3 +1,9 @@
+function toFixed(num, fixed) {
+    fixed = fixed || 0;
+    fixed = Math.pow(10, fixed);
+    return Math.floor(num * fixed) / fixed;
+}
+
 function tab_showInstruction(tabName, instruction) {
   var currentTab = gTabWidget.getTab(tabName);
   if (currentTab && currentTab.isInstruction !== true) {
@@ -22,6 +28,7 @@ function parseDisplayList(lines) {
     line: "DisplayListRoot 0",
     name: "DisplayListRoot",
     address: "0x0",
+    frame: "Root",
     children: [],
   };
 
@@ -40,7 +47,7 @@ function parseDisplayList(lines) {
       root = layerObject;
     }
 
-    var matches = line.match("(\\s*)(\\w+)\\sp=(\\w+)(.*?)?( layer=(\\w+))?$");
+    var matches = line.match("(\\s*)(\\w+)\\sp=(\\w+)\\sf=(.*?)\\s(z=(\\w+)\\s)?(.*?)?( layer=(\\w+))?$");
     if (!matches) {
       dump("Failed to match: " + line + "\n");
       continue;
@@ -53,10 +60,13 @@ function parseDisplayList(lines) {
 
     layerObject.name = matches[2];
     layerObject.address = matches[3]; // Use 0x prefix to be consistent with layer dump
-    var rest = matches[4];
-    if (matches[6]) { // WrapList don't provide a layer
-      layerObject.layer = matches[6];
+    layerObject.frame = matches[4];
+    layerObject.z = matches[6];
+    var rest = matches[7];
+    if (matches[9]) { // WrapList don't provide a layer
+      layerObject.layer = matches[9];
     }
+    layerObject.rest = rest;
 
     // the content node name doesn't have a prefix, this makes the parsing easier
     rest = "content" + rest;
@@ -391,8 +401,9 @@ function parseLayers(layersDumpLines) {
   //dump("OBJECTS: " + JSON.stringify(root) + "\n");
   return root;
 }
-function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, contentScale) {
+function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, contentScale, rootPreviewParent) {
   contentScale = contentScale || 1;
+  rootPreviewParent = rootPreviewParent || previewParent;
 
   function getDisplayItemForLayer(displayList) {
     var items = [];
@@ -564,25 +575,56 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
         style: {
           whiteSpace: "pre",
         },
+        displayItem: displayItem,
         layerViewport: layerViewport,
         onmouseover: function() {
-          if (this.layerPreview) {
-            this.layerPreview.classList.add("displayHover");
+          if (this.diPreview) {
+            this.diPreview.classList.add("displayHover");
+
+            var description = "Item: " + this.displayItem.name + " (" + this.displayItem.address + ")";
+            description += "<br>Layer: " + root.name + " (" + root.address + ")";
+            if (this.displayItem.frame) {
+              description += "<br>Frame: " + this.displayItem.frame;
+            }
+            if (this.displayItem.layerBounds) {
+              description += "<br>Bounds: [" + toFixed(this.displayItem.layerBounds[0] / 60, 2) + ", " + toFixed(this.displayItem.layerBounds[1] / 60, 2) + ", " + toFixed(this.displayItem.layerBounds[2] / 60, 2) + ", " + toFixed(this.displayItem.layerBounds[3] / 60, 2) + "] (CSS Pixels)";
+            }
+            if (this.displayItem.z) {
+              description += "<br>Z: " + this.displayItem.z;
+            }
+            // At the end
+            if (this.displayItem.rest) {
+              description += "<br>" + this.displayItem.rest;
+            }
+
+            var box = this.diPreview.getBoundingClientRect();
+            this.diPreview.tooltip = createElement("div", {
+              className: "csstooltip",
+              innerHTML: description,
+              style: {
+                top: box.bottom + "px",
+                left: box.left + "px",
+              }
+            });
+
+            document.body.appendChild(this.diPreview.tooltip);
           }
         },
         onmouseout: function() {
-          if (this.layerPreview) {
-            this.layerPreview.classList.remove("displayHover");
+          if (this.diPreview) {
+            this.diPreview.classList.remove("displayHover");
+            document.body.removeChild(this.diPreview.tooltip);
           }
         },
       });
+
       pane.appendChild(displayElem);
       // bounds doesn't adjust for within the layer. It's not a bad fallback but
       // will have the wrong offset
       var rect2d = displayItem.layerBounds || displayItem.bounds;
       if (rect2d) { // This doesn't place them corectly
         var appUnitsToPixels = 60 / contentScale;
-        layerPreview = createElement("div", {
+        diPreview = createElement("div", {
           id: "displayitem_" + displayItem.content + "_" + displayItem.address,
           className: "layerPreview",
           style: {
@@ -594,14 +636,15 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
             border: "solid 1px gray",
           },
         });
-        layerViewport.appendChild(layerPreview);
-        displayElem.layerPreview = layerPreview;
+
+        layerViewport.appendChild(diPreview);
+        displayElem.diPreview = diPreview;
       }
     }
   }
 
   for (var i = 0; i < root.children.length; i++) {
-    populateLayers(root.children[i], displayList, pane, previewParent, hasSeenRoot, contentScale);
+    populateLayers(root.children[i], displayList, pane, previewParent, hasSeenRoot, contentScale, rootPreviewParent);
   }
 }
 function tab_showLayersDump(layersDumpLines, compositeTitle, compositeTime) {

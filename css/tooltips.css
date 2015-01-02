@@ -1,0 +1,17 @@
+body {
+  /* Tooltip cause scrollbars */
+  overflow: clip;
+}
+
+/* http://www.menucool.com/tooltip/css-tooltip */
+.csstooltip
+{
+  z-index: 5;
+  background: white;
+  border: solid 1px black;
+  position: absolute;
+  padding: 5px;
+  margin: 5px;
+  max-width: 300px;
+}
+

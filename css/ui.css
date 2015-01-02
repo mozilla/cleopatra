@@ -661,7 +661,7 @@ iframe {
 }
 
 .displayHover {
-  background: green;
+  background: rgba(0, 128, 0, 0.8);
 }
 
 .layerHover > .layerPreview {
