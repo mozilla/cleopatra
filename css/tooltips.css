@@ -1,6 +1,6 @@
 body {
   /* Tooltip cause scrollbars */
-  overflow: clip;
+  overflow: hidden;
 }
 
 /* http://www.menucool.com/tooltip/css-tooltip */
