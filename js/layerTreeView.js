@@ -431,6 +431,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
       id: root.address + "_viewport",
       style: {
         position: "absolute",
+        pointerEvents: "none",
       },
     });
     elem.layerViewport = layerViewport;
@@ -446,6 +447,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
           height: clip[3]+"px",
           position: "absolute",
           overflow: "hidden",
+          pointerEvents: "none",
         },
       });
       layerViewportMatrix[4] += -clip[0];
@@ -512,6 +514,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
                   position: "absolute",
                   left: (x - rect2d[0]) + "px",
                   top: (y - rect2d[1]) + "px",
+                  pointerEvents: "auto",
                 },
               });
               layerPreview.appendChild(tileImgElem);
@@ -532,6 +535,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
             position: "absolute",
             left: (0 - rect2d[0]) + "px",
             top: (0 - rect2d[1]) + "px",
+            pointerEvents: "auto",
           },
         });
         layerPreview.appendChild(surfaceImgElem);
@@ -620,6 +624,14 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
             width: rect2d[2]/appUnitsToPixels + "px",
             height: rect2d[3]/appUnitsToPixels + "px",
             border: "solid 1px gray",
+            pointerEvents: "auto",
+          },
+          displayElem: displayElem,
+          onmouseover: function() {
+            this.displayElem.onmouseover();
+          },
+          onmouseout: function() {
+            this.displayElem.onmouseout();
           },
         });
 
