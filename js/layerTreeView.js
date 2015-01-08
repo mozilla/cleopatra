@@ -244,8 +244,11 @@ function parseLayers(layersDumpLines) {
     var surfaceMatches = line.match("(\\s*)Surface: (.*)");
     if (surfaceMatches) {
       var indentation = Math.floor(matches[1].length / 2);
-      var parent = objectAtIndentation[indentation - 2];
+      var parent = objectAtIndentation[indentation - 1];
       var surfaceURI = surfaceMatches[2];
+      if (parent.surfaceURI != null) {
+        console.log("error: surfaceURI already set for this layer " + parent.line);
+      }
       parent.surfaceURI = surfaceURI;
 
       continue;
@@ -260,18 +263,23 @@ function parseLayers(layersDumpLines) {
     }
 
     var matches = line.match("(\\s*)(\\w+)\\s\\((\\w+)\\)(.*)");
-    if (!matches)
+    if (!matches) {
+      console.log("ignore " + line);
       continue; // Something like a texturehost dump. Safe to ignore
+    }
 
     if (matches[2].indexOf("TiledContentHost") != -1 ||
         matches[2].indexOf("GrallocTextureHostOGL") != -1 ||
         matches[2].indexOf("ContentHost") != -1 ||
         matches[2].indexOf("MemoryTextureHost") != -1 ||
-        matches[2].indexOf("ImageHost") != -1)
+        matches[2].indexOf("ImageHost") != -1) {
+      console.log("ignore " + line);
       continue; // We're already pretty good at visualizing these
+    }
 
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
+    console.log("Indentation: " + indentation + " Line: " + line);
     if (indentation > 0) {
       var parent = objectAtIndentation[indentation - 1];
       while (!parent) {
