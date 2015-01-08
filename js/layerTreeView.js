@@ -530,8 +530,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
           src: getDataURI(root.surfaceURI),
           style: {
             position: "absolute",
-            left: (x - rect2d[0]) + "px",
-            top: (y - rect2d[1]) + "px",
+            left: (0 - rect2d[0]) + "px",
+            top: (0 - rect2d[1]) + "px",
           },
         });
         layerPreview.appendChild(surfaceImgElem);
