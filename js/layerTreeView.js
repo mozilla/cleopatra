@@ -109,6 +109,7 @@ function getDataURI(str) {
   var binary_string = window.atob(matches[4]);
   var len = binary_string.length;
   var bytes = new Uint8Array(len);
+  var decoded = new Uint8Array(stride * h);
   for (var i = 0; i < len; i++) {
     var ascii = binary_string.charCodeAt(i);
     bytes[i] = ascii;
@@ -116,13 +117,14 @@ function getDataURI(str) {
 
   var ctxt = canvas.getContext("2d");
   var out = ctxt.createImageData(w, h);
-  buffer = LZ4_uncompressChunk(bytes, out.data);
+  buffer = LZ4_uncompressChunk(bytes, decoded);
 
   for (var x = 0; x < w; x++) {
     for (var y = 0; y < h; y++) {
-      var blue = out.data[4 * x + 4 * y * w + 0];
-      out.data[4 * x + 4 * y * w + 0] = out.data[4 * x + 4 * y * w + 2];
-      out.data[4 * x + 4 * y * w + 2] = blue;
+      out.data[4 * x + 4 * y * w + 0] = decoded[4 * x + y * stride + 2];
+      out.data[4 * x + 4 * y * w + 1] = decoded[4 * x + y * stride + 1];
+      out.data[4 * x + 4 * y * w + 2] = decoded[4 * x + y * stride + 0];
+      out.data[4 * x + 4 * y * w + 3] = decoded[4 * x + y * stride + 3];
     }
   }
 
@@ -520,8 +522,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
           src: getDataURI(root.surfaceURI),
           style: {
             position: "absolute",
-            left: (offsetX - rect2d[0]) + "px",
-            top: (offsetY - rect2d[1]) + "px",
+            left: (x - rect2d[0]) + "px",
+            top: (y - rect2d[1]) + "px",
           },
         });
         layerPreview.appendChild(surfaceImgElem);
