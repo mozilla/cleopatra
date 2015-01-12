@@ -23,6 +23,7 @@
     window.gHighlightedCallstack = [];
     window.gFrameView = null;
     window.gTreeManager = null;
+    window.gCallGraph = null;
     window.gMarkerTreeManager = null;
     window.gSampleBar = null;
     window.gBreadcrumbTrail = null;

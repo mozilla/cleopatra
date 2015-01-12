@@ -207,6 +207,10 @@
       gTabWidget = new TabWidget();
       gTabWidget.addTab("Samples", treeContainerDiv);
 
+
+      gCallGraph = new FlameGraphUtils();
+      gTabWidget.addTab("Call Graph", gCallGraph.getContainer());
+
       currRow = document.createElement("div");
       currRow.style.flex = 1;
       currRow.style.height = "100%";
@@ -376,7 +380,9 @@
             if (gFrameView)
               gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
                 boundaries);
-            //console.log("histogram displaying: " + (Date.now() - start) + "ms.");
+            if (gCallGraph) {
+              gCallGraph.setData(data.histogramData);
+            }
           });
         }
 
