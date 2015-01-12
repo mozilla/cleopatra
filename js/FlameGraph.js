@@ -81,62 +81,57 @@ const FLAME_GRAPH_BLOCK_TEXT_PADDING_RIGHT = 3; // px
 function FlameGraph(parent, sharpness) {
   //EventEmitter.decorate(this);
 
-  let iframe = this._iframe = document.createElement("iframe");
+  let iframe = this._iframe = parent;
 
   this._parent = parent;
   this._ready = new Promise(function(resolve, reject) {
-    iframe.onload = function() {
-      this._iframe = iframe;
-      this._window = window;
-      this._pixelRatio = sharpness || this._window.devicePixelRatio;
+    this._iframe = iframe;
+    this._window = window;
+    this._pixelRatio = sharpness || this._window.devicePixelRatio;
 
-      let container = this._container = this._iframe;
-      container.className = "flame-graph-widget-container graph-widget-container";
+    let container = this._container = this._iframe;
+    container.className = "flame-graph-widget-container graph-widget-container";
 
-      let canvas = this._canvas = document.createElement("canvas");
-      container.contentDocument.body.appendChild(canvas);
-      container.contentDocument.body.style.overflow = "hidden";
-      canvas.className = "flame-graph-widget-canvas graph-widget-canvas";
+    let canvas = this._canvas = document.createElement("canvas");
+    container.appendChild(canvas);
+    container.style.overflow = "hidden";
+    canvas.className = "flame-graph-widget-canvas graph-widget-canvas";
 
-      let bounds = parent.getBoundingClientRect();
-      bounds.width = this.fixedWidth || bounds.width;
-      bounds.height = this.fixedHeight || bounds.height;
-      iframe.setAttribute("width", bounds.width);
-      iframe.setAttribute("height", bounds.height);
+    let bounds = parent.getBoundingClientRect();
+    bounds.width = this.fixedWidth || bounds.width;
+    bounds.height = this.fixedHeight || bounds.height;
+    this._width = canvas.width = bounds.width * this._pixelRatio;
+    this._height = canvas.height = bounds.height * this._pixelRatio;
 
-      this._width = canvas.width = bounds.width * this._pixelRatio;
-      this._height = canvas.height = bounds.height * this._pixelRatio;
-      this._ctx = canvas.getContext("2d");
+    this._ctx = canvas.getContext("2d");
 
-      this._selection = new GraphSelection();
-      this._selectionDragger = new GraphSelectionDragger();
+    this._selection = new GraphSelection();
+    this._selectionDragger = new GraphSelectionDragger();
 
-      // Calculating text widths is necessary to trim the text inside the blocks
-      // while the scaling changes (e.g. via scrolling). This is very expensive,
-      // so maintain a cache of string contents to text widths.
-      this._textWidthsCache = {};
+    // Calculating text widths is necessary to trim the text inside the blocks
+    // while the scaling changes (e.g. via scrolling). This is very expensive,
+    // so maintain a cache of string contents to text widths.
+    this._textWidthsCache = {};
 
-      let fontSize = FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE * this._pixelRatio;
-      let fontFamily = FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY;
-      this._averageCharWidth = this._calcAverageCharWidth();
-      this._overflowCharWidth = this._getTextWidth(this.overflowChar);
+    let fontSize = FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE * this._pixelRatio;
+    let fontFamily = FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY;
+    this._averageCharWidth = this._calcAverageCharWidth();
+    this._overflowCharWidth = this._getTextWidth(this.overflowChar);
 
-      this._onMouseMove = this._onMouseMove.bind(this);
-      this._onMouseDown = this._onMouseDown.bind(this);
-      this._onMouseUp = this._onMouseUp.bind(this);
-      this._onMouseWheel = this._onMouseWheel.bind(this);
-      this._onAnimationFrame = this._onAnimationFrame.bind(this);
+    this._onMouseMove = this._onMouseMove.bind(this);
+    this._onMouseDown = this._onMouseDown.bind(this);
+    this._onMouseUp = this._onMouseUp.bind(this);
+    this._onMouseWheel = this._onMouseWheel.bind(this);
+    this._onAnimationFrame = this._onAnimationFrame.bind(this);
 
-      this._canvas.addEventListener("mousemove", this._onMouseMove);
-      this._canvas.addEventListener("mousedown", this._onMouseDown);
-      this._canvas.addEventListener("mouseup", this._onMouseUp);
-      this._canvas.addEventListener("MozMousePixelScroll", this._onMouseWheel);
+    this._iframe.addEventListener("mousemove", this._onMouseMove);
+    this._iframe.addEventListener("mousedown", this._onMouseDown);
+    this._iframe.addEventListener("mouseup", this._onMouseUp);
+    this._iframe.addEventListener("MozMousePixelScroll", this._onMouseWheel);
 
-      this._animationId = this._window.requestAnimationFrame(this._onAnimationFrame);
-      resolve(this);
-    }.bind(this);
+    this._animationId = this._window.requestAnimationFrame(this._onAnimationFrame);
+    resolve(this);
   }.bind(this));
-  parent.appendChild(this._iframe);
 
 }
 
@@ -210,8 +205,27 @@ FlameGraph.prototype = {
    *        The data source. See the constructor for more information.
    */
   setData: function(data) {
+    var minTime = null;
+    var maxTime = null;
+    for (var i = 0; i < data.length; i++) {
+      var blocks = data[i].blocks;
+      for (var j = 0; j < blocks.length; j++) {
+        var block = blocks[j];
+        if (!minTime || minTime > block.x) {
+          minTime = block.x;
+        }
+        if (!maxTime || maxTime < block.x + block.width) {
+          maxTime = block.x + block.width;
+        }
+      }
+    }
+
+    this._viewRange = [minTime, maxTime];
     this._data = data;
-    this._selection = { start: 0, end: this._width };
+    this._selection = { start: (minTime || 0), end: (maxTime || 1000) };
+    console.log(minTime + " -> " +  maxTime);
+    console.log(this._selection.start + " -> " +  maxTime);
+    console.log(this._selection);
     this._shouldRedraw = true;
   },
 
@@ -246,9 +260,26 @@ FlameGraph.prototype = {
    * every time this function is called, only the cliphead, selection etc.
    */
   _drawWidget: function() {
+    this._normalizeSelectionBounds();
+
+    let bounds = this._iframe.getBoundingClientRect();
+    bounds.width = this.fixedWidth || bounds.width;
+    bounds.height = this.fixedHeight || bounds.height;
+    this._width = bounds.width * this._pixelRatio;
+    this._height = bounds.height * this._pixelRatio;
+    if (this._width != this._canvas.width) {
+      this._canvas.width = this._width;
+      this._shouldRedraw = true;
+    }
+    if (this._height != this._canvas.height) {
+      this._canvas.height = this._height;
+      this._shouldRedraw = true;
+    }
+
     if (!this._shouldRedraw) {
       return;
     }
+
     let ctx = this._ctx;
     let canvasWidth = this._width;
     let canvasHeight = this._height;
@@ -645,30 +676,18 @@ FlameGraph.prototype = {
    * wider than the allowed minimum width.
    */
   _normalizeSelectionBounds: function() {
-    let canvasWidth = this._width * 2;
-    let canvasHeight = this._height;
+    if (!this._viewRange) {
+      return;
+    }
 
     let { start, end } = this._selection;
     let minSelectionWidth = GRAPH_MIN_SELECTION_WIDTH * this._pixelRatio;
 
-    if (start < 0) {
-      start = 0;
+    if (start < this._viewRange[0]) {
+      start = this._viewRange[0];
     }
-    if (end < 0) {
-      start = 0;
-      end = minSelectionWidth;
-    }
-    if (end > canvasWidth) {
-      end = canvasWidth;
-    }
-    if (start > canvasWidth) {
-      end = canvasWidth;
-      start = canvasWidth - minSelectionWidth;
-    }
-    if (end - start < minSelectionWidth) {
-      let midPoint = (start + end) / 2;
-      start = midPoint - minSelectionWidth / 2;
-      end = midPoint + minSelectionWidth / 2;
+    if (end > this._viewRange[0]) {
+      end = this._viewRange[1];
     }
 
     this._selection.start = start;
@@ -688,6 +707,10 @@ FlameGraph.prototype = {
 
     if (dataScale > spacingMin) {
       return dataScale;
+    }
+
+    if (dataScale == 0) {
+      return 1;
     }
 
     while (true) {

@@ -49,15 +49,10 @@ FlameGraphUtils.prototype.setData = function(samples) {
   // 2. Populate the buckets by iterating over every frame in every sample.
   let prevTime = 0;
   let prevFrames = [];
-  let firstTime = null;
 
   for (let { frames, time } of samples) {
     if (!time)
       continue;
-    if (!firstTime) {
-      firstTime = time;
-    }
-    time = time - firstTime;
 
     let frameIndex = 0;
 
