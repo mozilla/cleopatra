@@ -211,6 +211,7 @@ FlameGraph.prototype = {
   setData: function(data) {
     var minTime = null;
     var maxTime = null;
+    var maxHeight = null;
     for (var i = 0; i < data.length; i++) {
       var blocks = data[i].blocks;
       for (var j = 0; j < blocks.length; j++) {
@@ -221,12 +222,15 @@ FlameGraph.prototype = {
         if (maxTime === null || maxTime < block.x + block.width) {
           maxTime = block.x + block.width;
         }
+        if (maxHeight === null || maxHeight < block.y + block.height) {
+          maxHeight = block.y + block.height;
+        }
       }
     }
 
     this._viewRange = [minTime, maxTime];
     this._data = data;
-    this._selection = { start: (minTime || 0), end: (maxTime || 1000) };
+    this._selection = { start: (minTime || 0), end: (maxTime || 1000), maxHeight: (maxHeight || 2000), offsetY: 0 };
     this._shouldRedraw = true;
   },
 
@@ -287,13 +291,16 @@ FlameGraph.prototype = {
     let ctx = this._ctx;
     let canvasWidth = this._width;
     let canvasHeight = this._height;
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
     let selection = this._selection;
     let selectionWidth = selection.end - selection.start;
     let selectionScale = canvasWidth / selectionWidth;
-    this._drawTicks(selection.start, selectionScale);
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    //ctx.translate(0, -selection.offsetY);
     this._drawPyramid(this._data, selection.start, selectionScale);
+    //ctx.translate(0, selection.offsetY);
+
+    this._drawTicks(selection.start, selectionScale);
 
     this._shouldRedraw = false;
   },
@@ -326,7 +333,7 @@ FlameGraph.prototype = {
     ctx.strokeStyle = this.overviewTimelineStrokes;
     ctx.beginPath();
 
-    for (let x = 0; x < availableWidth + scaledOffset; x += tickInterval) {
+    for (let x = scaledOffset; x < availableWidth + scaledOffset; x += tickInterval) {
       let lineLeft = x - scaledOffset;
       let textLeft = lineLeft + textPaddingLeft;
       let time = Math.round(x / dataScale / this._pixelRatio);
@@ -422,7 +429,7 @@ FlameGraph.prototype = {
     for (let block of blocks) {
       let { x, y, width, height } = block;
       let rectLeft = x * this._pixelRatio * dataScale - scaledOffset;
-      let rectTop = (y + OVERVIEW_HEADER_HEIGHT) * this._pixelRatio;
+      let rectTop = (y + OVERVIEW_HEADER_HEIGHT - this._selection.offsetY) * this._pixelRatio;
       let rectWidth = width * this._pixelRatio * dataScale;
       let rectHeight = height * this._pixelRatio;
 
@@ -476,7 +483,7 @@ FlameGraph.prototype = {
 
     let { x, y, width, height, text } = block;
 
-    let paddingTop = FLAME_GRAPH_BLOCK_TEXT_PADDING_TOP * this._pixelRatio;
+    let paddingTop = (FLAME_GRAPH_BLOCK_TEXT_PADDING_TOP - this._selection.offsetY) * this._pixelRatio;
     let paddingLeft = FLAME_GRAPH_BLOCK_TEXT_PADDING_LEFT * this._pixelRatio;
     let paddingRight = FLAME_GRAPH_BLOCK_TEXT_PADDING_RIGHT * this._pixelRatio;
     let totalHorizontalPadding = paddingLeft + paddingRight;
@@ -601,6 +608,7 @@ FlameGraph.prototype = {
   _onMouseMove: function(e) {
     let offset = this._getContainerOffset();
     let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
 
     let canvasWidth = this._width;
     let canvasHeight = this._height;
@@ -610,17 +618,28 @@ FlameGraph.prototype = {
     let selectionScale = canvasWidth / selectionWidth;
 
     let dragger = this._selectionDragger;
-    if (dragger.origin != null) {
-      var moveDelta = (dragger.origin - mouseX) / selectionScale;
+    if (dragger.originX != null) {
+      var moveDeltaX = (dragger.originX - mouseX) / selectionScale;
 
-      if (dragger.anchor.start + moveDelta <= this._viewRange[0]) {
-        moveDelta = this._viewRange[0] - (dragger.anchor.start);
+      if (dragger.anchor.start + moveDeltaX <= this._viewRange[0]) {
+        moveDeltaX = this._viewRange[0] - (dragger.anchor.start);
       } 
-      if (dragger.anchor.end + moveDelta >= this._viewRange[1]) {
-        moveDelta = this._viewRange[1] - (dragger.anchor.end);
+      if (dragger.anchor.end + moveDeltaX >= this._viewRange[1]) {
+        moveDeltaX = this._viewRange[1] - (dragger.anchor.end);
       } 
-      selection.start = dragger.anchor.start + moveDelta;
-      selection.end = dragger.anchor.end + moveDelta;
+      selection.start = dragger.anchor.start + moveDeltaX;
+      selection.end = dragger.anchor.end + moveDeltaX;
+
+      var moveDeltaY = (dragger.originY - mouseY);
+      selection.offsetY = dragger.originOffsetY + moveDeltaY;
+
+      if (selection.offsetY < 0) {
+        selection.offsetY = 0;
+      }
+      if (selection.offsetY > this._selection.maxHeight) {
+        selection.offsetY = this._selection.maxHeight;
+      }
+
       this._normalizeSelectionBounds();
 
       this._shouldRedraw = true;
@@ -660,8 +679,11 @@ FlameGraph.prototype = {
   _onMouseDown: function(e) {
     let offset = this._getContainerOffset();
     let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
 
-    this._selectionDragger.origin = mouseX;
+    this._selectionDragger.originX = mouseX;
+    this._selectionDragger.originY = mouseY;
+    this._selectionDragger.originOffsetY = this._selection.offsetY;
     this._selectionDragger.anchor.start = this._selection.start;
     this._selectionDragger.anchor.end = this._selection.end;
     this._canvas.setAttribute("input", "adjusting-selection-boundary");
@@ -671,7 +693,8 @@ FlameGraph.prototype = {
    * Listener for the "mouseup" event on the graph's container.
    */
   _onMouseUp: function() {
-    this._selectionDragger.origin = null;
+    this._selectionDragger.originX = null;
+    this._selectionDragger.originY = null;
     this._canvas.removeAttribute("input");
   },
 
@@ -809,7 +832,8 @@ GraphCursor.prototype = {
 
 GraphSelection.prototype = {
   start: null,
-  end: null
+  end: null,
+  offsetY: 0
 };
 
 GraphSelectionDragger.prototype = {
