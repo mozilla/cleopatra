@@ -22,6 +22,7 @@ FlameGraphUtils.prototype.getContainer = function() {
 
 FlameGraphUtils.prototype.setData = function(samples) {
   const FLAME_GRAPH_BLOCK_HEIGHT = 12;
+  const FLAME_GRAPH_MAX_GAP = 5; // After this gap we consider the sample missed
   const PALLETTE_SIZE = 10;
   const PALLETTE_HUE_OFFSET = 0;
   const PALLETTE_HUE_RANGE = 270;
@@ -55,7 +56,7 @@ FlameGraphUtils.prototype.setData = function(samples) {
     if (!time)
       continue;
 
-    if (prevTime == null) {
+    if (prevTime == null || time - prevTime > FLAME_GRAPH_MAX_GAP) {
       prevTime = time;
     }
 
@@ -67,7 +68,8 @@ FlameGraphUtils.prototype.setData = function(samples) {
 
       // Frames at the same location and the same depth will be reused.
       // If there is a block already created, change its width.
-      if (prevFrame && prevFrame.srcData.rawLocation == location) {
+      if (prevFrame && prevFrame.srcData.rawLocation == location &&
+          prevFrame.width + FLAME_GRAPH_MAX_GAP > (time - prevFrame.srcData.startTime)) {
         prevFrame.width = (time - prevFrame.srcData.startTime);
       }
       // Otherwise, create a new block for this frame at this depth,
