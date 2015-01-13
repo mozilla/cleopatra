@@ -228,9 +228,14 @@ FlameGraph.prototype = {
       }
     }
 
-    this._viewRange = [minTime, maxTime];
+    this._viewRange = [minTime * this._pixelRatio, maxTime * this._pixelRatio];
     this._data = data;
-    this._selection = { start: (minTime || 0), end: (maxTime || 1000), maxHeight: (maxHeight || 2000), offsetY: 0 };
+    this._selection = {
+      start: (minTime || 0) * this._pixelRatio,
+      end: (maxTime || 1000) * this._pixelRatio,
+      maxHeight: (maxHeight || 2000) * this._pixelRatio,
+      offsetY: 0
+    };
     this._shouldRedraw = true;
   },
 
@@ -239,10 +244,10 @@ FlameGraph.prototype = {
    * @return number
    */
   getDataWindowStart: function() {
-    return this._selection.start;
+    return this._selection.start / this._pixelRatio;
   },
   getDataWindowEnd: function() {
-    return this._selection.end;
+    return this._selection.end / this._pixelRatio;
   },
 
   /**
@@ -288,7 +293,7 @@ FlameGraph.prototype = {
     }
 
     let { start, end } = this._selection;
-    gHistogramContainer.highlightTimeRange(start, end);
+    gHistogramContainer.highlightTimeRange(start / this._pixelRatio, end / this._pixelRatio);
 
     let ctx = this._ctx;
     let canvasWidth = this._width;
@@ -328,7 +333,7 @@ FlameGraph.prototype = {
     let tickInterval = this._findOptimalTickInterval(dataScale);
 
     ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvasWidth, OVERVIEW_HEADER_HEIGHT);
+    ctx.fillRect(0, 0, canvasWidth, OVERVIEW_HEADER_HEIGHT * this._pixelRatio);
 
     ctx.textBaseline = "top";
     ctx.font = fontSize + "px " + fontFamily;
