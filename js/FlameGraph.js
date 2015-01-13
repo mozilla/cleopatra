@@ -638,7 +638,7 @@ FlameGraph.prototype = {
       selection.start = dragger.anchor.start + moveDeltaX;
       selection.end = dragger.anchor.end + moveDeltaX;
 
-      var moveDeltaY = (dragger.originY - mouseY);
+      var moveDeltaY = (dragger.originY - mouseY) / this._pixelRatio;
       selection.offsetY = dragger.originOffsetY + moveDeltaY;
 
       if (selection.offsetY < 0) {
