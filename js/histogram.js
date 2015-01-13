@@ -60,6 +60,10 @@ var HistogramContainer;
       this.threads[0].threadHistogramView.selectRange(start, end);
     },
 
+    highlightTimeRange: function (start, end) {
+      this.threads[0].threadHistogramView.highlightTimeRange(start, end);
+    },
+
     getWaterfallThreadId: function() {
       return this.waterfall.getWaterfallThreadId();
     },
@@ -318,6 +322,10 @@ var HistogramContainer;
       this.rangeSelector.selectRange(start, end);
     },
 
+    highlightTimeRange: function(start, end) {
+      this.rangeSelector.highlightTimeRange(start, end);
+    },
+
     display: function (data, boundaries, inverted, markers) {
       this.data = data;
       this.markers = markers;
@@ -345,7 +353,7 @@ var HistogramContainer;
 
     showVideoFramePosition: function (frame, start, end) {
       var caption = "Frame: " + frame;
-      this.rangeSelector.highlightRange(this.timeToPixel(start), this.timeToPixel(end), caption);
+      this.rangeSelector.highlightTimeRange(start, end, caption);
       //this.selectRange(start, end);
     },
 
@@ -801,13 +809,16 @@ var HistogramContainer;
       this.selectRange(range.start, range.end);
     },
 
+    highlightTimeRange: function (x1, x2, caption) {
+      this.highlightRange(this.histogram.timeToPixel(x1), this.histogram.timeToPixel(x2), caption)
+    },
+
     highlightRange: function (x1, x2, caption) {
       this.higlighter.classList.remove("collapsed");
       this.higlighter.classList.remove("selecting");
       this.higlighter.classList.add("finished");
       var y = 0;
       var height = this.graph.parentNode.clientHeight;
-      console.log(x1 + " - " + x2);
       this.drawSelectionMarker(x1, y, x2 - x1, height, caption);
     },
 

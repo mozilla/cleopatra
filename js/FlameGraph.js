@@ -211,10 +211,10 @@ FlameGraph.prototype = {
       var blocks = data[i].blocks;
       for (var j = 0; j < blocks.length; j++) {
         var block = blocks[j];
-        if (!minTime || minTime > block.x) {
+        if (minTime === null || minTime > block.x) {
           minTime = block.x;
         }
-        if (!maxTime || maxTime < block.x + block.width) {
+        if (maxTime === null || maxTime < block.x + block.width) {
           maxTime = block.x + block.width;
         }
       }
@@ -223,9 +223,6 @@ FlameGraph.prototype = {
     this._viewRange = [minTime, maxTime];
     this._data = data;
     this._selection = { start: (minTime || 0), end: (maxTime || 1000) };
-    console.log(minTime + " -> " +  maxTime);
-    console.log(this._selection.start + " -> " +  maxTime);
-    console.log(this._selection);
     this._shouldRedraw = true;
   },
 
@@ -279,6 +276,10 @@ FlameGraph.prototype = {
     if (!this._shouldRedraw) {
       return;
     }
+
+
+    let { start, end } = this._selection;
+    gHistogramContainer.highlightTimeRange(start, end);
 
     let ctx = this._ctx;
     let canvasWidth = this._width;
@@ -607,9 +608,19 @@ FlameGraph.prototype = {
 
     let dragger = this._selectionDragger;
     if (dragger.origin != null) {
-      selection.start = dragger.anchor.start + (dragger.origin - mouseX) / selectionScale;
-      selection.end = dragger.anchor.end + (dragger.origin - mouseX) / selectionScale;
-      this._normalizeSelectionBounds();
+      var moveDelta = (dragger.origin - mouseX) / selectionScale;
+
+      if (dragger.anchor.start + moveDelta <= this._viewRange[0]) {
+        moveDelta = this._viewRange[0] - (dragger.anchor.start);
+      } 
+      if (dragger.anchor.end + moveDelta >= this._viewRange[1]) {
+        moveDelta = this._viewRange[1] - (dragger.anchor.end);
+      } 
+      console.log(moveDelta + "-" + selection.start);
+      selection.start = dragger.anchor.start + moveDelta;
+      selection.end = dragger.anchor.end + moveDelta;
+      //this._normalizeSelectionBounds();
+
       this._shouldRedraw = true;
     }
   },
@@ -686,7 +697,7 @@ FlameGraph.prototype = {
     if (start < this._viewRange[0]) {
       start = this._viewRange[0];
     }
-    if (end > this._viewRange[0]) {
+    if (end > this._viewRange[1]) {
       end = this._viewRange[1];
     }
 

@@ -32,6 +32,10 @@
     getContainer: function HistogramView_getContainer() {
       return this._container;
     },
+    // Set the selection range but don't push a breadcrumb
+    highlightRange: function histogramView_highlightRange(start, end) {
+      this._rangeSelector.showVideoRange(start, end);
+    },
     selectRange: function HistogramView_selectRange(start, end) {
       this._rangeSelector._finishSelection(start, end);
     },

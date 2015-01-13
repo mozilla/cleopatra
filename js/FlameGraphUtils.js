@@ -47,12 +47,16 @@ FlameGraphUtils.prototype.setData = function(samples) {
   }
 
   // 2. Populate the buckets by iterating over every frame in every sample.
-  let prevTime = 0;
+  let prevTime = null;
   let prevFrames = [];
 
   for (let { frames, time } of samples) {
     if (!time)
       continue;
+
+    if (prevTime == null) {
+      prevTime = time;
+    }
 
     let frameIndex = 0;
 
@@ -68,7 +72,7 @@ FlameGraphUtils.prototype.setData = function(samples) {
       // Otherwise, create a new block for this frame at this depth,
       // using a simple location based salt for picking a color.
       else {
-        let hash = this._getStringHash("" + location);
+        let hash = this._getStringHash(location);
         let color = COLOR_PALLETTE[hash % PALLETTE_SIZE];
         let bucket = buckets.get(color);
 
