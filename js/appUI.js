@@ -209,7 +209,9 @@
 
 
       gCallGraph = new FlameGraphUtils();
-      gTabWidget.addTab("Call Graph", gCallGraph.getContainer());
+      gTabWidget.addTab("Call Graph", function() {
+        return gCallGraph.getContainer();
+      });
 
       currRow = document.createElement("div");
       currRow.style.flex = 1;
@@ -380,7 +382,7 @@
             if (gFrameView)
               gFrameView.display(data.histogramData, data.frameStart, data.widthSum, gHighlightedCallstack,
                 boundaries);
-            if (gCallGraph) {
+            if (gCallGraph && gSelectedThreadId == data.threadId) {
               gCallGraph.setData(data.histogramData);
             }
           });

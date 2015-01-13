@@ -277,10 +277,9 @@ FlameGraph.prototype = {
       this._shouldRedraw = true;
     }
 
-    if (!this._shouldRedraw) {
+    if (!this._shouldRedraw || this._data == null) {
       return;
     }
-
 
     let { start, end } = this._selection;
     gHistogramContainer.highlightTimeRange(start, end);

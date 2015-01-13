@@ -1,4 +1,7 @@
 function FlameGraphUtils() {
+}
+
+FlameGraphUtils.prototype.getContainer = function() {
   this._container = createElement("div", {
     className: "tab",
     style: {
@@ -13,9 +16,7 @@ function FlameGraphUtils() {
       this._graph.setData(this._data);
     }
   }.bind(this), function() {});
-}
 
-FlameGraphUtils.prototype.getContainer = function(getDataCallback) {
   return this._container;
 }
 
@@ -105,7 +106,9 @@ FlameGraphUtils.prototype.setData = function(samples) {
     out.push({ color, blocks });
   }
 
-  this._graph.setData(out);
+  if (this._graph) {
+    this._graph.setData(out);
+  }
   this._data = out;
 
   return out;

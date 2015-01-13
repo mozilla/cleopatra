@@ -61,7 +61,11 @@ var HistogramContainer;
     },
 
     highlightTimeRange: function (start, end) {
-      this.threads[0].threadHistogramView.highlightTimeRange(start, end);
+      for (var i = 0; i < this.threads.length; i++) {
+        if (gSelectedThreadId == this.threads[i].threadHistogramView.threadId) {
+          this.threads[i].threadHistogramView.highlightTimeRange(start, end);
+        }
+      }
     },
 
     getWaterfallThreadId: function() {
@@ -253,8 +257,8 @@ var HistogramContainer;
       }
       view.container.classList.add("histogramSelected");
       gSelectedThreadId = view.threadId;
-      AppUI.viewOptionsChanged(cb);
       AppUI.diagnosticChanged();
+      AppUI.filtersChanged(cb);
     }
   };
 
