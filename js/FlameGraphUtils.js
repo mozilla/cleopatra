@@ -10,7 +10,7 @@ FlameGraphUtils.prototype.getContainer = function() {
     },
   });
 
-  this._graph = new FlameGraph(this._container, 1);
+  this._graph = new FlameGraph(this._container);
   this._graph.ready().then(function() {
     if (this._data) {
       this._graph.setData(this._data);
