@@ -103,6 +103,8 @@ function FlameGraph(parent, sharpness) {
     this._width = canvas.width = bounds.width * this._pixelRatio;
     this._height = canvas.height = bounds.height * this._pixelRatio;
 
+    this._iframe.setAttribute("tabIndex", 0);
+
     this._ctx = canvas.getContext("2d");
 
     this._selection = new GraphSelection();
@@ -128,6 +130,8 @@ function FlameGraph(parent, sharpness) {
     this._iframe.addEventListener("mousedown", this._onMouseDown);
     this._iframe.addEventListener("mouseup", this._onMouseUp);
     this._iframe.addEventListener("MozMousePixelScroll", this._onMouseWheel);
+
+    this._iframe.addEventListener("keypress", this._onKeyPress.bind(this));
 
     this._animationId = this._window.requestAnimationFrame(this._onAnimationFrame);
     resolve(this);
@@ -616,12 +620,38 @@ FlameGraph.prototype = {
       if (dragger.anchor.end + moveDelta >= this._viewRange[1]) {
         moveDelta = this._viewRange[1] - (dragger.anchor.end);
       } 
-      console.log(moveDelta + "-" + selection.start);
       selection.start = dragger.anchor.start + moveDelta;
       selection.end = dragger.anchor.end + moveDelta;
-      //this._normalizeSelectionBounds();
+      this._normalizeSelectionBounds();
 
       this._shouldRedraw = true;
+    }
+  },
+
+  _onKeyPress: function(e) {
+    var key;
+
+    if (e.code == "KeyW") {
+      key = "w";
+    } else if (e.code == "KeyS") {
+      key = "s";
+    } else if (e.code == "KeyA") {
+      key = "a";
+    } else if (e.code == "KeyD") {
+      key = "d";
+    } else {
+      key = e.key;
+    }
+
+    let offset = this._getContainerOffset();
+    if (key == "w") {
+      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "VERTICAL_AXIS", detail: -100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+    } else if (key == "s") {
+      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "VERTICAL_AXIS", detail: 100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+    } else if (key == "d") {
+      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "HORIZONTAL_AXIS", detail: 100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+    } else if (key == "a") {
+      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "HORIZONTAL_AXIS", detail: -100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
     }
   },
 
