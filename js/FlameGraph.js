@@ -129,7 +129,7 @@ function FlameGraph(parent, sharpness) {
     this._window.addEventListener("mousemove", this._onMouseMove);
     this._iframe.addEventListener("mousedown", this._onMouseDown);
     this._window.addEventListener("mouseup", this._onMouseUp);
-    this._iframe.addEventListener("MozMousePixelScroll", this._onMouseWheel);
+    this._iframe.addEventListener("wheel", this._onMouseWheel);
 
     this._iframe.addEventListener("keypress", this._onKeyPress.bind(this));
 
@@ -664,13 +664,13 @@ FlameGraph.prototype = {
 
     let offset = this._getContainerOffset();
     if (key == "w") {
-      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "VERTICAL_AXIS", detail: -100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+      this._onMouseWheel({clientX: offset.left + this.width / 2, deltaX: 0, deltaY: -100, deltaMode: WheelEvent.DOM_DELTA_PIXEL, preventDefault: function () {} });
     } else if (key == "s") {
-      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "VERTICAL_AXIS", detail: 100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+      this._onMouseWheel({clientX: offset.left + this.width / 2, deltaX: 0, deltaY: 100, deltaMode: WheelEvent.DOM_DELTA_PIXEL, preventDefault: function () {} });
     } else if (key == "d") {
-      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "HORIZONTAL_AXIS", detail: 100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+      this._onMouseWheel({clientX: offset.left + this.width / 2, deltaX: 100, deltaY: 0, deltaMode: WheelEvent.DOM_DELTA_PIXEL, preventDefault: function () {} });
     } else if (key == "a") {
-      this._onMouseWheel({clientX: offset.left + this.width / 2, axis: "HORIZONTAL_AXIS", detail: -100, VERTICAL_AXIS: "VERTICAL_AXIS", HORIZONTAL_AXIS: "HORIZONTAL_AXIS"});
+      this._onMouseWheel({clientX: offset.left + this.width / 2, deltaX: -100, deltaY: 0, deltaMode: WheelEvent.DOM_DELTA_PIXEL, preventDefault: function () {} });
     }
   },
 
@@ -703,6 +703,8 @@ FlameGraph.prototype = {
    * Listener for the "wheel" event on the graph's container.
    */
   _onMouseWheel: function(e) {
+    e.preventDefault();
+
     let offset = this._getContainerOffset();
     let mouseX = (e.clientX - offset.left) * this._pixelRatio;
 
@@ -713,22 +715,24 @@ FlameGraph.prototype = {
     let selectionWidth = selection.end - selection.start;
     let selectionScale = canvasWidth / selectionWidth;
 
-    switch (e.axis) {
-      case e.VERTICAL_AXIS: {
-        let distFromStart = mouseX;
-        let distFromEnd = canvasWidth - mouseX;
-        let vector = e.detail * GRAPH_WHEEL_ZOOM_SENSITIVITY / selectionScale;
-        selection.start -= distFromStart * vector;
-        selection.end += distFromEnd * vector;
-        break;
+    function incrementForMode(mode) {
+      switch (mode) {
+        case WheelEvent.DOM_DELTA_PIXEL: return 1;
+        case WheelEvent.DOM_DELTA_LINE: return 15;
+        case WheelEvent.DOM_DELTA_PAGE: return 400;
       }
-      case e.HORIZONTAL_AXIS: {
-        let vector = e.detail * GRAPH_WHEEL_SCROLL_SENSITIVITY / selectionScale;
-        selection.start += vector;
-        selection.end += vector;
-        break;
-      }
+      return 0;
     }
+
+    let distFromStart = mouseX;
+    let distFromEnd = canvasWidth - mouseX;
+    let vectorY = e.deltaY * incrementForMode(e.deltaMode) * GRAPH_WHEEL_ZOOM_SENSITIVITY / selectionScale;
+    selection.start -= distFromStart * vectorY;
+    selection.end += distFromEnd * vectorY;
+
+    let vectorX = e.deltaX * incrementForMode(e.deltaMode) * GRAPH_WHEEL_SCROLL_SENSITIVITY / selectionScale;
+    selection.start += vectorX;
+    selection.end += vectorX;
 
     this._normalizeSelectionBounds();
     this._shouldRedraw = true;
