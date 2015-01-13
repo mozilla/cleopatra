@@ -126,9 +126,9 @@ function FlameGraph(parent, sharpness) {
     this._onMouseWheel = this._onMouseWheel.bind(this);
     this._onAnimationFrame = this._onAnimationFrame.bind(this);
 
-    this._iframe.addEventListener("mousemove", this._onMouseMove);
+    this._window.addEventListener("mousemove", this._onMouseMove);
     this._iframe.addEventListener("mousedown", this._onMouseDown);
-    this._iframe.addEventListener("mouseup", this._onMouseUp);
+    this._window.addEventListener("mouseup", this._onMouseUp);
     this._iframe.addEventListener("MozMousePixelScroll", this._onMouseWheel);
 
     this._iframe.addEventListener("keypress", this._onKeyPress.bind(this));
@@ -296,9 +296,7 @@ FlameGraph.prototype = {
     let selectionScale = canvasWidth / selectionWidth;
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    //ctx.translate(0, -selection.offsetY);
     this._drawPyramid(this._data, selection.start, selectionScale);
-    //ctx.translate(0, selection.offsetY);
 
     this._drawTicks(selection.start, selectionScale);
 
@@ -326,6 +324,9 @@ FlameGraph.prototype = {
     let textPaddingLeft = OVERVIEW_HEADER_TEXT_PADDING_LEFT * this._pixelRatio;
     let textPaddingTop = OVERVIEW_HEADER_TEXT_PADDING_TOP * this._pixelRatio;
     let tickInterval = this._findOptimalTickInterval(dataScale);
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvasWidth, OVERVIEW_HEADER_HEIGHT);
 
     ctx.textBaseline = "top";
     ctx.font = fontSize + "px " + fontFamily;
