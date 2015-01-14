@@ -27,8 +27,27 @@ function loadCleopatra(obj) {
       });
     }
 
+    if (obj.updatedFiltersFunc) {
+      var qunitWait = obj.assert.async();
+      iframe.contentDocument.addEventListener('cleopatra_updated_filter', function (e) {
+        obj.updatedFiltersFunc(iframe.contentDocument);
+        qunitWait();
+      });
+    }
+
     qunitWaitForLoad();
   };
   iframe.src = "index.html" + (obj.query || "")
   document.body.appendChild(iframe);
+}
+
+function shownSamples(cleopatraDocument) {
+  var shownSamples = cleopatraDocument.defaultView.gCurrentlyShownSampleData;
+  var c = 0;
+  for (var i = 0; i < shownSamples.length; i++) {
+    if (shownSamples[i] != null) {
+      c++;
+    }
+  }
+  return c;
 }

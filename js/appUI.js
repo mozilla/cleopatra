@@ -361,6 +361,10 @@
           } else {
             gPluginView.hide();
           }
+
+          var e = document.createEvent('CustomEvent');
+          e.initCustomEvent('cleopatra_updated_filter', false, false, null);
+          document.dispatchEvent(e);
         });
       }
 
