@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/bgirard/cleopatra.svg)](https://travis-ci.org/bgirard/cleopatra)
 
+![Cleopatra Screenshot](/images/screenshot.png?raw=true)
+
 Cleopatra
 =========
 
