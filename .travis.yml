@@ -1,0 +1,1 @@
+script: phantomjs js/tests/run_qunit.js test.html
