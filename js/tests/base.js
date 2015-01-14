@@ -15,7 +15,6 @@ function loadCleopatra(obj) {
   iframe.style.width = "100%";
   iframe.style.height = "1024px";
   iframe.onload = function() {
-    var cleopatra
     if (obj.testFunc) {
       obj.testFunc(iframe.contentDocument);
     }

@@ -281,7 +281,9 @@
         }
       }
 
-      document.dispatchEvent(new Event("cleopatra_profile_load"));
+      var e = document.createEvent('CustomEvent');
+      e.initCustomEvent('cleopatra_profile_load', false, false, null);
+      document.dispatchEvent(e);
     },
     MakeSizeAdjustable: function AppUI_MakeSizeAdjustable(dragElement, elementToResize) {
       var startY = 32;

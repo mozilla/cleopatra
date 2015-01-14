@@ -21,38 +21,46 @@ FlameGraphUtils.prototype.getContainer = function() {
 }
 
 FlameGraphUtils.prototype.setData = function(samples) {
-  const FLAME_GRAPH_BLOCK_HEIGHT = 12;
-  const FLAME_GRAPH_MAX_GAP = 5; // After this gap we consider the sample missed
-  const PALLETTE_SIZE = 10;
-  const PALLETTE_HUE_OFFSET = 0;
-  const PALLETTE_HUE_RANGE = 270;
-  const PALLETTE_SATURATION = 60;
-  const PALLETTE_BRIGHTNESS = 75;
-  const PALLETTE_OPACITY = 0.7;
+  var FLAME_GRAPH_BLOCK_HEIGHT = 12;
+  var FLAME_GRAPH_MAX_GAP = 5; // After this gap we consider the sample missed
+  var PALLETTE_SIZE = 10;
+  var PALLETTE_HUE_OFFSET = 0;
+  var PALLETTE_HUE_RANGE = 270;
+  var PALLETTE_SATURATION = 60;
+  var PALLETTE_BRIGHTNESS = 75;
+  var PALLETTE_OPACITY = 0.7;
           
-  const COLOR_PALLETTE = Array.from(Array(PALLETTE_SIZE)).map((_, i) => "hsla" +
-    "(" + ((PALLETTE_HUE_OFFSET + (i / PALLETTE_SIZE * PALLETTE_HUE_RANGE))|0 % 360) +
-    "," + PALLETTE_SATURATION + "%" +
-    "," + PALLETTE_BRIGHTNESS + "%" +
-    "," + PALLETTE_OPACITY +
-    ")"
-  );
+  var COLOR_PALLETTE = [];
+  for (var i = 0; i < PALLETTE_SIZE; i++) {
+    COLOR_PALLETTE.push(
+      "hsla" +
+      "(" + ((PALLETTE_HUE_OFFSET + (i / PALLETTE_SIZE * PALLETTE_HUE_RANGE))|0 % 360) +
+      "," + PALLETTE_SATURATION + "%" +
+      "," + PALLETTE_BRIGHTNESS + "%" +
+      "," + PALLETTE_OPACITY +
+      ")"
+    );
+  }
 
-  let out = [];
+  var out = [];
 
   // 1. Create a map of colors to arrays, representing buckets of
   // blocks inside the flame graph pyramid sharing the same style.
-  let buckets = new Map();
+  var buckets = {};
 
-  for (let color of COLOR_PALLETTE) {
-    buckets.set(color, []);
+  for (var i = 0; i < COLOR_PALLETTE.length; i++) {
+    var color = COLOR_PALLETTE[i];
+    buckets[color] = [];
   }
 
   // 2. Populate the buckets by iterating over every frame in every sample.
-  let prevTime = null;
-  let prevFrames = [];
+  var prevTime = null;
+  var prevFrames = [];
 
-  for (let { frames, time } of samples) {
+  for (var j = 0; j < samples.length; j++) {
+    var sample = samples[j];
+    var frames = sample.frames;
+    var time = sample.time;
     if (!time)
       continue;
 
@@ -60,11 +68,11 @@ FlameGraphUtils.prototype.setData = function(samples) {
       prevTime = time;
     }
 
-    let frameIndex = 0;
+    var frameIndex = 0;
 
     for (var i = 0; i < frames[0].length; i++) {
-      let location = gFunctions[frames[0][i]].functionName;
-      let prevFrame = prevFrames[frameIndex];
+      var location = gFunctions[frames[0][i]].functionName;
+      var prevFrame = prevFrames[frameIndex];
 
       // Frames at the same location and the same depth will be reused.
       // If there is a block already created, change its width.
@@ -75,9 +83,9 @@ FlameGraphUtils.prototype.setData = function(samples) {
       // Otherwise, create a new block for this frame at this depth,
       // using a simple location based salt for picking a color.
       else {
-        let hash = this._getStringHash(location);
-        let color = COLOR_PALLETTE[hash % PALLETTE_SIZE];
-        let bucket = buckets.get(color);
+        var hash = this._getStringHash(location);
+        var color = COLOR_PALLETTE[hash % PALLETTE_SIZE];
+        var bucket = buckets[color];
 
         bucket.push(prevFrames[frameIndex] = {
           srcData: { startTime: prevTime, rawLocation: location },
@@ -94,7 +102,7 @@ FlameGraphUtils.prototype.setData = function(samples) {
 
     // Previous frames at stack depths greater than the current sample's
     // maximum need to be nullified. It's nonsensical to reuse them.
-    for (let i = frameIndex; i < prevFrames.length; i++) {
+    for (var i = frameIndex; i < prevFrames.length; i++) {
       prevFrames[i] = null;
     }
 
@@ -104,8 +112,11 @@ FlameGraphUtils.prototype.setData = function(samples) {
   // 3. Convert the buckets into a data source usable by the FlameGraph.
   // This is a simple conversion from a Map to an Array.
 
-  for (let [color, blocks] of buckets) {
-    out.push({ color, blocks });
+  for (var i = 0; i < buckets.length; i++) {
+    var bucket = buckets[i];
+    var color = bucket.color;
+    var blocks = bucket.blocks;
+    out.push({ color: color, blocks: blocks });
   }
 
   if (this._graph) {
@@ -123,12 +134,12 @@ FlameGraphUtils.prototype.setData = function(samples) {
  * @return number
  */
 FlameGraphUtils.prototype._getStringHash = function(input) {
-  const STRING_HASH_PRIME1 = 7;
-  const STRING_HASH_PRIME2 = 31;
+  var STRING_HASH_PRIME1 = 7;
+  var STRING_HASH_PRIME2 = 31;
 
-  let hash = STRING_HASH_PRIME1;
+  var hash = STRING_HASH_PRIME1;
 
-  for (let i = 0, len = input.length; i < len; i++) {
+  for (var i = 0, len = input.length; i < len; i++) {
     hash *= STRING_HASH_PRIME2;
     hash = (hash + input.charCodeAt(i)) % 65535;
   }

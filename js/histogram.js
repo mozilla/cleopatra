@@ -366,8 +366,7 @@ var HistogramContainer;
     },
 
     scheduleRender: function (callstack, inverted, markers) {
-      var fn = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
-        window.webkitAnimationFrame || window.msRequestAnimationFrame;
+      var fn = window.requestAnimationFrame;
 
       fn(this.render.bind(this, callstack, inverted, markers));
     },
