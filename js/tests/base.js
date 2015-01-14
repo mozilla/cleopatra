@@ -1,10 +1,12 @@
+QUnit.config.reorder = false;
+
 function loadCleopatra(obj) {
   var qunitWaitForLoad = obj.assert.async();
 
   const TEST_CLEOPATRA_IFRAME_ID = "test_cleopatra";
   if (document.getElementById(TEST_CLEOPATRA_IFRAME_ID)) {
     var frameToRemove = document.getElementById(TEST_CLEOPATRA_IFRAME_ID);
-    frameToRemove.parent.removeChild(TEST_CLEOPATRA_IFRAME_ID);
+    frameToRemove.parentNode.removeChild(frameToRemove);
   }
 
   var iframe = document.createElement("iframe");
@@ -13,9 +15,21 @@ function loadCleopatra(obj) {
   iframe.style.width = "100%";
   iframe.style.height = "1024px";
   iframe.onload = function() {
-    obj.testFunc(iframe.contentDocument);
+    var cleopatra
+    if (obj.testFunc) {
+      obj.testFunc(iframe.contentDocument);
+    }
+
+    if (obj.profileLoadFunc) {
+      var qunitWaitForProfileLoad = obj.assert.async();
+      iframe.contentDocument.addEventListener('cleopatra_profile_load', function (e) {
+        obj.profileLoadFunc();
+        qunitWaitForProfileLoad();
+      });
+    }
+
     qunitWaitForLoad();
   };
-  iframe.src = "index.html"
+  iframe.src = "index.html" + (obj.query || "")
   document.body.appendChild(iframe);
 }

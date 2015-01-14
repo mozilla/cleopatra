@@ -280,6 +280,8 @@
             gBreadcrumbTrail.enterLastItem(forceSelection);
         }
       }
+
+      document.dispatchEvent(new Event("cleopatra_profile_load"));
     },
     MakeSizeAdjustable: function AppUI_MakeSizeAdjustable(dragElement, elementToResize) {
       var startY = 32;
