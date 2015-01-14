@@ -22,7 +22,7 @@ function loadCleopatra(obj) {
     if (obj.profileLoadFunc) {
       var qunitWaitForProfileLoad = obj.assert.async();
       iframe.contentDocument.addEventListener('cleopatra_profile_load', function (e) {
-        obj.profileLoadFunc();
+        obj.profileLoadFunc(iframe.contentDocument);
         qunitWaitForProfileLoad();
       });
     }
