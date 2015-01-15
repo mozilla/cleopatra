@@ -50,13 +50,13 @@ page.onConsoleMessage = function(msg) {
 
 page.open(system.args[1], function(status){
     if (status !== "success") {
-        console.log("Unable to access network");
+        console.log("Unable to access network: " + system.args[1]);
         phantom.exit(1);
     } else {
         waitFor(function(){
             return page.evaluate(function(){
                 var el = document.getElementById('qunit-testresult');
-                if (el && el.innerText.match('completed')) {
+                if (el && el.textContent.match('completed')) {
                     return true;
                 }
                 return false;
@@ -64,7 +64,7 @@ page.open(system.args[1], function(status){
         }, function(){
             var failedNum = page.evaluate(function(){
                 var el = document.getElementById('qunit-testresult');
-                console.log(el.innerText);
+                console.log(el.textContent);
                 try {
                     return el.getElementsByClassName('failed')[0].innerHTML;
                 } catch (e) { }
