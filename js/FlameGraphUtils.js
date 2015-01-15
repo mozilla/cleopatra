@@ -112,10 +112,9 @@ FlameGraphUtils.prototype.setData = function(samples) {
   // 3. Convert the buckets into a data source usable by the FlameGraph.
   // This is a simple conversion from a Map to an Array.
 
-  for (var i = 0; i < buckets.length; i++) {
-    var bucket = buckets[i];
-    var color = bucket.color;
-    var blocks = bucket.blocks;
+  for (var i in buckets) {
+    var color = i;
+    var blocks = buckets[i];
     out.push({ color: color, blocks: blocks });
   }
 
