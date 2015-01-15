@@ -459,6 +459,7 @@
         console.log("parsing (in worker): " + (Date.now() - startTime) + "ms");
         reporter.finish();
         gMeta = result.meta;
+        gTaskTracer = result.tasktracer;
         gNumSamples = result.numSamples;
         gSymbols = result.symbols;
         gFunctions = result.functions;

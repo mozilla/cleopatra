@@ -290,6 +290,7 @@ function parseRawProfile(requestID, params, rawProfile) {
   var functionIndices = {};
   var threads = {};
   var meta = {};
+  var tasktracer = null;
   var armIncludePCIndex = {};
 
   if (rawProfile == null) {
@@ -698,6 +699,7 @@ function parseRawProfile(requestID, params, rawProfile) {
     // TODO support all the thread in the profile
     var profileSamples = null;
     meta = profile.meta || {};
+    tasktracer = profile.tasktracer;
     if (params.appendVideoCapture) {
       meta.videoCapture = {
         src: params.appendVideoCapture,
@@ -929,6 +931,7 @@ function parseRawProfile(requestID, params, rawProfile) {
   var profileID = gNextProfileID;
   gProfiles[profileID] = JSON.parse(JSON.stringify({
     meta: meta,
+    tasktracer: tasktracer,
     symbols: symbols,
     functions: functions,
     resources: resources,
@@ -937,6 +940,7 @@ function parseRawProfile(requestID, params, rawProfile) {
   clearRegExpLastMatch();
   sendFinished(requestID, {
     meta: meta,
+    tasktracer: tasktracer,
     numSamples: threads[0].samples.length,
     profileID: profileID,
     symbols: symbols,
@@ -965,6 +969,7 @@ function getSerializedProfile(requestID, profileID, complete) {
   var serializedProfile = JSON.stringify({
     format: "profileJSONWithSymbolicationTable,1",
     meta: profile.meta,
+    tasktracer: profile.tasktracer,
     profileJSON: complete ? { threads: profile.threads } : profile.filteredThreadSamples[DEFAULT_SAVE_THREAD],
     symbolicationTable: symbolicationTable
   });

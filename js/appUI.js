@@ -214,11 +214,7 @@
       });
 
       currRow = document.createElement("div");
-      currRow.style.flex = 1;
-      currRow.style.width = "100%";
-      currRow.style.height = "100%";
-      currRow.style.display = "flex";
-      currRow.style.flexDirection = "column";
+      currRow.className = "tabPane";
       currRow.appendChild(gTabWidget.getContainer());
       finishedProfilePane.appendChild(currRow);
 

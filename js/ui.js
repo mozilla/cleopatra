@@ -15,6 +15,7 @@
 
     window.gNumSamples = 0;
     window.gMeta = null;
+    window.gTaskTracer = null;
     window.gSymbols = {};
     window.gFunctions = {};
     window.gResources = {};
