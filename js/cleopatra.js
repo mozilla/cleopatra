@@ -227,7 +227,7 @@
     },
 
     queryEscape: function Cleopatra_queryEscape(str) {
-      return encodeURIComponent(encodeURIComponent(str));
+      return "BEN: " + encodeURIComponent(str);
     },
 
     loadQueryData: function Cleopatra_loadQueryData(queryData) {

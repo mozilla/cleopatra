@@ -14,15 +14,29 @@ function loadCleopatra(obj) {
   iframe.style.position = "absolute"
   iframe.style.width = "100%";
   iframe.style.height = "1024px";
+
   iframe.onload = function() {
+    var cleopatraObj = {
+      iframe: iframe,
+      document: iframe.contentDocument,
+      window: iframe.contentDocument.defaultView,
+      treeDisplayCallback: function(callback) {
+        var qunitWait = obj.assert.async();
+        iframe.contentDocument.addEventListener('cleopatra_updated_tree', function (e) {
+          callback(cleopatraObj);
+          qunitWait();
+        });
+      },
+    }
+
     if (obj.testFunc) {
-      obj.testFunc(iframe.contentDocument);
+      obj.testFunc(cleopatraObj);
     }
 
     if (obj.profileLoadFunc) {
       var qunitWaitForProfileLoad = obj.assert.async();
       iframe.contentDocument.addEventListener('cleopatra_profile_load', function (e) {
-        obj.profileLoadFunc(iframe.contentDocument);
+        obj.profileLoadFunc(cleopatraObj);
         qunitWaitForProfileLoad();
       });
     }
@@ -30,7 +44,7 @@ function loadCleopatra(obj) {
     if (obj.updatedFiltersFunc) {
       var qunitWait = obj.assert.async();
       iframe.contentDocument.addEventListener('cleopatra_updated_filter', function (e) {
-        obj.updatedFiltersFunc(iframe.contentDocument);
+        obj.updatedFiltersFunc(cleopatraObj);
         qunitWait();
       });
     }
@@ -41,8 +55,8 @@ function loadCleopatra(obj) {
   document.body.appendChild(iframe);
 }
 
-function shownSamples(cleopatraDocument) {
-  var shownSamples = cleopatraDocument.defaultView.gCurrentlyShownSampleData;
+function shownSamples(cleopatraObj) {
+  var shownSamples = cleopatraObj.window.gCurrentlyShownSampleData;
   var c = 0;
   for (var i = 0; i < shownSamples.length; i++) {
     if (shownSamples[i] != null) {

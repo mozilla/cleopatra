@@ -526,7 +526,9 @@
     },
 
     queryEscape: function AppUI_queryEscape(str) {
-      return encodeURIComponent(encodeURIComponent(str));
+      // Replace the comma because even if it's required it's supported for backwards compatibility
+      // and makes the URL more readable.
+      return encodeURIComponent(str).replace(/%2C/g, ",");
     },
 
     updateDocumentURL: function AppUI_updateDocumentURL() {
@@ -548,8 +550,6 @@
           query += "&";
         query += "search=" + this.queryEscape(document.getElementById("filterName").value);
       }
-      // For now don't restore the view rest
-      return query;
       if (gJankOnly) {
         if (query != "")
           query += "&";
@@ -609,6 +609,11 @@
         gHistogramContainer.invertionChanged(gInvertCallstack);
         gTreeManager.display(calltree, gSymbols, gFunctions, gResources, gMergeFunctions, filterNameInput && filterNameInput.value);
         console.log("tree displaying: " + (Date.now() - start) + "ms.");
+
+        var e = document.createEvent('CustomEvent');
+        e.initCustomEvent('cleopatra_updated_tree', false, false, null);
+        document.dispatchEvent(e);
+
         if (finished_cb) {
           finished_cb();
         }

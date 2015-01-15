@@ -4,8 +4,8 @@ QUnit.test("Cleopatra Simple Profile", function(assert) {
     assert: assert,
     testFunc: function(cleopatraDocument) {
     },
-    profileLoadFunc: function(cleopatraDocument) {
-      assert.ok(cleopatraDocument.defaultView.gNumSamples === 174, "Loaded profile");
+    profileLoadFunc: function(cleopatraObj) {
+      assert.ok(cleopatraObj.window.gNumSamples === 174, "Loaded profile");
     },
   });
 });
@@ -14,10 +14,10 @@ QUnit.test("Cleopatra Complex Profile", function(assert) {
   loadCleopatra({
     query: "?report=4c013822c9b91ffdebfbe6b9ef300adec6d5a99f",
     assert: assert,
-    testFunc: function(cleopatraDocument) {
+    testFunc: function(cleopatraObj) {
     },
-    profileLoadFunc: function(cleopatraDocument) {
-      assert.ok(cleopatraDocument.defaultView.gNumSamples === 558, "Loaded profile");
+    profileLoadFunc: function(cleopatraObj) {
+      assert.ok(cleopatraObj.window.gNumSamples === 558, "Loaded profile");
     },
   });
 });

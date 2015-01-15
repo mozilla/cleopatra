@@ -61,10 +61,12 @@
       return this.treeView.getSelectionSnapshot().length > 1;
     },
     serializeCurrentSelectionSnapshot: function ProfileTreeManager_serializeCurrentSelectionSnapshot() {
-      return JSON.stringify(this.treeView.getSelectionSnapshot());
+      var str = JSON.stringify(this.treeView.getSelectionSnapshot());
+      console.log(str);
+      return str.substring(1, str.length - 1);
     },
     restoreSerializedSelectionSnapshot: function ProfileTreeManager_restoreSerializedSelectionSnapshot(selection) {
-      this._savedSnapshot = JSON.parse(selection);
+      this._savedSnapshot = JSON.parse("[" + selection + "]");
     },
     _restoreSelectionSnapshot: function ProfileTreeManager__restoreSelectionSnapshot(snapshot, allowNonContigous) {
       return this.treeView.restoreSelectionSnapshot(snapshot, allowNonContigous);
