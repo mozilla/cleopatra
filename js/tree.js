@@ -178,7 +178,7 @@ TreeView.prototype = {
   restoreSelectionSnapshot: function TreeView_restoreSelectionSnapshot(snapshot, allowNonContigious) {
     //console.log("restore selection: " + JSON.stringify(snapshot));
     var currNode = this._treeInnerContainer.firstChild;
-    if (currNode.data.fullFrameNamesAsInSample[0] == snapshot[0] || snapshot[0] == "(total)") {
+    if (currNode.data.fullFrameNamesAsInSample[0] == snapshot[0] || currNode.data.name == snapshot[0] || snapshot[0] == "(total)") {
       snapshot.shift();
     }
     //dump("len: " + snapshot.length + "\n");
@@ -186,7 +186,7 @@ TreeView.prototype = {
       this._toggle(currNode, false, true);
       this._syncProcessPendingActionProcessing();
       for (var i = 0; i < currNode.treeChildren.length; i++) {
-        if (currNode.treeChildren[i].data.fullFrameNamesAsInSample[0] == snapshot[0]) {
+        if (currNode.treeChildren[i].data.fullFrameNamesAsInSample[0] == snapshot[0] || currNode.treeChildren[i].data.name == snapshot[0]) {
           //console.log("Found: " + currNode.treeChildren[i].data.name + "\n");
           snapshot.shift();
           this._toggle(currNode, false, true);
@@ -204,7 +204,7 @@ TreeView.prototype = {
             continue;
           for (var i = 0; i < node.treeChildren.length; i++) {
             var childNode = node.treeChildren[i].getData();
-            if (childNode.fullFrameNamesAsInSample[0] == snapshot[0]) {
+            if (childNode.fullFrameNamesAsInSample[0] == snapshot[0] || childNode.data.name == snapshot[0]) {
               //dump("found: " + childNode.name + "\n");
               snapshot.shift();
               var nodesToToggle = [childNode];
