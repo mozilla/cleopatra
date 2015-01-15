@@ -32,7 +32,7 @@ QUnit.test("Select Filter", function(assert) {
   });
 });
 
-QUnit.test("Invert Callstack", function(assert) {
+QUnit.test("Restore Selection", function(assert) {
   loadCleopatra({
     query: "?report=1af8b3634507afe71fdd7a4902aca0d50cc20223&selection=0,1,24",
     assert: assert,
@@ -42,7 +42,23 @@ QUnit.test("Invert Callstack", function(assert) {
       assert.ok(cleopatraObj.window.gNumSamples === 174, "Loaded profile");
 
       cleopatraObj.treeDisplayCallback(function(cleopatraObj) {
-        assert.equal(cleopatraObj.window.gTreeManager.serializeCurrentSelectionSnapshot(), "0,1,24", "We restored the selection correctly");
+        assert.equal(cleopatraObj.window.gTreeManager.serializeCurrentSelectionSnapshot(), "0,1,24", "Restored the selection correctly");
+      });
+    },
+  });
+});
+
+QUnit.test("Invert & Restore Selection", function(assert) {
+  loadCleopatra({
+    query: "?report=1af8b3634507afe71fdd7a4902aca0d50cc20223&invertCallback=true&selection=0,1,24",
+    assert: assert,
+    testFunc: function(cleopatraObj) {
+    },
+    profileLoadFunc: function(cleopatraObj) {
+      assert.ok(cleopatraObj.window.gNumSamples === 174, "Loaded profile");
+
+      cleopatraObj.treeDisplayCallback(function(cleopatraObj) {
+        assert.equal(cleopatraObj.window.gTreeManager.serializeCurrentSelectionSnapshot(), "(total),24,1", "Restored the selection correctly");
       });
     },
   });
