@@ -1,1 +1,11 @@
 script: phantomjs js/tests/run_qunit.js test.html
+
+notifications:
+  irc:
+    chhannels:
+      - "irc.mozilla.org#perf"
+    template:
+     - "BenWa: %{repository} (%{commit}) : %{message} %{build_url}"
+    on_success: always
+    on_failure: always
+    skip_join: true
