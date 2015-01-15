@@ -330,6 +330,14 @@
       return totalProgressReporter;
     },
     filtersChanged: function AppUI_filtersChanged(evt) {
+      if (this._pendingUpdateFilter) {
+        window.clearTimeout(this._pendingUpdateFilter);
+      }
+      window.setTimeout(function() {
+        this._updateFilters();
+      }.bind(this), 0);
+    },
+    _updateFilters: function AppUI_updateFilters(evt) {
       var boundaries = evt ? evt.detail : null;
       this.updateDocumentURL();
       var data = { symbols: {}, functions: {}, samples: [] };

@@ -22,6 +22,8 @@
         this.enableProfilerLogging();
       }
 
+      this.loadQueryData(queryData);
+
       if (queryData.report) {
         if (queryData.report.length == 40) {
           this.loadProfileURL('https://profile-store.commondatastorage.googleapis.com/' + queryData.report);
@@ -44,7 +46,6 @@
         // Fetch a compressed eideticker profile
         this.loadZippedProfileURL(queryData.zippedProfile);
       }
-      this.loadQueryData(queryData);
 
       window.addEventListener('message', this);
       window.addEventListener('prompt-upload-profile', this);
