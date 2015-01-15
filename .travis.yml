@@ -18,4 +18,4 @@ notifications:
     on_success: change
     on_failure: change
 
-script: phantomjs js/tests/run_qunit.js test.html
+script: phantomjs js/tests/run_qunit.js test.html && ./slimerjs/slimerjs js/tests/run_qunit.js $PWD/test.html
