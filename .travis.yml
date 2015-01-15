@@ -2,7 +2,7 @@ script: phantomjs js/tests/run_qunit.js test.html
 
 notifications:
   irc:
-    chhannels:
+    channels:
       - "irc.mozilla.org#perf"
     template:
      - "BenWa: %{repository} (%{commit}) : %{message} %{build_url}"
