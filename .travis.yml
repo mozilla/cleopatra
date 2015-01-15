@@ -8,4 +8,3 @@ notifications:
      - "BenWa: %{repository} (%{commit}) : %{message} %{build_url}"
     on_success: always
     on_failure: always
-    skip_join: true
