@@ -185,9 +185,6 @@ body {
   opacity: 0;
   margin-left: -270px;
 }
-.treeContainer {
-  /*For asbolute position child*/
-}
 .tree {
   display: flex;
   flex-flow: column;
@@ -674,6 +671,7 @@ iframe {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 
@@ -684,6 +682,7 @@ iframe {
 }
 
 .treeContainer {
+  overflow: auto;
   display: flex;
   flex-flow: row nowrap;
   height: 100%;
