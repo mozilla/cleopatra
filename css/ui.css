@@ -187,23 +187,17 @@ body {
 }
 .treeContainer {
   /*For asbolute position child*/
-  position: absolute;
 }
 .tree {
+  display: flex;
+  flex-flow: column;
+  width: 100%;
   height: 100%;
-  padding: 0px 200px 0px 0px;
 }
 #sampleBar {
-  position: absolute;
-  float: right;
-  left: auto;
-  top: 0;
-  right: 0;
+  position: relative;
   height: 100%;
-  border-top: none;
-  border-right: none;
-  border-bottom:none;
-  padding-top:0;
+  min-width: 200px;
 }
 #sampleBar a {
   text-decoration: none;
@@ -672,4 +666,19 @@ iframe {
   border-color: blue !important;
   z-index: 10;
 }
+
+
+.tabContainer {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+
+.treeContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  height: 100%;
+  flex: 1;
+}
+
 /* end tabs */

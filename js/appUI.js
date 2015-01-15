@@ -215,8 +215,10 @@
 
       currRow = document.createElement("div");
       currRow.style.flex = 1;
+      currRow.style.width = "100%";
       currRow.style.height = "100%";
-      currRow.style.overflow = "scroll";
+      currRow.style.display = "flex";
+      currRow.style.flexDirection = "column";
       currRow.appendChild(gTabWidget.getContainer());
       finishedProfilePane.appendChild(currRow);
 
@@ -286,21 +288,6 @@
       document.dispatchEvent(e);
     },
     MakeSizeAdjustable: function AppUI_MakeSizeAdjustable(dragElement, elementToResize) {
-      var startY = 32;
-      var h = 16;
-      dragElement.classList.add("adjustable");
-      dragElement.addEventListener("mousedown", function(e) {
-        dragElement.dragging = function(e) {
-          var mh = e.clientY;
-          elementToResize.style.maxHeight = Math.max(60, (mh - h/2 - startY)) + "px";
-          console.log((h) + "px");
-        };
-        document.addEventListener("mousemove", dragElement.dragging);
-        dragElement.dragging(e);
-      });
-      document.addEventListener("mouseup", function() {
-        document.removeEventListener("mousemove", dragElement.dragging);
-      });
     },
     enterProgressUI: function AppUI_enterProgressUI() {
       var profileProgressPane = document.createElement("div");
