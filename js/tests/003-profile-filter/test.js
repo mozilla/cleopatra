@@ -50,7 +50,7 @@ QUnit.test("Restore Selection", function(assert) {
 
 QUnit.test("Invert & Restore Selection", function(assert) {
   loadCleopatra({
-    query: "?report=1af8b3634507afe71fdd7a4902aca0d50cc20223&invertCallback=true&selection=0,1,24",
+    query: "?report=1af8b3634507afe71fdd7a4902aca0d50cc20223&invertCallback=true&selection=\"(total)\",24,1",
     assert: assert,
     testFunc: function(cleopatraObj) {
     },
@@ -58,7 +58,7 @@ QUnit.test("Invert & Restore Selection", function(assert) {
       assert.ok(cleopatraObj.window.gNumSamples === 174, "Loaded profile");
 
       cleopatraObj.treeDisplayCallback(function(cleopatraObj) {
-        assert.equal(cleopatraObj.window.gTreeManager.serializeCurrentSelectionSnapshot(), "(total),24,1", "Restored the selection correctly");
+        assert.equal(cleopatraObj.window.gTreeManager.serializeCurrentSelectionSnapshot(), "\"(total)\",24,1", "Restored the selection correctly");
       });
     },
   });
