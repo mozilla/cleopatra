@@ -235,6 +235,8 @@
 
       gMarkerTreeManager = new MarkerTreeManager();
       gMarkerTreeManager.getContainer().style.padding = "0px";
+      gMarkerTreeManager.getContainer().style.width = "100%";
+      gMarkerTreeManager.getContainer().style.height = "100%";
       gTabWidget.addTab("Markers", gMarkerTreeManager.getContainer());
       this.MakeSizeAdjustable(gMarkerTreeManager.getTreeHeader(), gHistogramContainer.container.parentNode);
 
