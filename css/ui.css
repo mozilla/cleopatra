@@ -189,11 +189,10 @@ body {
   display: flex;
   flex-flow: column;
   width: 100%;
-  height: 100%;
 }
 #sampleBar {
   position: relative;
-  height: 100%;
+  height: auto;
   min-width: 200px;
 }
 #sampleBar a {

@@ -7,6 +7,7 @@
   height: 100%;
   outline: none; /* override the browser's focus styling */
   position: relative;
+  flex: 1;
 }
 
 .treeHeader {
