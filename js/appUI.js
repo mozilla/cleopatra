@@ -160,6 +160,7 @@
 
       gBreadcrumbTrail = new BreadcrumbTrail();
       currRow = document.createElement("div");
+      currRow.style.flex = "0 0 auto";
       finishedProfilePane.appendChild(currRow);
       currRow.appendChild(gBreadcrumbTrail.getContainer());
 
