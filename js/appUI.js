@@ -316,8 +316,8 @@
       if (this._pendingUpdateFilter) {
         window.clearTimeout(this._pendingUpdateFilter);
       }
-      window.setTimeout(function() {
-        this._updateFilters();
+      this._pendingUpdateFilter = window.setTimeout(function() {
+        this._updateFilters(evt);
       }.bind(this), 0);
     },
     _updateFilters: function AppUI_updateFilters(evt) {
