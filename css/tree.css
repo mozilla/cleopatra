@@ -87,7 +87,9 @@
 
 .treeViewTreeInnerContainer {
   min-width: intrinsic;
+  min-width: max-content;
   min-width: -moz-max-content;
+  min-width: -webkit-max-content;
   min-height: 100%;
 }
 
