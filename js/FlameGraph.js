@@ -678,7 +678,7 @@ FlameGraph.prototype = {
     } else if (e.code == "KeyD") {
       key = "d";
     } else {
-      key = e.key;
+      key = e.key || String.fromCharCode(e.keyCode || e.charCode);
     }
 
     var offset = this._getContainerOffset();
