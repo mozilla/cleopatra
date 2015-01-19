@@ -44,7 +44,7 @@
         this.loadProfileURL(filename);
       } else if (queryData.zippedProfile) {
         // Fetch a compressed eideticker profile
-        this.loadZippedProfileURL(queryData.zippedProfile);
+        this.loadZippedProfileURL(queryData.zippedProfile, queryData.pathInZip);
       }
 
       window.addEventListener('message', this);
@@ -347,11 +347,11 @@
       gAppendVideoCapture = videoCapture;
     },
 
-    loadZippedProfileURL: function Cleopatra_loadZippedProfileURL(url) {
+    loadZippedProfileURL: function Cleopatra_loadZippedProfileURL(url, pathInZip) {
       var reporter = AppUI.enterProgressUI();
       var subreporters = reporter.addSubreporters({
         fileLoading: 1000,
-        parsing: 1000
+        entryLoading: 2000
       });
 
       // Crude way to detect if we're using a relative URL or not :(
@@ -369,24 +369,54 @@
       zip.workerScriptsPath = "js/zip.js/";
       var self = this;
       zip.createReader(new zip.HttpReader(url), function(zipReader) {
-        subreporters.fileLoading.setProgress(0.4);
+        subreporters.fileLoading.finish();
         zipReader.getEntries(function(entries) {
-          for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            PROFILERTRACE("Zip file: " + entry.filename);
-            if (entry.filename === "symbolicated_profile.txt") {
-              reporter.begin("Decompressing " + url);
-              subreporters.fileLoading.setProgress(0.8);
-              entry.getData(new zip.TextWriter(), function(profileText) {
-                subreporters.fileLoading.finish();
-                self.loadRawProfile(subreporters.parsing, profileText);
-              });
-              return;
+          if (!pathInZip && entries.length == 1) {
+            pathInZip = entries[0].filename;
+          }
+          if (!pathInZip) {
+            AppUI.showChooserPanel("Please choose one of the files contained in this zip for opening.",
+              entries.map(function (entry) {
+                return {
+                  label: entry.filename,
+                  href: './#?zippedProfile=' + url + '&pathInZip=' + entry.filename,
+                  obj: entry
+                };
+              }),
+              function (chosenObj) {
+                var entry = chosenObj.obj;
+                if (window.history && window.history.replaceState) {
+                  history.pushState({}, document.title, chosenObj.href);
+                }
+                self.loadProfileZipEntry(entry, subreporters.entryLoading);
+              }
+            );
+          } else {
+            for (var i = 0; i < entries.length; i++) {
+              var entry = entries[i];
+              PROFILERTRACE("Zip file: " + entry.filename);
+              if (entry.filename === pathInZip) {
+                self.loadProfileZipEntry(entry, subreporters.entryLoading);
+                return;
+              }
+              onerror(pathInZip + " not found in zip file.");
             }
-            onerror("symbolicated_profile.txt not found in zip file.");
           }
         });
       }, onerror);
+    },
+
+    loadProfileZipEntry: function Cleopatra_loadProfileZipEntry(entry, reporter) {
+      var subreporters = reporter.addSubreporters({
+        unzipping: 1000,
+        parsing: 1000
+      });
+      var self = this;
+      subreporters.unzipping.begin("Decompressing " + entry.filename);
+      entry.getData(new zip.TextWriter(), function(profileText) {
+        subreporters.unzipping.finish();
+        self.loadRawProfile(subreporters.parsing, profileText);
+      });
     },
 
     loadProfileURL: function Cleopatra_loadProfileURL(url) {
