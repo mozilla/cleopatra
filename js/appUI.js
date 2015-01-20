@@ -315,6 +315,48 @@
 
       return totalProgressReporter;
     },
+    /**
+     * Present a panel to the user that lets the user choose an item from a
+     * list of options.
+     * @param  string   message  The message at the top of the panel
+     * @param  array    list     A list of items, each being an object with
+     *                           at least the properties 'label' and 'href'.
+     * @param  callback onchoose A callback function that accepts one
+     *                           parameter, will be called with the chosen item
+     *
+     */
+    showChooserPanel: function AppUI_showChooserPanel(message, list, onchoose) {
+      var panel = document.createElement("div");
+      panel.className = "chooserPanel";
+      var h3 = document.createElement("h3");
+      panel.appendChild(h3);
+      h3.textContent = message;
+      var ul = document.createElement("ul");
+      panel.appendChild(ul);
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        var li = document.createElement("li");
+        ul.appendChild(li);
+        var a = document.createElement("a");
+        li.appendChild(a);
+        a.textContent = item.label;
+        a.setAttribute("href", item.href);
+        a.itemObj = item;
+        a.className = "chooserItemLink";
+      }
+      ul.addEventListener("click", function clickChooserList(e) {
+        if (e.target.className == "chooserItemLink") {
+          onchoose(e.target.itemObj);
+          panel.classList.remove("appear");
+          setTimeout(function () { panel.parentNode.removeChild(panel); }, 1000);
+          e.preventDefault();
+        }
+        return true;
+      });
+      document.body.appendChild(panel);
+      panel.offsetTop; // flush
+      panel.classList.add("appear");
+    },
     filtersChanged: function AppUI_filtersChanged(evt) {
       if (this._pendingUpdateFilter) {
         window.clearTimeout(this._pendingUpdateFilter);
