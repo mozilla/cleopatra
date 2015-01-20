@@ -347,10 +347,46 @@
       gAppendVideoCapture = videoCapture;
     },
 
+    loadXHRWithProgress: function Cleopatra_loadXHRWithProgress(url, responseType, onsuccess, onerror, progressReporter) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.responseType = responseType;
+      var self = this;
+      xhr.onreadystatechange = function (e) {
+        if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
+          progressReporter.finish();
+          if (!xhr.response) {
+            progressReporter.begin("File '" + url + "' is empty. Did you set the CORS headers?");
+            onerror();
+            return;
+          }
+          onsuccess(xhr);
+        }
+      };
+      xhr.onerror = function (e) {
+        progressReporter.begin("Error fetching file. URL: '" + url + "'. Did you set the CORS headers?");
+        onerror(e);
+      }
+      xhr.onprogress = function (e) {
+        if (e.lengthComputable && (e.loaded <= e.total)) {
+          progressReporter.setProgress(e.loaded / e.total);
+        } else {
+          progressReporter.setProgress(NaN);
+        }
+      };
+      try {
+        xhr.send(null);
+      } catch (e) {
+        progressReporter.begin("Error fetching file. URL: '" + url + "':" + e.message);
+        onerror(e);
+      }
+    },
+
     loadZippedProfileURL: function Cleopatra_loadZippedProfileURL(url, pathInZip) {
       var reporter = AppUI.enterProgressUI();
       var subreporters = reporter.addSubreporters({
-        fileLoading: 1000,
+        fileLoading: 4000,
+        zipReading: 10,
         entryLoading: 2000
       });
 
@@ -358,7 +394,6 @@
       if (url.indexOf("://") == -1) {
         url = EIDETICKER_BASE_URL + url;
       }
-      reporter.begin("Fetching " + url);
       PROFILERTRACE("Fetch url: " + url);
 
       function onerror(e) {
@@ -366,50 +401,55 @@
         PROFILERERROR(JSON.stringify(e));
       }
 
-      zip.workerScriptsPath = "js/zip.js/";
       var self = this;
-      zip.createReader(new zip.HttpReader(url), function(zipReader) {
-        subreporters.fileLoading.finish();
-        zipReader.getEntries(function(entries) {
-          if (!pathInZip && entries.length == 1) {
-            pathInZip = entries[0].filename;
-          }
-          if (!pathInZip) {
-            AppUI.showChooserPanel("Please choose one of the files contained in this zip for opening.",
-              entries.map(function (entry) {
-                return {
-                  label: entry.filename,
-                  href: './#?zippedProfile=' + url + '&pathInZip=' + entry.filename,
-                  obj: entry
-                };
-              }),
-              function (chosenObj) {
-                var entry = chosenObj.obj;
-                if (window.history && window.history.replaceState) {
-                  history.pushState({}, document.title, chosenObj.href);
-                }
-                self.loadProfileZipEntry(entry, subreporters.entryLoading);
-              }
-            );
-          } else {
-            for (var i = 0; i < entries.length; i++) {
-              var entry = entries[i];
-              PROFILERTRACE("Zip file: " + entry.filename);
-              if (entry.filename === pathInZip) {
-                self.loadProfileZipEntry(entry, subreporters.entryLoading);
-                return;
-              }
-              onerror(pathInZip + " not found in zip file.");
+      function onsuccess(xhr) {
+        subreporters.zipReading.begin("Reading zip file entries...");
+        zip.workerScriptsPath = "js/zip.js/";
+        zip.createReader(new zip.BlobReader(xhr.response), function(zipReader) {
+          subreporters.zipReading.finish();
+          zipReader.getEntries(function(entries) {
+            if (entries.length == 0) {
+              subreporters.zipReader.begin("There are no files contained in this zip.");
+              return;
             }
-          }
+            if (!pathInZip && entries.length == 1) {
+              pathInZip = entries[0].filename;
+            }
+            if (pathInZip) {
+              var entry = entries.filter(function (entry) { return entry.filename == pathInZip; })[0];
+              if (!entry) {
+                onerror(pathInZip + " not found in zip file.");
+              }
+              self.loadProfileZipEntry(entry, subreporters.entryLoading);
+            } else {
+              AppUI.showChooserPanel("Please choose one of the files contained in this zip for opening.",
+                entries.map(function (entry) {
+                  return {
+                    label: entry.filename,
+                    href: './?zippedProfile=' + url + '&pathInZip=' + entry.filename,
+                    obj: entry
+                  };
+                }),
+                function (chosenObj) {
+                  var entry = chosenObj.obj;
+                  if (window.history && window.history.replaceState) {
+                    history.pushState({}, document.title, chosenObj.href);
+                  }
+                  self.loadProfileZipEntry(entry, subreporters.entryLoading);
+                }
+              );
+            }
+          });
         });
-      }, onerror);
+      }
+
+      this.loadXHRWithProgress(url, "blob", onsuccess, onerror, subreporters.fileLoading);
     },
 
     loadProfileZipEntry: function Cleopatra_loadProfileZipEntry(entry, reporter) {
       var subreporters = reporter.addSubreporters({
         unzipping: 1000,
-        parsing: 1000
+        parsing: 2000
       });
       var self = this;
       subreporters.unzipping.begin("Decompressing " + entry.filename);
@@ -426,38 +466,20 @@
         parsing: 1000
       });
 
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", url, true);
-      xhr.responseType = "text";
       var self = this;
-      xhr.onreadystatechange = function (e) {
-        if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
-          subreporters.fileLoading.finish();
-          PROFILERLOG("Got profile from '" + url + "'.");
-          if (xhr.responseText == null || xhr.responseText === "") {
-            subreporters.fileLoading.begin("Profile '" + url + "' is empty. Did you set the CORS headers?");
-            return;
-          }
-          self.loadRawProfile(subreporters.parsing, xhr.responseText, url);
+      function onsuccess(xhr) {
+        PROFILERLOG("Got profile from '" + url + "'.");
+        if (xhr.responseText == null || xhr.responseText === "") {
+          subreporters.fileLoading.begin("Profile '" + url + "' is empty. Did you set the CORS headers?");
+          return;
         }
-      };
-      xhr.onerror = function (e) { 
+        self.loadRawProfile(subreporters.parsing, xhr.responseText, url);
+      }
+      function onerror(e) { 
         subreporters.fileLoading.begin("Error fetching profile :(. URL: '" + url + "'. Did you set the CORS headers?");
       }
-      xhr.onprogress = function (e) {
-        if (e.lengthComputable && (e.loaded <= e.total)) {
-          subreporters.fileLoading.setProgress(e.loaded / e.total);
-        } else {
-          subreporters.fileLoading.setProgress(NaN);
-        }
-      };
-      try {
-        xhr.send(null);
-      } catch (e) {
-        subreporters.fileLoading.begin("Error fetching profile :(. URL: '" + url + "':" + e.message);
-        return;
-      }
-      subreporters.fileLoading.begin("Loading remote file...");
+
+      this.loadXHRWithProgress(url, "text", onsuccess, onerror, subreporters.fileLoading);
     },
 
     loadProfile: function Cleopatra_loadProfile(rawProfile) {
