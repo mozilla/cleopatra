@@ -22,6 +22,8 @@ QUnit.test("Cleopatra Complex Profile", function(assert) {
   });
 });
 
+// PhantomJS doesn't support zip.js so skip this test for it
+if (navigator.userAgent.indexOf("PhantomJS") == -1) {
 QUnit.test("Cleopatra Zip (Talos) Profile", function(assert) {
   loadCleopatra({
     query: "?zippedProfile=http://mozilla-releng-blobs.s3.amazonaws.com/blobs/Try-Non-PGO/sha512/02ce11479d9a0c03eee146c9ff18010e9eca892dd9b3ab92eed40f07fcb295a1c4a2e5ed317bbf784e0363f4f3630c4cb7117e7522e21c6d2b48fb469ed68cd5&pathInZip=profile_tresize/tresize/cycle_7.sps",
@@ -33,3 +35,4 @@ QUnit.test("Cleopatra Zip (Talos) Profile", function(assert) {
     },
   });
 });
+}
