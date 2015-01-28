@@ -1,3 +1,5 @@
+var gContentScaleID = 0;
+
 function toFixed(num, fixed) {
     fixed = fixed || 0;
     fixed = Math.pow(10, fixed);
@@ -89,20 +91,63 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
   });
   mainDiv.appendChild(layerListPane);
 
-  var previewDiv = createElement("div", {
+  var previewContainerDiv = createElement("div", {
     style: {
       position: "absolute",
       left: "300px",
       right: "0px",
       top: "0px",
       bottom: "0px",
+      padding: "5px",
       overflow: "auto",
     },
   });
-  mainDiv.appendChild(previewDiv);
+  mainDiv.appendChild(previewContainerDiv);
+
+  var contentScaleValues = [1, 1.5, 2];
+
+  var contentScaleInput = createElement("span", {
+    textContent: "Content Scale:"
+  });
+  previewContainerDiv.appendChild(contentScaleInput);
+  var contentScaleInput = createElement("input", {
+    type: "range",
+    min: 0,
+    max: contentScaleValues.length - 1,
+    value: gContentScaleID,
+    onchange: function() {
+      gContentScaleID = parseInt(contentScaleInput.value);
+      previewDiv.innerHTML = "";
+      renderPreview();
+      contentScaleValue.textContent = contentScaleValues[gContentScaleID];
+    },
+  });
+  previewContainerDiv.appendChild(contentScaleInput);
+  var contentScaleValue = createElement("span", {
+    textContent: contentScaleValues[gContentScaleID]
+  });
+  previewContainerDiv.appendChild(contentScaleValue);
+
+  var previewDiv = createElement("div", {
+    style: {
+      position: "absolute",
+      left: "0px",
+      right: "0px",
+      top: "50px",
+      bottom: "0px",
+      padding: "5px",
+      overflow: "auto",
+    },
+  });
+  previewContainerDiv.appendChild(previewDiv);
 
   var displayListDump = parseDisplayListDump();
-  populateLayers(displayListDump['tree'], displayListDump['after'], layerListPane, previewDiv);
+
+  function renderPreview() {
+    var contentScale = contentScaleValues[gContentScaleID];
+    populateLayers(displayListDump['tree'], displayListDump['after'], layerListPane, previewDiv, null, contentScale);
+  }
+  renderPreview();
 
   gTabWidget.addTab("DisplayList", container); 
   gTabWidget.selectTab("DisplayList");
