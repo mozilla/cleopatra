@@ -271,6 +271,7 @@ function parseLayers(layersDumpLines) {
     if (matches[2].indexOf("TiledContentHost") != -1 ||
         matches[2].indexOf("GrallocTextureHostOGL") != -1 ||
         matches[2].indexOf("ContentHost") != -1 ||
+        matches[2].indexOf("ContentClient") != -1 ||
         matches[2].indexOf("MemoryTextureHost") != -1 ||
         matches[2].indexOf("ImageHost") != -1) {
       console.log("ignore " + line);
@@ -387,6 +388,7 @@ function parseLayers(layersDumpLines) {
   return root;
 }
 function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, contentScale, rootPreviewParent) {
+  
   contentScale = contentScale || 1;
   rootPreviewParent = rootPreviewParent || previewParent;
 
@@ -423,6 +425,28 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
       }
     },
   });
+  var icon = createElement("img", {
+    src: "images/show.png",
+    style: {
+      width: "12px",
+      height: "12px",
+      marginLeft: "4px",
+      marginRight: "4px",
+      cursor: "pointer",
+    },
+    onclick: function() {
+      if (this.layerViewport) {
+        if (this.layerViewport.style.visibility == "hidden") {
+          this.layerViewport.style.visibility = "";
+          this.src = "images/show.png"
+        } else {
+          this.layerViewport.style.visibility = "hidden";
+          this.src = "images/hide.png"
+        }
+      }
+    }
+  });
+  elem.insertBefore(icon, elem.firstChild);
   pane.appendChild(elem);
 
   if (root["shadow-visible"] || root["visible"]) {
@@ -435,6 +459,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
       },
     });
     elem.layerViewport = layerViewport;
+    icon.layerViewport = layerViewport;
     var layerViewportMatrix = [1, 0, 0, 1, 0, 0];
     if (root["shadow-clip"] || root["clip"]) {
       var clip = root["shadow-clip"] || root["clip"]
@@ -521,6 +546,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
             }
           }
         }
+        layerPreview.style.background = "";
       } else if (root.surfaceURI) {
         hasImg = true;
         var offsetX = 0;
@@ -539,6 +565,7 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
           },
         });
         layerPreview.appendChild(surfaceImgElem);
+        layerPreview.style.background = "";
       } else if (root.color) {
         hasImg = true;
         layerPreview.style.background = "rgba(" + root.color.r + ", " + root.color.g + ", " + root.color.b + ", " + root.color.a + ")";
@@ -608,6 +635,15 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
         },
       });
 
+      var icon = createElement("img", {
+        style: {
+          width: "12px",
+          height: "12px",
+          marginLeft: "4px",
+          marginRight: "4px",
+        }
+      });
+      displayElem.insertBefore(icon, displayElem.firstChild);
       pane.appendChild(displayElem);
       // bounds doesn't adjust for within the layer. It's not a bad fallback but
       // will have the wrong offset
