@@ -117,7 +117,6 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
     value: gContentScaleID,
     onchange: function() {
       gContentScaleID = parseInt(contentScaleInput.value);
-      previewDiv.innerHTML = "";
       renderPreview();
       contentScaleValue.textContent = contentScaleValues[gContentScaleID];
     },
@@ -145,6 +144,8 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
 
   function renderPreview() {
     var contentScale = contentScaleValues[gContentScaleID];
+    previewDiv.innerHTML = "";
+    layerListPane.innerHTML = "";
     populateLayers(displayListDump['tree'], displayListDump['after'], layerListPane, previewDiv, null, contentScale);
   }
   renderPreview();
