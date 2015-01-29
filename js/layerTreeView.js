@@ -264,7 +264,6 @@ function parseLayers(layersDumpLines) {
 
     var matches = line.match("(\\s*)(\\w+)\\s\\((\\w+)\\)(.*)");
     if (!matches) {
-      console.log("ignore " + line);
       continue; // Something like a texturehost dump. Safe to ignore
     }
 
@@ -274,13 +273,11 @@ function parseLayers(layersDumpLines) {
         matches[2].indexOf("ContentClient") != -1 ||
         matches[2].indexOf("MemoryTextureHost") != -1 ||
         matches[2].indexOf("ImageHost") != -1) {
-      console.log("ignore " + line);
       continue; // We're already pretty good at visualizing these
     }
 
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
-    console.log("Indentation: " + indentation + " Line: " + line);
     if (indentation > 0) {
       var parent = objectAtIndentation[indentation - 1];
       while (!parent) {
@@ -361,7 +358,12 @@ function parseLayers(layersDumpLines) {
           parseProperties(rest.substring(1, rest.length - 2).trim(), object);
           layerObject[fieldName] = object;
           layerObject[fieldName].type = "object";
+          continue;
         }
+        fieldName = fieldName.split(" ")[0];
+        console.log(fieldName);
+        layerObject[fieldName] = rest[0];
+        layerObject[fieldName].type = "string";
       }
     }
     parseProperties(rest, layerObject)
@@ -528,6 +530,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
 
       var hasImg = false;
       // Add tile img objects for this part
+      var previewOffset = rect2d;
+
       if (root.tiles) {
         hasImg = true;
         for (var x in root.tiles) {
@@ -537,8 +541,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
                 src: getDataURI(root.tiles[x][y]),
                 style: {
                   position: "absolute",
-                  left: (x - rect2d[0]) + "px",
-                  top: (y - rect2d[1]) + "px",
+                  left: (x - previewOffset[0]) + "px",
+                  top: (y - previewOffset[1]) + "px",
                   pointerEvents: "auto",
                 },
               });
@@ -559,8 +563,8 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
           src: getDataURI(root.surfaceURI),
           style: {
             position: "absolute",
-            left: (0 - rect2d[0]) + "px",
-            top: (0 - rect2d[1]) + "px",
+            left: (offsetX - previewOffset[0]) + "px",
+            top: (offsetY - previewOffset[1]) + "px",
             pointerEvents: "auto",
           },
         });
