@@ -218,8 +218,10 @@ function parseLayers(layersDumpLines) {
     return region;
   }
 
+  var LAYERS_LINE_REGEX = "(\\s*)(\\w+)\\s\\((\\w+)\\)(.*)";
+
   var root;
-  var objectAtIndentation = {};
+  var objectAtIndentation = [];
   for (var i = 0; i < layersDumpLines.length; i++) {
     // Something like 'ThebesLayerComposite (0x12104cc00) [shadow-visible=< (x=0, y=0, w=1920, h=158); >] [visible=< (x=0, y=0, w=1920, h=158); >] [opaqueContent] [valid=< (x=0, y=0, w=1920, h=2218); >]'
     var line = layersDumpLines[i].name || layersDumpLines[i];
@@ -244,12 +246,22 @@ function parseLayers(layersDumpLines) {
     var surfaceMatches = line.match("(\\s*)Surface: (.*)");
     if (surfaceMatches) {
       var indentation = Math.floor(matches[1].length / 2);
-      var parent = objectAtIndentation[indentation - 1];
+      var parent = objectAtIndentation[indentation - 1] || objectAtIndentation[indentation - 2];
+
       var surfaceURI = surfaceMatches[2];
       if (parent.surfaceURI != null) {
         console.log("error: surfaceURI already set for this layer " + parent.line);
       }
       parent.surfaceURI = surfaceURI;
+
+      // Look for the buffer-rect offset
+      var contentHostLine = layersDumpLines[i - 2].name || layersDumpLines[i - 2];
+      var matches = contentHostLine.match(LAYERS_LINE_REGEX);
+      if (matches) {
+        var contentHostRest = matches[4];
+        parent.contentHostProp = {};
+        parseProperties(contentHostRest, parent.contentHostProp);
+      }
 
       continue;
     }
@@ -262,7 +274,7 @@ function parseLayers(layersDumpLines) {
       root = layerObject;
     }
 
-    var matches = line.match("(\\s*)(\\w+)\\s\\((\\w+)\\)(.*)");
+    var matches = line.match(LAYERS_LINE_REGEX);
     if (!matches) {
       continue; // Something like a texturehost dump. Safe to ignore
     }
@@ -278,6 +290,9 @@ function parseLayers(layersDumpLines) {
 
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
+    for (var c = indentation + 1; c < objectAtIndentation.length; c++) {
+      objectAtIndentation[c] = null;
+    }
     if (indentation > 0) {
       var parent = objectAtIndentation[indentation - 1];
       while (!parent) {
@@ -555,9 +570,9 @@ function populateLayers(root, displayList, pane, previewParent, hasSeenRoot, con
         hasImg = true;
         var offsetX = 0;
         var offsetY = 0;
-        if (root.bounds) {
-          offsetX = root.bounds[0];
-          offsetY = root.bounds[1];
+        if (root.contentHostProp && root.contentHostProp['buffer-rect']) {
+          offsetX = root.contentHostProp['buffer-rect'][0];
+          offsetY = root.contentHostProp['buffer-rect'][1];
         }
         var surfaceImgElem = createElement("img", {
           src: getDataURI(root.surfaceURI),
