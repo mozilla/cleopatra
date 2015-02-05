@@ -381,7 +381,12 @@ function parseLayers(layersDumpLines) {
         layerObject[fieldName].type = "string";
       }
     }
-    parseProperties(rest, layerObject)
+    parseProperties(rest, layerObject);
+
+    if (layerObject['shadow-transform']) {
+      // No shadow transform = identify
+      layerObject['shadow-transform'] = [[1, 0], [0, 1], [0, 0]];
+    }
 
     // Compute screenTransformX/screenTransformY
     // TODO Fully support transforms
