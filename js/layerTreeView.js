@@ -383,7 +383,7 @@ function parseLayers(layersDumpLines) {
     }
     parseProperties(rest, layerObject);
 
-    if (layerObject['shadow-transform']) {
+    if (!layerObject['shadow-transform']) {
       // No shadow transform = identify
       layerObject['shadow-transform'] = [[1, 0], [0, 1], [0, 0]];
     }
