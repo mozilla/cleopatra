@@ -2005,7 +2005,7 @@ function getLayersDump(logMarkers, timeStart, timeEnd) {
 function getDisplayList(logMarkers, timeStart, timeEnd) {
   for (var i = 0; i < logMarkers.length; i++) {
     var logMarker = logMarkers[i];
-    if (logMarker.name.lastIndexOf("Painting --- before optimization (", 0) === 0 &&
+    if (logMarker.name.lastIndexOf("Painting --- before optimization", 0) === 0 &&
         logMarker.time > timeStart && logMarker.time < timeEnd) {
       var displayListLines = [];
 

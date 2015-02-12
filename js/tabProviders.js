@@ -33,7 +33,7 @@ function tab_showDisplayListDump(displayListDumpLines, title, time) {
     displayListParts = {};
     for (var i = 0; i < displayListDumpLines.length; i++) {
       var line = displayListDumpLines[i].name || displayListDumpLines[i];
-      if (line.indexOf("Painting --- before optimization (") == 0) {
+      if (line.indexOf("Painting --- before optimization") == 0) {
         section = "before";
         continue;
       } else if (line == "Painting --- after optimization:") {
