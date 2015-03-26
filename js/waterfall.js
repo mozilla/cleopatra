@@ -326,10 +326,6 @@ Waterfall.prototype = {
       str += line.name + "\n";
     }
 
-    if (!this.hasSeenDisplayListDump) {
-      this.hasSeenDisplayListDump = true;
-      tab_showInstruction("DisplayList", "To view a Display List dump you must click on a 'DisplayList' bubble in the Frames timeline.");
-    }
     return str;
   },
 
@@ -340,10 +336,6 @@ Waterfall.prototype = {
       str += line.name + "\n";
     }
 
-    if (!this.hasSeenLayersDump) {
-      this.hasSeenLayersDump = true;
-      tab_showInstruction("LayerTree", "To view a layers dump you must click on a 'Composite' bubble in the Frames timeline.");
-    }
     return str;
   },
 
@@ -454,9 +446,17 @@ Waterfall.prototype = {
         if (item.layersDump) {
           item.layersDump.compositeTime = item.endTime;
           gLayersDumps.push(item.layersDump);
+          if (!this.hasSeenLayersDump) {
+            this.hasSeenLayersDump = true;
+            tab_showInstruction("LayerTree", "To view a layers dump you must click on a 'Composite' bubble in the Frames timeline.");
+          }
           //itemTitle += "\n" + self.formatLayersDump(item.layersDump);
         }
         if (item.displayListDump) {
+          if (!this.hasSeenDisplayListDump) {
+            this.hasSeenDisplayListDump = true;
+            tab_showInstruction("DisplayList", "To view a Display List dump you must click on a 'DisplayList' bubble in the Frames timeline.");
+          }
           //itemTitle += "\n" + self.formatDisplayListDump(item.displayListDump);
         }
 
