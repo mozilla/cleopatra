@@ -31,7 +31,9 @@ function parseDisplayList(lines) {
     var indentation = Math.floor(matches[1].length / 2);
     objectAtIndentation[indentation] = layerObject;
     var parent = objectAtIndentation[indentation - 1];
-    parent.children.push(layerObject);
+    if (parent) {
+      parent.children.push(layerObject);
+    }
 
     layerObject.name = matches[2];
     layerObject.address = matches[3]; // Use 0x prefix to be consistent with layer dump
