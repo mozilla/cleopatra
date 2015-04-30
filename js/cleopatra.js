@@ -173,52 +173,65 @@
 
     uploadProfile: function Cleopatra_uploadProfile(selected) {
       Parser.getSerializedProfile(!selected, function (dataToUpload) {
-        var dataSize;
-        var sizeInBytes = dataToUpload.length;
-        if (dataToUpload.length > 1024*1024) {
-          dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
-        } else {
-          dataSize = (dataToUpload.length/1024).toFixed(1) + " KB(s)";
-        }
 
         function getErrorMessage(status) {
           var msg = "Error " + status + " occurred uploading your file.";
-          if (sizeInBytes > 9 * 1024 * 1024) {
-            msg += " The profile that you are trying to upload is more then the 9 MBs storage maximum. For more information see <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Performance/Profiling_with_the_Built-in_Profiler#Profile_Fails_to_Upload'>how to host your profile.</a>";
-          }
           return msg;
         }
 
-        var oXHR = new XMLHttpRequest();
-        oXHR.onload = function (oEvent) {
-          if (oXHR.status == 200) {  
-            gReportID = oXHR.responseText;
-            AppUI.updateDocumentURL();
-            document.getElementById("upload_status").innerHTML = "Success! Use this <a id='linkElem'>link</a>";
-            document.getElementById("linkElem").href = document.URL;
-          } else {  
-            document.getElementById("upload_status").innerHTML = getErrorMessage(oXHR.status);
-          }  
-        };
-        oXHR.onerror = function (oEvent) {
-          document.getElementById("upload_status").innerHTML = getErrorMessage(oXHR.status);
+        function reportStatus(state) {
+          document.getElementById("upload_status").innerHTML = state;
         }
-        oXHR.upload.onprogress = function(oEvent) {
-          if (oEvent.lengthComputable) {
-            var progress = Math.round((oEvent.loaded / oEvent.total)*100);
-            if (progress == 100) {
-              document.getElementById("upload_status").innerHTML = "Uploading: Waiting for server side compression";
-            } else {
-              document.getElementById("upload_status").innerHTML = "Uploading: " + Math.round((oEvent.loaded / oEvent.total)*100) + "%";
-            }
+        // gzip the profile with zee.js, and send it up to the server.
+        var zeeWorker = new Worker("js/zee.js/zee-worker.js");
+        zeeWorker.onmessage = function(msg) {
+          var data = msg.data.data;
+          var dataSize;
+
+          var sizeInBytes = msg.data.data.length;
+          if (dataToUpload.length > 1024*1024) {
+            dataSize = (dataToUpload.length/1024/1024).toFixed(1) + " MB(s)";
+          } else {
+            dataSize = (dataToUpload.length/1024).toFixed(1) + " KB(s)";
           }
+
+          var oXHR = new XMLHttpRequest();
+
+          oXHR.onload = function (oEvent) {
+            if (oXHR.status == 200) {
+              gReportID = oXHR.responseText;
+              AppUI.updateDocumentURL();
+              reportStatus("Success! Use this <a id='linkElem'>link</a>");
+              document.getElementById("linkElem").href = document.URL;
+            } else {
+              reportStatus(getErrorMessage(oXHR.status));
+            }
+          };
+
+          oXHR.onerror = function (oEvent) {
+            reportStatus(getErrorMessage(oXHR.status));
+          }
+
+          oXHR.upload.onprogress = function(oEvent) {
+            if (oEvent.lengthComputable) {
+              var progress = Math.round((oEvent.loaded / oEvent.total)*100);
+              if (progress == 100) {
+                reportStatus("Uploading: Waiting for server to report success");
+              } else {
+                reportStatus("Uploading: " + Math.round((oEvent.loaded / oEvent.total)*100) + "%");
+              }
+            }
+          };
+
+          oXHR.open("POST", "https://profile-store.appspot.com/compressed-store");
+          oXHR.send(data);
+          reportStatus("Uploading Profile (" + dataSize + ")");
         };
 
-        var formData = new FormData();
-        formData.append("file", dataToUpload);
-        document.getElementById("upload_status").innerHTML = "Uploading Profile (" + dataSize + ")";
-        oXHR.open("POST", "https://profile-store.appspot.com/store", true);
-        oXHR.send(formData);
+        var encoder = new TextEncoder();
+        zeeWorker.postMessage({
+          data: encoder.encode(dataToUpload)
+        });
       });
     },
 
