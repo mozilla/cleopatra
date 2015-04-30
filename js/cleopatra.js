@@ -229,9 +229,10 @@
         };
 
         var encoder = new TextEncoder();
+        var dataAsArrayBuffer = encoder.encode(dataToUpload);
         zeeWorker.postMessage({
-          data: encoder.encode(dataToUpload)
-        });
+          data: dataAsArrayBuffer
+        }, [dataAsArrayBuffer.buffer]);
       });
     },
 
