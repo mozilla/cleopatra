@@ -705,6 +705,13 @@ function parseRawProfile(requestID, params, rawProfile) {
         src: params.appendVideoCapture,
       };
     }
+
+    // Inflate version 3 profiles, which are deduplicated, to version 2
+    // profiles.
+    if (profile.meta.version == 3) {
+      inflateSchemaProfileThreads(profile);
+    }
+
     // Support older format that aren't thread aware
     var rootSymbol = null;
     var insertCommonRoot = false;
@@ -714,7 +721,12 @@ function parseRawProfile(requestID, params, rawProfile) {
     if (profile.threads != null) {
       for (var tid in profile.threads) {
          if (typeof profile.threads[tid] == "string") {
-           profile.threads[tid] = JSON.parse(profile.threads[tid]);
+           var subprocessThread = JSON.parse(profile.threads[tid]);
+           if (profile.meta.version == 3) {
+             inflateSchemaProfileThreads(subprocessThread);
+           }
+           profile.threads[tid] = subprocessThread;
+
            // If we parse the samples this may be a subprocess profile we need to merge in
            if (profile.threads[tid].threads != null) {
              var deltaTime = null;
@@ -974,6 +986,203 @@ function getSerializedProfile(requestID, profileID, complete) {
     symbolicationTable: symbolicationTable
   });
   sendFinished(requestID, serializedProfile);
+}
+
+function inflateSchemaProfileThreads(profile) {
+  function maybeTableEntry(table, index) {
+    return index == undefined ? undefined : table[index];
+  }
+
+  function inflateOptimizations(optimizations, stringTable) {
+    if (optimizations == undefined) {
+      return undefined;
+    }
+
+    var types = optimizations.types;
+    var inflatedTypes = new Array(types.length);
+
+    for (var i = 0; i < types.length; i++) {
+      var type = types[i];
+
+      var typeset = type.typeset;
+      var inflatedTypeset;
+
+      if (typeset) {
+        inflatedTypeset = new Array(typeset.length);
+        for (var j = 0; j < typeset.length; j++) {
+          var ti = typeset[j];
+          inflatedTypeset[j] = {
+            keyedBy: maybeTableEntry(stringTable, ti.keyedBy),
+            name: maybeTableEntry(stringTable, ti.name),
+            location: maybeTableEntry(stringTable, ti.location),
+            line: ti.line
+          };
+        }
+      }
+
+      inflatedTypes[i] = {
+        typeset: inflatedTypeset,
+        site: stringTable[type.site],
+        mirType: stringTable[type.mirType]
+      };
+    }
+
+    var attempts = optimizations.attempts;
+    var attemptsData = attempts.data;
+    var inflatedAttempts = new Array(attemptsData.length);
+
+    var ATTEMPT_STRATEGY_SLOT = attempts.schema.strategy;
+    var ATTEMPT_OUTCOME_SLOT = attempts.schema.outcome;
+
+    for (var i = 0; i < attemptsData.length; i++) {
+      var attempt = attemptsData[i];
+      inflatedAttempts[i] = {
+        strategy: stringTable[attempt[ATTEMPT_STRATEGY_SLOT]],
+        outcome: stringTable[attempt[ATTEMPT_OUTCOME_SLOT]]
+      };
+    }
+
+    return {
+      types: inflatedTypes,
+      attempts: inflatedAttempts,
+      propertyName: maybeTableEntry(stringTable, optimizations.propertyName),
+      line: optimizations.line,
+      column: optimizations.column
+    };
+  }
+
+  function inflateSamples(samples, stackTable, frameTable, stringTable, inflatedFramesCache) {
+    var SAMPLE_STACK_SLOT = samples.schema.stack;
+    var SAMPLE_TIME_SLOT = samples.schema.time;
+    var SAMPLE_RESPONSIVENESS_SLOT = samples.schema.responsiveness;
+    var SAMPLE_RSS_SLOT = samples.schema.rss;
+    var SAMPLE_USS_SLOT = samples.schema.uss;
+    var SAMPLE_FRAMENUMBER_SLOT = samples.schema.frameNumber;
+    var SAMPLE_POWER_SLOT = samples.schema.power;
+
+    var STACK_PREFIX_SLOT = stackTable.schema.prefix;
+    var STACK_FRAME_SLOT = stackTable.schema.frame;
+
+    var FRAME_LOCATION_SLOT = frameTable.schema.location;
+    var FRAME_IMPLEMENTATION_SLOT = frameTable.schema.implementation;
+    var FRAME_OPTIMIZATIONS_SLOT = frameTable.schema.optimizations;
+    var FRAME_LINE_SLOT = frameTable.schema.line;
+    var FRAME_CATEGORY_SLOT = frameTable.schema.category;
+
+    var samplesData = samples.data;
+    var stacksData = stackTable.data;
+    var framesData = frameTable.data;
+    var inflatedSamples = new Array(samplesData.length);
+
+    for (var i = 0; i < samplesData.length; i++) {
+      var sample = samplesData[i];
+
+      var frames = [];
+      var stackIndex = sample[SAMPLE_STACK_SLOT];
+      while (stackIndex !== null) {
+        var stackEntry = stacksData[stackIndex];
+        var frameIndex = stackEntry[STACK_FRAME_SLOT];
+        var f = inflatedFramesCache[frameIndex];
+        if (!f) {
+          var frame = framesData[frameIndex];
+          f = inflatedFramesCache[frameIndex] = {
+            location: stringTable[frame[FRAME_LOCATION_SLOT]],
+            implementation: maybeTableEntry(stringTable, frame[FRAME_IMPLEMENTATION_SLOT]),
+            optimizations: inflateOptimizations(frame[FRAME_OPTIMIZATIONS_SLOT], stringTable),
+            line: frame[FRAME_LINE_SLOT],
+            category: frame[FRAME_CATEGORY_SLOT]
+          };
+        }
+        frames.push(f);
+        stackIndex = stackEntry[STACK_PREFIX_SLOT];
+      }
+
+      // Reverse to get oldest-to-youngest order.
+      frames.reverse();
+
+      inflatedSamples[i] = {
+        frames: frames,
+        time: sample[SAMPLE_TIME_SLOT],
+        responsiveness: sample[SAMPLE_RESPONSIVENESS_SLOT],
+        rss: sample[SAMPLE_RSS_SLOT],
+        uss: sample[SAMPLE_USS_SLOT],
+        frameNumber: sample[SAMPLE_FRAMENUMBER_SLOT],
+        power: sample[SAMPLE_POWER_SLOT]
+      };
+    }
+
+    return inflatedSamples;
+  }
+
+  function inflateMarkers(markers, stackTable, frameTable, stringTable, inflatedFramesCache) {
+    var MARKER_NAME_SLOT = markers.schema.name;
+    var MARKER_TIME_SLOT = markers.schema.time;
+    var MARKER_DATA_SLOT = markers.schema.data;
+
+    var markersData = markers.data;
+    var inflatedMarkers = new Array(markersData.length);
+
+    for (var i = 0; i < markersData.length; i++) {
+      var marker = markersData[i];
+
+      var payload = marker[MARKER_DATA_SLOT];
+      if (payload && payload.type === "tracing" && payload.stack) {
+        payload.stack = inflateThread(payload.stack, stackTable, frameTable, stringTable,
+                                      inflatedFramesCache);
+      }
+
+      inflatedMarkers[i] = {
+        name: stringTable[marker[MARKER_NAME_SLOT]],
+        time: marker[MARKER_TIME_SLOT],
+        data: payload
+      };
+    }
+
+    return inflatedMarkers;
+  }
+
+  function inflateThread(thread, stackTable, frameTable, stringTable, inflatedFramesCache) {
+    return {
+      name: thread.name,
+      tid: thread.tid,
+      samples: inflateSamples(thread.samples, stackTable, frameTable, stringTable,
+                              inflatedFramesCache),
+      markers: inflateMarkers(thread.markers, stackTable, frameTable, stringTable,
+                              inflatedFramesCache)
+    };
+  }
+
+  if (profile.meta.version !== 3) {
+    return;
+  }
+
+  for (var i = 0; i < profile.threads.length; i++) {
+    var thread = profile.threads[i];
+
+    // Some threads contain entire profiles of other processes as strings.
+    if (typeof thread == "string") {
+      var subprocessProfile = JSON.parse(thread);
+      inflateSchemaProfileThreads(subprocessProfile);
+      profile.threads[i] = JSON.stringify(subprocessProfile);
+      continue;
+    }
+
+    var stackTable = thread.stackTable;
+    var frameTable = thread.frameTable;
+    var stringTable = thread.stringTable;
+
+    var numFrames = frameTable.data.length;
+    var inflatedFramesCache = new Array(numFrames);
+    // Prefill to ensure no holes.
+    for (var j = 0; j < numFrames; j++) {
+      inflatedFramesCache[j] = null;
+    }
+
+    profile.threads[i] = inflateThread(thread, stackTable, frameTable, stringTable,
+                                       inflatedFramesCache);
+  }
+
+  profile.meta.version = 2;
 }
 
 function TreeNode(name, parent, startCount) {
