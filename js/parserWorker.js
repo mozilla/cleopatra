@@ -336,7 +336,7 @@ function parseRawProfile(requestID, params, rawProfile) {
 
   function cleanFunctionName(functionName) {
     var ignoredPrefix = "non-virtual thunk to ";
-    if (functionName.startsWith(ignoredPrefix))
+    if (functionName.startsWith && functionName.startsWith(ignoredPrefix))
       return functionName.substr(ignoredPrefix.length);
     return functionName;
   }
