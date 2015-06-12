@@ -68,7 +68,7 @@
     handleEvent: function Cleopatra_handleEvent(evt) {
       switch (evt.type) {
         case 'message':
-          this._handleMessage(evt.data);
+          this._handleMessage(evt, evt.data);
           break;
         case 'prompt-upload-profile':
           this.promptUploadProfile(evt.detail);
@@ -76,32 +76,35 @@
       }
     },
 
-    _handleMessage: function Cleopatra__handleMessage(data) {
+    _handleMessage: function Cleopatra__handleMessage(evt, data) {
       // This is triggered by the profiler add-on.
-      if (data.type) {
-        // This doesn't handle messages with types.
-        return;
-      }
-
-      var o = JSON.parse(data);
-      switch (o.task) {
-        case "importFromAddonStart":
-          var totalReporter = AppUI.enterProgressUI();
-          gImportFromAddonSubreporters = totalReporter.addSubreporters({
-            import: 10000,
-            parsing: 1000
-          });
-          gImportFromAddonSubreporters.import.begin("Symbolicating...");
-          break;
-        case "importFromAddonProgress":
-          gImportFromAddonSubreporters.import.setProgress(o.progress);
-          if (o.action != null) {
-              gImportFromAddonSubreporters.import.setAction(o.action);
-          }
-          break;
-        case "importFromAddonFinish":
-          this.importFromAddonFinish(o.rawProfile);
-          break;
+      if (data.type == "ping") {
+        evt.source.postMessage({
+          type: "pong"
+        }, "*");
+      } else if (data.type == "spsProfile") {
+        this.loadProfile(data.spsProfile);
+      } else {
+        var o = JSON.parse(data);
+        switch (o.task) {
+          case "importFromAddonStart":
+            var totalReporter = AppUI.enterProgressUI();
+            gImportFromAddonSubreporters = totalReporter.addSubreporters({
+              import: 10000,
+              parsing: 1000
+            });
+            gImportFromAddonSubreporters.import.begin("Symbolicating...");
+            break;
+          case "importFromAddonProgress":
+            gImportFromAddonSubreporters.import.setProgress(o.progress);
+            if (o.action != null) {
+                gImportFromAddonSubreporters.import.setAction(o.action);
+            }
+            break;
+          case "importFromAddonFinish":
+            this.importFromAddonFinish(o.rawProfile);
+            break;
+        }
       }
     },
 
