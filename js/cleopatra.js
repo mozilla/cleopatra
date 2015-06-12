@@ -78,6 +78,11 @@
 
     _handleMessage: function Cleopatra__handleMessage(data) {
       // This is triggered by the profiler add-on.
+      if (data.type) {
+        // This doesn't handle messages with types.
+        return;
+      }
+
       var o = JSON.parse(data);
       switch (o.task) {
         case "importFromAddonStart":

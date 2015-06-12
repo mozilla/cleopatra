@@ -170,7 +170,7 @@ ProfileLocalStorage.prototype = {
       self._storage.setValue(profileKey, profile, function complete() {
         self._storage.setValue("profileList", profileList);
         if (callback)
-          callback();
+          callback(profileKey);
         if (self._profileListChangeCallback) {
           self._profileListChangeCallback(profileList);
         }
@@ -238,4 +238,21 @@ function quickTest() {
     });
   });
 }
+
+function receiveMessage(event) {
+  if (event.data.spsProfile) {
+    var spsProfileStr = event.data.spsProfile;
+    gLocalStorage.storeLocalProfile(spsProfileStr, null, function profileSaved(key) {
+      var msg = {
+        "type": "spsProfileReceived",
+        "key": key,
+      };
+  
+      event.source.postMessage(msg, "*");
+    });
+  }
+}
+
+window.addEventListener("message", receiveMessage, false);
+
 //quickTest();
