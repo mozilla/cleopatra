@@ -515,7 +515,7 @@ var HistogramContainer;
         for (var j = 0; j < this.markers.length; j++) {
           var marker = this.markers[j];
           // ignore markers that have data/category (waterfall markers)
-          if (!marker.data || !marker.data.category && marker.name != "gpu_timer_query") {
+          if (marker.type == "stack" || !marker.data || !marker.data.category && marker.name != "gpu_timer_query") {
             // if the previous first marker of a set and this marker are
             //  within the same pixel, combine them
             if (lastMarkerTime != -1 && (lastMarkerTime + 5*step / barWidth > marker.time)) {
