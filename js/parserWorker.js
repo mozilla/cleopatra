@@ -732,7 +732,7 @@ function parseRawProfile(requestID, params, rawProfile) {
              var deltaTime = null;
              if (profile.meta.startTime && profile.threads[tid].meta.startTime) {
                deltaTime = profile.threads[tid].meta.startTime - profile.meta.startTime;
-               for (var sampleId = 0; sampleId < profile.threads[tid].threads[0].samples; sampleId++) {
+               for (var sampleId = 0; sampleId < profile.threads[tid].threads[0].samples.length; sampleId++) {
                  var sample = profile.threads[tid].threads[0].samples[sampleId];
                  if (sample.time) {
                    sample.time += deltaTime;
