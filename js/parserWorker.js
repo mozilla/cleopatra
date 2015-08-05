@@ -1909,6 +1909,15 @@ var diagnosticList = [
 
   // **************** General issues
   {
+    image: "sync-ipc.png",
+    title: "Sync IPC message",
+    bugNumber: "1174239",
+    check: function(frames, symbols, meta) {
+      return stepContains('WaitForSyncNotify', frames, symbols);
+    },
+  },
+
+  {
     image: "js.png",
     title: "JS is triggering a sync reflow",
     check: function(frames, symbols, meta) {
