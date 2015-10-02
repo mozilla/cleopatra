@@ -16,7 +16,8 @@ RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
-var requestAnimationFrame = window.webkitRequestAnimationFrame ||
+var requestAnimationFrame = window.requestAnimationFrame ||
+                            window.webkitRequestAnimationFrame ||
                             window.mozRequestAnimationFrame ||
                             window.oRequestAnimationFrame ||
                             window.msRequestAnimationFrame ||
@@ -24,7 +25,8 @@ var requestAnimationFrame = window.webkitRequestAnimationFrame ||
                               return window.setTimeout(callback, 1000 / 60);
                             };
 
-var cancelAnimationFrame = window.webkitCancelAnimationFrame ||
+var cancelAnimationFrame = window.cancelAnimationFrame ||
+                           window.webkitCancelAnimationFrame ||
                            window.mozCancelAnimationFrame ||
                            window.oCancelAnimationFrame ||
                            window.msCancelAnimationFrame ||
