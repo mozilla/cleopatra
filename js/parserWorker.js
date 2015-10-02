@@ -1520,10 +1520,12 @@ function updateFilters(requestID, profileID, filters, threadId) {
     samples = discardLineLevelInformation(samples, symbols, functions);
   }
 
-  samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
-    if (currentFilter===null) return filteredSamples;
-    return currentFilter.filter(filteredSamples, symbols, functions, filters.mergeFunctions);
-  }, samples);
+  if (filters.sampleFilters) {
+    samples = unserializeSampleFilters(filters.sampleFilters).reduce(function (filteredSamples, currentFilter) {
+      if (currentFilter===null) return filteredSamples;
+      return currentFilter.filter(filteredSamples, symbols, functions, filters.mergeFunctions);
+    }, samples);
+  }
 
   if (filters.nameFilter) {
     try {
@@ -1559,12 +1561,20 @@ function updateFilters(requestID, profileID, filters, threadId) {
   gProfiles[profileID].filteredThreadSamples[threadId] = samples;
   gProfiles[profileID].filteredThreadMarkers[threadId] = markers;
   gProfiles[profileID].selectedThread = threadId;
-  sendFinishedInChunks(requestID, samples, 40000,
-                       function (sample) { return sample ? sample.frames.length : 1; });
+  if (requestID) {
+    sendFinishedInChunks(requestID, samples, 40000,
+                         function (sample) { return sample ? sample.frames.length : 1; });
+  }
 }
 
 function updateViewOptions(requestID, profileID, options, threadId) {
   var profile = gProfiles[profileID];
+
+  // If we have computed any filters, do so now
+  if (!profile.filteredThreadSamples) {
+    updateFilters(null, profileID, {}, threadId);
+  }
+
   var samples = profile.filteredThreadSamples[threadId];
   var symbols = profile.symbols;
   var functions = profile.functions;

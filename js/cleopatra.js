@@ -50,6 +50,7 @@
       window.addEventListener('message', this);
       window.addEventListener('prompt-upload-profile', this);
       window.onpopstate = function(ev) {
+        /*
         return; // Conflicts with document url
         if (!gBreadcrumbTrail)
           return;
@@ -62,6 +63,7 @@
             //gBreadcrumbTrail.pop();
           }
         }
+        */
       }
     },
 

@@ -651,7 +651,10 @@ var HistogramContainer;
     },
 
     highlightedCallstackChanged: function (stack, inverted) {
-      this.scheduleRender(stack, inverted);
+      // Only render if we're already called display
+      if (this.boundaries) {
+        this.scheduleRender(stack, inverted);
+      }
     },
 
     percentSelected: function (data, callstack, inverted) {
