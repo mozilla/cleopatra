@@ -708,7 +708,7 @@ function parseRawProfile(requestID, params, rawProfile) {
 
     // Inflate version 3 profiles, which are deduplicated, to version 2
     // profiles.
-    if (profile.meta.version == 3) {
+    if (profile.meta && profile.meta.version == 3) {
       inflateSchemaProfileThreads(profile);
     }
 
