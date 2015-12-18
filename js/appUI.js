@@ -208,7 +208,6 @@
       gTabWidget = new TabWidget();
       gTabWidget.addTab("Samples", treeContainerDiv);
 
-
       gCallGraph = new FlameGraphUtils();
       gTabWidget.addTab("Call Graph", function() {
         return gCallGraph.getContainer();
@@ -227,6 +226,17 @@
 
       gGeckoLogHandler = new GeckoLogHandler();
       gTabWidget.addTab("Logging", gGeckoLogHandler.getContainer());
+
+      if (gTaskTracer) {
+        gTabWidget.addTab("Task Tracer", function() {
+          if (!window.gTaskTracerRemoteView) {
+            var taskTracerURL = "http://alivedise.github.io/nephthys/";
+            taskTracerURL = "file:///Users/bgirard/ben/sps/nephthys/index.html";
+            window.gTaskTracerRemoteView = new RemoteView(taskTracerURL, gTaskTracer);
+          }
+          return window.gTaskTracerRemoteView.getContainer();
+        });
+      }
 
       // sampleBar
 

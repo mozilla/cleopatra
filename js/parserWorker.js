@@ -330,6 +330,8 @@ function parseRawProfile(requestID, params, rawProfile) {
     parseProfileString(rawProfile);
   }
 
+  tasktracer = rawProfile.tasktracer;
+
   if (params.profileId) {
     meta.profileId = params.profileId;
   }
@@ -699,7 +701,6 @@ function parseRawProfile(requestID, params, rawProfile) {
     // TODO support all the thread in the profile
     var profileSamples = null;
     meta = profile.meta || {};
-    tasktracer = profile.tasktracer;
     if (params.appendVideoCapture) {
       meta.videoCapture = {
         src: params.appendVideoCapture,
