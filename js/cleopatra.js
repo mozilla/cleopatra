@@ -285,8 +285,11 @@
         gReportID = queryData.report;
       }
       if (queryData.filter) {
-        var filterChain = JSON.parse(queryData.filter);
-        gSampleFilters = filterChain;
+        try {
+          var filterChain = JSON.parse(queryData.filter);
+          gSampleFilters = filterChain;
+        } catch (e) {
+        }
       }
       if (queryData.select) {
         var parts = queryData.select.split(',');
