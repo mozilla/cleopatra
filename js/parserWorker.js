@@ -1894,21 +1894,6 @@ var diagnosticList = [
 
   {
     image: "js.png",
-    title: "JS - Bug 767070 - Text selection performance is bad on android",
-    bugNumber: "767070",
-    check: function(frames, symbols, meta) {
-
-      if (!stepContains('FlushPendingNotifications', frames, symbols))
-        return false;
-
-      return stepContains('sh_', frames, symbols)
-          && stepContains('browser.js', frames, symbols)
-          ;
-    },
-  },
-
-  {
-    image: "js.png",
     title: "JS - Bug 765930 - Reader Mode: Optimize readability check",
     bugNumber: "765930",
     check: function(frames, symbols, meta) {
