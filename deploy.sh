@@ -1,3 +1,2 @@
 #!/bin/bash
-ssh webadmin@varium.fantasytalesonline.com "cd tomcat/webapps/ROOT/cleopatra/ && git pull"
-ssh bgirard@people.mozilla.org "cd public_html/cleopatra && git checkout * && git pull && chmod -R 755 ."
+ssh bgirard@people.mozilla.org "cd public_html/cleopatra_staging && git reset --hard HEAD && git pull && bash appcache_generator.sh && chmod -R 755 ."

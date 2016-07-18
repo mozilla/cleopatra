@@ -63,6 +63,8 @@ body {
   background-color: rgba(0, 0, 0, 0.5);
 }
 .finishedProfilePane {
+  display: flex;
+  flex-direction: column;
   -webkit-animation: appear 300ms ease-out;
   -moz-animation: appear 300ms ease-out;
 }
@@ -183,25 +185,15 @@ body {
   opacity: 0;
   margin-left: -270px;
 }
-.treeContainer {
-  /*For asbolute position child*/
-  position: relative;
-}
 .tree {
-  height: 100%;
-  padding: 0px 200px 0px 0px;
+  display: flex;
+  flex-flow: column;
+  width: 100%;
 }
 #sampleBar {
-  position: absolute;
-  float: right;
-  left: auto;
-  top: 0;
-  right: 0;
-  height: 100%;
-  border-top: none;
-  border-right: none;
-  border-bottom:none;
-  padding-top:0;
+  position: relative;
+  height: auto;
+  min-width: 200px;
 }
 #sampleBar a {
   text-decoration: none;
@@ -254,7 +246,7 @@ body {
   left: 0;
   bottom: 0;
   width: 200px;
-  height: 480px;
+  height: 510px;
   overflow: auto;
   padding: 3px;
   padding-top: 0;
@@ -277,6 +269,10 @@ body {
 .sideBar ul {
   margin: 2px 0;
   padding-left: 18px;
+}
+#filterName {
+  padding: 0;
+  height: 12px;
 }
 .pluginview {
   position: absolute;
@@ -301,6 +297,25 @@ body {
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
 }
+.waterfallFrame {
+  position: absolute;
+  overflow: hidden;
+  border-left: solid 1px;
+  border-right: solid 1px;
+  top: 0px !important;
+  height: 58px !important;
+}
+.waterfallItem {
+  position: absolute;
+  overflow: hidden;
+  border: solid 1px;
+  border-radius: 3px;
+  height: 16px;
+}
+.waterfallOrThreadRow {
+  display: flex;
+  width: 100%;
+}
 .histogram {
   position: relative;
   height: 60px;
@@ -310,10 +325,56 @@ body {
   background: -moz-linear-gradient(#EEE, #CCC);
   background: -webkit-linear-gradient(#EEE, #CCC);
   background: linear-gradient(#EEE, #CCC);
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white;
+  overflow: hidden;
+}
+.waterfallContainer {
+  height: 95px;
+  overflow: hidden;
+}
+.marker {
+  position: absolute;
+  cursor: default;
+  white-space: nowrap;
+  text-overflow:ellipsis;
+  max-width: 50px;
+  overflow: hidden;
+}
+.marker:hover {
+  transition-property: background, box-shadow;
+  transition-duration: 500ms, 500ms;
+  background: #FFD;
+  border-radius: 3px;
+  white-space: normal;
+  overflow: visible;
+  max-width: none;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  padding: 2px 5px;
+  margin: -2px -1px;
+}
+.rangeSelectorContainer {
+}
+.histogramContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
+}
+.histogramContainerParent {
+  flex: 0 0 auto; /* exact size */
+  display: block;
+  overflow-y: auto;
+  max-height: 300px;
+}
+.histogramSelected {
+  background: rgb(200,200,255);
 }
 .histogramHilite {
   position: absolute;
   pointer-events: none;
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white
+  z-index: 1;
 }
 .histogramHilite:not(.collapsed) {
   background: rgba(150, 150, 150, 0.5);
@@ -322,11 +383,12 @@ body {
   position: absolute;
   pointer-events: none;
   top: 0;
-  width: 1px;
+  width: 100px;
   height: 100%;
+  z-index: 1;
 }
 .histogramMouseMarker:not(.collapsed) {
-    background: rgba(0, 0, 150, 0.7);
+  border-left: solid 1px rgba(0, 0, 150, 0.7);
 }
 #iconbox {
   display: none;
@@ -358,12 +420,37 @@ body {
 .fileListItemTitle {
   display: block;
   padding-top: 6px;
+  margin-left: 6px;
   font-size: 12px;
+  background: none;
+  border: none;
+}
+.fileListItemTitle:focus, .fileListItemTitle:hover {
+  background: white;
+  border: 1px;
 }
 .fileListItemDescription {
   display: block;
   line-height: 15px;
   font-size: 9px;
+}
+.fileListItemDelete {
+  background-image: url(../images/error-16.png);
+  width: 16px;
+  height: 16px;
+  top: -24px;
+  right: 5px;
+  position: relative;
+  float: right;
+}
+.fileListItemDeleteDescription {
+  display: none;
+}
+.fileListItemDelete:hover + fileListItemDeleteDescription {
+  display: block;
+}
+.fileListItemDelete:hover {
+  outline: solid 1px;
 }
 .busyCover {
   position: absolute;
@@ -391,6 +478,13 @@ body {
   left: 50%;
   margin: -12px;
 }
+.busyCover#videoCover::after {
+  position: absolute;
+  top: calc(50% + 16px);
+  left: calc(50% - 50px);
+  text-shadow: 1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white;
+  content: "Decoding QR Codes";
+}
 label {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -398,8 +492,10 @@ label {
 .videoPane {
   background-color: white;
   width: 100%;
+  position: relative;
 }
 .video {
+  max-width: 640px;
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -425,4 +521,233 @@ iframe {
   width: 100%;
   height: 100%;
 }
+.threadHistogramDescriptionText {
+  white-space: nowrap;
+}
+.threadHistogramDescription {
+  overflow-x: auto;
+  align-self: stretch;
+  width: 150px;
+  font-size: 16px;
+  font-family: "Lucida Grande",sans-serif;
+  border-bottom: 1px solid #CCC;
+  background: none repeat scroll 0% 0% rgb(219, 223, 231);
+  border-right: solid 1px white;
+  padding-left: 5px;
+}
+.threadHistogramContent {
+  overflow: hidden;
+  flex: 1;
+}
+.adjustable {
+  cursor: ns-resize;
+}
+.hidden {
+  visibility: none;
+}
 
+/* TABS: http://css-tricks.com/better-tabs-with-round-out-borders/ */
+.tabrow {
+    text-align: center;
+    list-style: none;
+    padding: 0;
+    line-height: 14px;
+    height: 16px;
+    overflow: hidden;
+    font-size: 10px;
+    font-family: verdana;
+    position: relative;
+}
+
+.tabrow li {
+    border: 1px solid #AAA;
+    background: #D1D1D1;
+    background: -o-linear-gradient(top, #ECECEC 50%, #D1D1D1 100%);
+    background: -ms-linear-gradient(top, #ECECEC 50%, #D1D1D1 100%);
+    background: -moz-linear-gradient(top, #ECECEC 50%, #D1D1D1 100%);
+    background: -webkit-linear-gradient(top, #ECECEC 50%, #D1D1D1 100%);
+    background: linear-gradient(top, #ECECEC 50%, #D1D1D1 100%);
+    display: inline-block;
+    position: relative;
+    z-index: 0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    box-shadow: 0 3px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 #FFF;
+    text-shadow: 0 1px #FFF;
+    margin: 0 -5px;
+    padding: 0 20px;
+}
+.tabrow a {
+          color: #555;
+          text-decoration: none;
+}
+.tabrow li.selected {
+    background: #FFF;
+    color: #333;
+    z-index: 2;
+    border-bottom-color: #FFF;
+}
+.tabrow:before {
+    position: absolute;
+    content: " ";
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    border-bottom: 1px solid #AAA;
+    z-index: 1;
+}
+.tabrow li:before,
+.tabrow li:after {
+    border: 1px solid #AAA;
+    position: absolute;
+    bottom: -1px;
+    width: 5px;
+    height: 5px;
+    content: " ";
+}
+.tabrow li:before {
+    left: -6px;
+    border-bottom-right-radius: 6px;
+    border-width: 0 1px 1px 0;
+    box-shadow: 2px 2px 0 #D1D1D1;
+}
+.tabrow li:after {
+    right: -6px;
+    border-bottom-left-radius: 6px;
+    border-width: 0 0 1px 1px;
+    box-shadow: -2px 2px 0 #D1D1D1;
+}
+.tabrow li.selected:before {
+    box-shadow: 2px 2px 0 #FFF;
+}
+.tabrow li.selected:after {
+    box-shadow: -2px 2px 0 #FFF;
+}
+
+.logWidget {
+  white-space: pre;
+}
+
+.logLine:hover {
+  background-color: #E8E8E8;
+}
+
+.layerObjectDescription:hover {
+  background-color: #E8E8E8;
+}
+
+.layerHover > .layerPreview::after {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background-color: inherit;
+  content: "";
+  background-color: rgba(0,0,0,0.2);
+  box-shadow: -2px 2px 0 #FFF;
+}
+
+@keyframes layerHoverAnimation {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.displayHover {
+  background: rgba(0, 128, 0, 0.8);
+}
+
+.layerHover > .layerPreview {
+  animation: layerHoverAnimation 200ms;
+  animation-transform-origin: 50% 50%;
+  background: gold !important;
+  box-shadow: 10px 10px 5px #888888;
+  border-color: blue !important;
+  z-index: 10;
+}
+
+.tabPane {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+
+.tabContainer {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+
+.treeContainer {
+  overflow: hidden;
+  display: flex;
+  flex-flow: row nowrap;
+  height: 100%;
+  flex: 1;
+}
+
+/* end tabs */
+
+.chooserPanel {
+  position: absolute;
+  top: 50px;
+  left: 0px;
+  bottom: 50px;
+  right: 0px;
+  max-width: 600px;
+  margin: auto;
+  background: none repeat scroll 0% 0% rgb(221, 221, 221);
+  box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.1),
+              0px 5px 10px rgba(0, 0, 0, 0.4),
+              0px 0px 0px 1000px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.chooserPanel:not(.appear) {
+  opacity: 0;
+}
+
+.chooserPanel > h3 {
+  background: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  font-size: 1em;
+  font-weight: bold;
+  padding: 20px;
+  margin: 0px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  flex: 0 0 auto;
+}
+
+.chooserPanel > ul {
+  margin: 0px;
+  padding: 0px;
+  display: block;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.chooserPanel > ul > li {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+.chooserPanel > ul > li > a {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: black;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  line-height: 15px;
+  padding: 0px 4px;
+  background-clip: padding-box;
+}
+
+.chooserPanel > ul > li > a:hover {
+  background-color: rgba(0,0,0,0.1);
+}

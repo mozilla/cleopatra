@@ -1,7 +1,6 @@
 function DiagnosticBar() {
   this._container = document.createElement("div");
   this._container.className = "diagnostic";
-  this._colorCode = 0;
 }
 
 DiagnosticBar.prototype = {
@@ -19,11 +18,7 @@ DiagnosticBar.prototype = {
       width = 0.1;
 
     var diagnosticGradient = document.createElement("a");
-    if (this._colorCode % 2 == 0) {
-      diagnosticGradient.className = "diagnosticItemEven";
-    } else {
-      diagnosticGradient.className = "diagnosticItemOdd";
-    }
+    diagnosticGradient.className = "diagnosticItem";
 
     var diagnostic = document.createElement("a");
 
@@ -43,7 +38,6 @@ DiagnosticBar.prototype = {
     diagnosticGradient.style.backgroundPosition = "center";
     diagnosticGradient.style.left = x + "%";
 
-
     if (onclickDetails) {
       diagnostic.onclick = function() {
         if (self._detailsListener) {
@@ -54,16 +48,21 @@ DiagnosticBar.prototype = {
     diagnosticGradient.appendChild(diagnostic);
     this._container.appendChild(diagnosticGradient);
 
-    this._colorCode++;
-
     return true;
   },
-  display: function DiagnosticBar_display(diagnosticItems) {
+  hide: function HistogramContainer_hide() {
+    this._container.style.display = "none";
+  },
+  display: function DiagnosticBar_display(diagnosticItems, boundaries) {
     var self = this;
+    this._container.style.display = "none";
     this._container.innerHTML = "";
 
     var addedAnyDiagnosticItem = diagnosticItems.map(function addOneItem(item) {
-      return self._addDiagnosticItem(item.x, item.width, item.imageFile, item.title, item.details, item.onclickDetails);
+      var x1 = (item.start - boundaries.min) / (boundaries.max - boundaries.min);
+      var x2 = (item.end - boundaries.min) / (boundaries.max - boundaries.min);
+      var width = (item.start - boundaries.min) / (boundaries.max - boundaries.min);
+      return self._addDiagnosticItem(x1, x2-x1, item.imageFile, item.title, item.details, item.onclickDetails);
     }).some(function (didAdd) { return didAdd; });
 
     if (!addedAnyDiagnosticItem) {

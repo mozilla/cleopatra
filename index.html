@@ -7,19 +7,41 @@
     <link rel="stylesheet" type="text/css" href="css/tree.css">
     <link rel="stylesheet" type="text/css" href="css/diagnosticBar.css">
     <link rel="stylesheet" type="text/css" href="css/sourceView.css">
+    <link rel="stylesheet" type="text/css" href="css/tooltips.css">
+    <script src="js/qr/jsqrcode/qrcode.js"></script>
     <script src="js/diagnosticBar.js"></script>
+    <script src="js/histogram.js"></script>
+    <script src="js/waterfall.js"></script>
     <script src="js/parser.js"></script>
     <script src="js/tree.js"></script>
     <script src="js/sourceView.js"></script>
     <script src="js/frameView.js"></script>
+    <script src="js/sampleBar.js"></script>
+    <script src="js/fileList.js"></script>
+    <script src="js/infoBar.js"></script>
+    <script src="js/pluginView.js"></script>
+    <script src="js/histogramView.js"></script>
+    <script src="js/breadcrumbTrail.js"></script>
+    <script src="js/profileTreeManager.js"></script>
+    <script src="js/appUI.js"></script>
+    <script src="js/lz4.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/remoteView.js"></script>
     <script src="js/profileCompare.js"></script>
     <script src="js/QueryData.compressed.js"></script>
     <script src="js/ProgressReporter.js"></script>
     <script src="js/videoPane.js"></script>
     <script src="js/beautify.js"></script>
     <script src="js/localStorage.js"></script>
+    <script src="js/markerTree.js"></script>
+    <script src="js/tabWidget.js"></script>
+    <script src="js/log.js"></script>
+    <script src="js/tabProviders.js"></script>
+    <script src="js/layerTreeView.js"></script>
     <!-- <script src="js/localStorage.js"></script> -->
+
+    <script src="js/FlameGraph.js"></script>
+    <script src="js/FlameGraphUtils.js"></script>
 
     <!-- Use Zip.js to handle zipped input files from eideticker-->
     <script src="js/zip.js/zip.js"></script>
@@ -27,53 +49,14 @@
     <script src="js/zip.js/inflate.js"></script>
     <!-- <script src="js/zip.js/dataview.js"></script> -->
 
+    <!-- Graphs -->
+    <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/c3/0.1.29/c3.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.6/d3.min.js" charset="utf-8"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/c3/0.1.29/c3.min.js"></script>
+
     <link rel="shortcut icon" href="favicon.png" />
-
-
   </head>
   <body>
-    <script>
-      enterMainUI();
-
-      var queryData;
-      if (location.hash) {
-        queryData = new QueryData(location.hash.substring(1));
-      } else {
-        queryData = new QueryData();
-      }
-
-      if (queryData.videoCapture) {
-        appendVideoCapture(queryData.videoCapture);
-      }
-      if (queryData.trace) {
-        enableProfilerTracing();
-      } else if (queryData.logging) {
-        enableProfilerLogging();
-      }
-
-      if (queryData.report) {
-        if (queryData.report.length == 40) {
-          loadProfileURL('http://profile-store.commondatastorage.googleapis.com/' + queryData.report);
-        } else {
-          loadProfileURL('http://profile-logs.appspot.com/serve/' + queryData.report);
-        }
-      } else if (queryData.customProfile !== undefined) {
-        loadProfileURL(queryData.customProfile);
-      } else if (queryData.usesample !== undefined) {
-        var filename;
-        if (filename == "pseudo") {
-          filename = 'sample.profile';
-        } else if (queryData.usesample !== null) {
-          filename = queryData.usesample;
-        } else {
-          filename = "sample.big";
-        }
-        loadProfileURL(filename);
-      } else if (queryData.zippedProfile) {
-        // Fetch a compressed eideticker profile
-        loadZippedProfileURL(queryData.zippedProfile);
-      }
-      loadQueryData(queryData);
-    </script>
+    <script src="js/cleopatra.js"></script>
   </body>
 </html>
